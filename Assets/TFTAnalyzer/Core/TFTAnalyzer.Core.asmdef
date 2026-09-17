@@ -1,0 +1,8 @@
+{
+  "name": "TFTAnalyzer.Core",
+  "rootNamespace": "TFTAnalyzer",
+  "references": [
+    "Unity.Newtonsoft.Json"
+  ],
+  "autoReferenced": true
+}

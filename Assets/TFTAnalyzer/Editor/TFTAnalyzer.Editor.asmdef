@@ -1,0 +1,12 @@
+{
+  "name": "TFTAnalyzer.Editor",
+  "rootNamespace": "TFTAnalyzer.Editor",
+  "references": [
+    "TFTAnalyzer.Core",
+    "Unity.Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

@@ -1,0 +1,16 @@
+{
+  "name": "TFTAnalyzer.Tests.EditMode",
+  "rootNamespace": "TFTAnalyzer.Tests",
+  "references": [
+    "TFTAnalyzer.Core",
+    "TFTAnalyzer.Editor",
+    "Unity.Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}
