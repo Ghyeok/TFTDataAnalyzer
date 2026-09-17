@@ -1,0 +1,47 @@
+{
+  "setData": [
+    {
+      "number": 18,
+      "champions": [
+        {
+          "apiName": "TEST18_Unit_A",
+          "name": "보완 기물",
+          "cost": 4,
+          "role": "Mage",
+          "desc": "창작 보완 스킬입니다.",
+          "traits": ["TEST18_Trait_A"],
+          "effects": { "SupplementPower": 25 },
+          "icon": "assets/test18/unit_a.tex"
+        }
+      ],
+      "traits": [
+        {
+          "apiName": "TEST18_Trait_A",
+          "name": "보완 특성",
+          "desc": "창작 보완 특성입니다.",
+          "effects": { "Threshold": 2 },
+          "icon": "assets/test18/trait_a.tex"
+        }
+      ],
+      "items": [
+        {
+          "apiName": "TEST18_Item_A",
+          "name": "보완 아이템",
+          "desc": "창작 보완 아이템입니다.",
+          "effects": { "Power": 10 },
+          "icon": "assets/test18/item_a.tex"
+        }
+      ],
+      "augments": [
+        {
+          "apiName": "TEST18_Augment_A",
+          "name": "보완 증강",
+          "tier": "Gold",
+          "desc": "창작 보완 증강입니다.",
+          "effects": { "Value": 1 },
+          "icon": "assets/test18/augment_a.tex"
+        }
+      ]
+    }
+  ]
+}

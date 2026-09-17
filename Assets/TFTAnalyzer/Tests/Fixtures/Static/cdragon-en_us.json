@@ -1,0 +1,56 @@
+{
+  "setData": [
+    {
+      "number": 17,
+      "champions": [
+        { "apiName": "TEST17_Unit_Old", "name": "Old Unit", "cost": 1 }
+      ],
+      "traits": [],
+      "items": [],
+      "augments": []
+    },
+    {
+      "number": 18,
+      "champions": [
+        {
+          "apiName": "TEST18_Unit_A",
+          "name": "Supplement Unit",
+          "cost": 4,
+          "role": "Mage",
+          "desc": "A fabricated supplement ability.",
+          "traits": ["TEST18_Trait_A"],
+          "effects": { "SupplementPower": 25 },
+          "icon": "assets/test18/unit_a.tex"
+        }
+      ],
+      "traits": [
+        {
+          "apiName": "TEST18_Trait_A",
+          "name": "Supplement Trait",
+          "desc": "A fabricated supplement trait.",
+          "effects": { "Threshold": 2 },
+          "icon": "assets/test18/trait_a.tex"
+        }
+      ],
+      "items": [
+        {
+          "apiName": "TEST18_Item_A",
+          "name": "Supplement Item",
+          "desc": "A fabricated supplement item.",
+          "effects": { "Power": 10 },
+          "icon": "assets/test18/item_a.tex"
+        }
+      ],
+      "augments": [
+        {
+          "apiName": "TEST18_Augment_A",
+          "name": "Supplement Augment",
+          "tier": "Gold",
+          "desc": "A fabricated supplement augment.",
+          "effects": { "Value": 1 },
+          "icon": "assets/test18/augment_a.tex"
+        }
+      ]
+    }
+  ]
+}
