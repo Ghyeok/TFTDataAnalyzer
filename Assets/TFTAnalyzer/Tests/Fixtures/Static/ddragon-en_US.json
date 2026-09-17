@@ -1,0 +1,50 @@
+{
+  "champions": {
+    "data": {
+      "TEST18_Unit_A": {
+        "id": "TEST18_Unit_A",
+        "name": "Test Unit",
+        "cost": 4,
+        "description": "A fabricated unit ability.",
+        "image": { "full": "TEST18_Unit_A.png" }
+      },
+      "TEST17_Unit_Old": {
+        "id": "TEST17_Unit_Old",
+        "name": "Old Test Unit",
+        "cost": 1,
+        "image": { "full": "TEST17_Unit_Old.png" }
+      }
+    }
+  },
+  "traits": {
+    "data": {
+      "TEST18_Trait_A": {
+        "id": "TEST18_Trait_A",
+        "name": "Test Trait",
+        "description": "A fabricated trait.",
+        "image": { "full": "TEST18_Trait_A.png" }
+      }
+    }
+  },
+  "items": {
+    "data": {
+      "TEST18_Item_A": {
+        "id": "TEST18_Item_A",
+        "name": "Test Item",
+        "description": "A fabricated item.",
+        "image": { "full": "TEST18_Item_A.png" }
+      }
+    }
+  },
+  "augments": {
+    "data": {
+      "TEST18_Augment_A": {
+        "id": "TEST18_Augment_A",
+        "name": "Test Augment",
+        "tier": "Gold",
+        "description": "A fabricated augment.",
+        "image": { "full": "TEST18_Augment_A.png" }
+      }
+    }
+  }
+}

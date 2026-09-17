@@ -1,0 +1,44 @@
+{
+  "champions": {
+    "data": {
+      "TEST18_Unit_A": {
+        "id": "TEST18_Unit_A",
+        "name": "시험 기물",
+        "cost": 4,
+        "description": "창작 기물 스킬입니다.",
+        "image": { "full": "TEST18_Unit_A.png" }
+      }
+    }
+  },
+  "traits": {
+    "data": {
+      "TEST18_Trait_A": {
+        "id": "TEST18_Trait_A",
+        "name": "시험 특성",
+        "description": "창작 특성입니다.",
+        "image": { "full": "TEST18_Trait_A.png" }
+      }
+    }
+  },
+  "items": {
+    "data": {
+      "TEST18_Item_A": {
+        "id": "TEST18_Item_A",
+        "name": "시험 아이템",
+        "description": "창작 아이템입니다.",
+        "image": { "full": "TEST18_Item_A.png" }
+      }
+    }
+  },
+  "augments": {
+    "data": {
+      "TEST18_Augment_A": {
+        "id": "TEST18_Augment_A",
+        "name": "",
+        "tier": "Gold",
+        "description": "",
+        "image": { "full": "TEST18_Augment_A.png" }
+      }
+    }
+  }
+}
