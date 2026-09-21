@@ -88,13 +88,14 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 0,
                 "",
                 "");
+            var setPrefixes = DiscoverSetPrefixes(snapshot.Champions, patch);
 
             return new StaticCatalog(
                 manifest,
-                ParseUnits(snapshot.Champions, patch),
-                ParseTraits(snapshot.Traits, patch),
-                ParseItems(snapshot.Items, patch),
-                ParseAugments(snapshot.Augments, patch));
+                ParseUnits(snapshot.Champions, patch, setPrefixes),
+                ParseTraits(snapshot.Traits, patch, setPrefixes),
+                ParseItems(snapshot.Items, patch, setPrefixes),
+                ParseAugments(snapshot.Augments, patch, setPrefixes));
         }
 
         private async Task<DataDragonPayloadPair> FetchPairAsync(
@@ -116,9 +117,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<UnitRecord> ParseUnits(
             DataDragonPayloadPair pair,
-            PatchKey patch)
+            PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes)
         {
-            foreach (var record in Join(pair, patch))
+            foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 yield return new UnitRecord(
                     record.Id,
@@ -135,9 +137,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<TraitRecord> ParseTraits(
             DataDragonPayloadPair pair,
-            PatchKey patch)
+            PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes)
         {
-            foreach (var record in Join(pair, patch))
+            foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 yield return new TraitRecord(
                     record.Id,
@@ -151,9 +154,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<ItemRecord> ParseItems(
             DataDragonPayloadPair pair,
-            PatchKey patch)
+            PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes)
         {
-            foreach (var record in Join(pair, patch))
+            foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 yield return new ItemRecord(
                     record.Id,
@@ -168,9 +172,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<AugmentRecord> ParseAugments(
             DataDragonPayloadPair pair,
-            PatchKey patch)
+            PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes)
         {
-            foreach (var record in Join(pair, patch))
+            foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 yield return new AugmentRecord(
                     record.Id,
@@ -186,14 +191,15 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<JoinedRecord> Join(
             DataDragonPayloadPair pair,
-            PatchKey patch)
+            PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes,
+            bool includeGenericRecords)
         {
             var ko = ReadRecords(pair.KoKr);
             var en = ReadRecords(pair.EnUs);
             return ko.Keys
                 .Concat(en.Keys)
                 .Distinct(StringComparer.Ordinal)
-                .Where(id => BelongsToSet(id, patch))
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .Select(id =>
                 {
@@ -201,15 +207,23 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     en.TryGetValue(id, out var enRecord);
                     return new JoinedRecord(
                         id,
-                        koRecord,
-                        enRecord,
+                        koRecord?.Value,
+                        enRecord?.Value,
                         new LocalizedText(
-                            ReadString(koRecord, "name"),
-                            ReadString(enRecord, "name")));
-                });
+                            ReadString(koRecord?.Value, "name"),
+                            ReadString(enRecord?.Value, "name")),
+                        SourceBelongsToSet(koRecord, patch) ||
+                        SourceBelongsToSet(enRecord, patch));
+                })
+                .Where(record =>
+                    record.SourceBelongsToSet ||
+                    BelongsToSet(record.Id, patch) ||
+                    BelongsToPrefix(record.Id, setPrefixes) ||
+                    includeGenericRecords && !HasExplicitSetPrefix(record.Id))
+                .Where(record => !string.IsNullOrWhiteSpace(record.Name.DisplayValue));
         }
 
-        private static Dictionary<string, JObject> ReadRecords(HttpResponseData response)
+        private static Dictionary<string, SourceRecord> ReadRecords(HttpResponseData response)
         {
             var root = JObject.Parse(response.Utf8Body);
             var data = root["data"] as JObject;
@@ -218,7 +232,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 throw new JsonSerializationException($"Data Dragon response has no data object: {response.Url}");
             }
 
-            var result = new Dictionary<string, JObject>(StringComparer.Ordinal);
+            var result = new Dictionary<string, SourceRecord>(StringComparer.Ordinal);
             foreach (var property in data.Properties())
             {
                 var record = property.Value as JObject;
@@ -228,10 +242,51 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 }
 
                 var id = ReadString(record, "id");
-                result[string.IsNullOrWhiteSpace(id) ? property.Name : id] = record;
+                id = string.IsNullOrWhiteSpace(id) ? property.Name : id;
+                result[id] = new SourceRecord(id, property.Name, record);
             }
 
             return result;
+        }
+
+        private static IReadOnlyCollection<string> DiscoverSetPrefixes(
+            DataDragonPayloadPair champions,
+            PatchKey patch)
+        {
+            return ReadRecords(champions.KoKr).Values
+                .Concat(ReadRecords(champions.EnUs).Values)
+                .Where(record => SourceBelongsToSet(record, patch))
+                .Select(record => ReadNamespacePrefix(record.Id))
+                .Where(prefix => !string.IsNullOrWhiteSpace(prefix))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        private static string ReadNamespacePrefix(string stableId)
+        {
+            var separator = stableId.IndexOf('_');
+            return separator > 0 ? stableId.Substring(0, separator) : "";
+        }
+
+        private static bool SourceBelongsToSet(SourceRecord record, PatchKey patch)
+        {
+            if (record == null)
+            {
+                return false;
+            }
+
+            return record.SourceKey.IndexOf(
+                $"/{patch.SetId}/",
+                StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool BelongsToPrefix(
+            string stableId,
+            IEnumerable<string> setPrefixes)
+        {
+            return setPrefixes.Any(prefix => stableId.StartsWith(
+                prefix + "_",
+                StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool BelongsToSet(string stableId, PatchKey patch)
@@ -243,6 +298,30 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
             return stableId.StartsWith($"TFT{patch.SetNumber}_", StringComparison.OrdinalIgnoreCase) ||
                    stableId.StartsWith($"TEST{patch.SetNumber}_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasExplicitSetPrefix(string stableId)
+        {
+            return HasNumberedPrefix(stableId, "TFTSet") ||
+                   HasNumberedPrefix(stableId, "TFT") ||
+                   HasNumberedPrefix(stableId, "TEST");
+        }
+
+        private static bool HasNumberedPrefix(string stableId, string prefix)
+        {
+            if (!stableId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var index = prefix.Length;
+            var firstDigit = index;
+            while (index < stableId.Length && char.IsDigit(stableId[index]))
+            {
+                index++;
+            }
+
+            return index > firstDigit && index < stableId.Length && stableId[index] == '_';
         }
 
         private static LocalizedText ReadLocalized(
@@ -361,17 +440,34 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             public JObject EnUs { get; }
             public JObject Primary => EnUs ?? KoKr;
             public LocalizedText Name { get; }
+            public bool SourceBelongsToSet { get; }
 
             public JoinedRecord(
                 string id,
                 JObject koKr,
                 JObject enUs,
-                LocalizedText name)
+                LocalizedText name,
+                bool sourceBelongsToSet)
             {
                 Id = id;
                 KoKr = koKr;
                 EnUs = enUs;
                 Name = name;
+                SourceBelongsToSet = sourceBelongsToSet;
+            }
+        }
+
+        private sealed class SourceRecord
+        {
+            public string Id { get; }
+            public string SourceKey { get; }
+            public JObject Value { get; }
+
+            public SourceRecord(string id, string sourceKey, JObject value)
+            {
+                Id = id;
+                SourceKey = sourceKey;
+                Value = value;
             }
         }
     }

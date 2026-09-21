@@ -26,14 +26,20 @@ namespace TFTAnalyzer.Tests.Ingestion
 
             var catalog = adapter.Parse(FixtureSnapshot(), Set18);
 
-            Assert.That(catalog.Units.Single().Name.KoKr, Is.EqualTo("시험 기물"));
-            Assert.That(catalog.Units.Single().Name.EnUs, Is.EqualTo("Test Unit"));
-            Assert.That(catalog.Units.Single().Cost, Is.EqualTo(4));
+            var primaryUnit = catalog.Units.Single(unit => unit.StableId == "TEST18_Unit_A");
+            Assert.That(primaryUnit.Name.KoKr, Is.EqualTo("시험 기물"));
+            Assert.That(primaryUnit.Name.EnUs, Is.EqualTo("Test Unit"));
+            Assert.That(primaryUnit.Cost, Is.EqualTo(4));
             Assert.That(catalog.Units,
                 Has.None.Matches<UnitRecord>(unit => unit.StableId.StartsWith("TEST17_")));
-            Assert.That(catalog.Traits.Single().StableId, Is.EqualTo("TEST18_Trait_A"));
-            Assert.That(catalog.Items.Single().StableId, Is.EqualTo("TEST18_Item_A"));
-            Assert.That(catalog.Augments.Single().StableId, Is.EqualTo("TEST18_Augment_A"));
+            Assert.That(catalog.Units.Select(unit => unit.StableId),
+                Does.Contain("DA_18_Unit_A"));
+            Assert.That(catalog.Traits.Select(trait => trait.StableId),
+                Is.EquivalentTo(new[] { "TEST18_Trait_A", "DA_18_Trait_A" }));
+            Assert.That(catalog.Items.Select(item => item.StableId),
+                Is.EquivalentTo(new[] { "TEST18_Item_A", "TFT_Item_Generic", "DA_Item_A" }));
+            Assert.That(catalog.Augments.Select(augment => augment.StableId),
+                Is.EquivalentTo(new[] { "TEST18_Augment_A", "DA_Augment_A" }));
         }
 
         [Test]
@@ -41,8 +47,9 @@ namespace TFTAnalyzer.Tests.Ingestion
         {
             var catalog = new DataDragonAdapter(new FakeTransport()).Parse(FixtureSnapshot(), Set18);
 
-            Assert.That(catalog.Augments.Single().Name.DisplayValue, Is.EqualTo("Test Augment"));
-            Assert.That(catalog.Augments.Single().Name.UsedEnglishFallback, Is.True);
+            var augment = catalog.Augments.Single(value => value.StableId == "TEST18_Augment_A");
+            Assert.That(augment.Name.DisplayValue, Is.EqualTo("Test Augment"));
+            Assert.That(augment.Name.UsedEnglishFallback, Is.True);
         }
 
         [Test]

@@ -7,6 +7,12 @@
         "cost": 4,
         "description": "창작 기물 스킬입니다.",
         "image": { "full": "TEST18_Unit_A.png" }
+      },
+      "Maps/Shipping/Map22/Sets/TFTSet18/Shop/DA_18_Unit_A": {
+        "id": "DA_18_Unit_A",
+        "name": "별칭 시험 기물",
+        "cost": 2,
+        "image": { "full": "DA_18_Unit_A.png" }
       }
     }
   },
@@ -17,6 +23,12 @@
         "name": "시험 특성",
         "description": "창작 특성입니다.",
         "image": { "full": "TEST18_Trait_A.png" }
+      },
+      "DA_18_Trait_A": {
+        "id": "DA_18_Trait_A",
+        "name": "별칭 시험 특성",
+        "description": "창작 별칭 특성입니다.",
+        "image": { "full": "DA_18_Trait_A.png" }
       }
     }
   },
@@ -27,6 +39,30 @@
         "name": "시험 아이템",
         "description": "창작 아이템입니다.",
         "image": { "full": "TEST18_Item_A.png" }
+      },
+      "TFT_Item_Generic": {
+        "id": "TFT_Item_Generic",
+        "name": "공용 시험 아이템",
+        "description": "창작 공용 아이템입니다.",
+        "image": { "full": "TFT_Item_Generic.png" }
+      },
+      "TEST17_Item_Old": {
+        "id": "TEST17_Item_Old",
+        "name": "이전 시험 아이템",
+        "description": "다른 세트의 창작 아이템입니다.",
+        "image": { "full": "TEST17_Item_Old.png" }
+      },
+      "Maps/Shipping/Map22/Sets/TFTSet18/Set18_Items/DA_Item_A": {
+        "id": "DA_Item_A",
+        "name": "별칭 시험 아이템",
+        "description": "창작 별칭 아이템입니다.",
+        "image": { "full": "DA_Item_A.png" }
+      },
+      "TFT_Item_Hidden": {
+        "id": "TFT_Item_Hidden",
+        "name": "",
+        "description": "내부 자리표시자입니다.",
+        "image": { "full": "TFT_Item_Hidden.png" }
       }
     }
   },
@@ -38,6 +74,13 @@
         "tier": "Gold",
         "description": "",
         "image": { "full": "TEST18_Augment_A.png" }
+      },
+      "DA_Augment_A": {
+        "id": "DA_Augment_A",
+        "name": "별칭 시험 증강",
+        "tier": "Silver",
+        "description": "창작 별칭 증강입니다.",
+        "image": { "full": "DA_Augment_A.png" }
       }
     }
   }

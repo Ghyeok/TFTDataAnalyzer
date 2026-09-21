@@ -13,6 +13,12 @@
         "name": "Old Test Unit",
         "cost": 1,
         "image": { "full": "TEST17_Unit_Old.png" }
+      },
+      "Maps/Shipping/Map22/Sets/TFTSet18/Shop/DA_18_Unit_A": {
+        "id": "DA_18_Unit_A",
+        "name": "Alias Test Unit",
+        "cost": 2,
+        "image": { "full": "DA_18_Unit_A.png" }
       }
     }
   },
@@ -23,6 +29,12 @@
         "name": "Test Trait",
         "description": "A fabricated trait.",
         "image": { "full": "TEST18_Trait_A.png" }
+      },
+      "DA_18_Trait_A": {
+        "id": "DA_18_Trait_A",
+        "name": "Alias Test Trait",
+        "description": "A fabricated aliased trait.",
+        "image": { "full": "DA_18_Trait_A.png" }
       }
     }
   },
@@ -33,6 +45,30 @@
         "name": "Test Item",
         "description": "A fabricated item.",
         "image": { "full": "TEST18_Item_A.png" }
+      },
+      "TFT_Item_Generic": {
+        "id": "TFT_Item_Generic",
+        "name": "Generic Test Item",
+        "description": "A fabricated generic item.",
+        "image": { "full": "TFT_Item_Generic.png" }
+      },
+      "TEST17_Item_Old": {
+        "id": "TEST17_Item_Old",
+        "name": "Old Test Item",
+        "description": "A fabricated item from another set.",
+        "image": { "full": "TEST17_Item_Old.png" }
+      },
+      "Maps/Shipping/Map22/Sets/TFTSet18/Set18_Items/DA_Item_A": {
+        "id": "DA_Item_A",
+        "name": "Alias Test Item",
+        "description": "A fabricated aliased item.",
+        "image": { "full": "DA_Item_A.png" }
+      },
+      "TFT_Item_Hidden": {
+        "id": "TFT_Item_Hidden",
+        "name": "",
+        "description": "An internal placeholder.",
+        "image": { "full": "TFT_Item_Hidden.png" }
       }
     }
   },
@@ -44,6 +80,13 @@
         "tier": "Gold",
         "description": "A fabricated augment.",
         "image": { "full": "TEST18_Augment_A.png" }
+      },
+      "DA_Augment_A": {
+        "id": "DA_Augment_A",
+        "name": "Alias Test Augment",
+        "tier": "Silver",
+        "description": "A fabricated aliased augment.",
+        "image": { "full": "DA_Augment_A.png" }
       }
     }
   }
