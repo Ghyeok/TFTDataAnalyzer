@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "setId": "TFTSet18",
+  "setNumber": 18,
+  "setName": "",
+  "patchId": "18.2",
+  "sourceGameVersion": "16.18.1",
+  "contentHash": "b306b524fad37119ea88fe28f2f7241423ee997f06bddc563890adb35f0c27f9",
+  "createdUtc": "2026-09-17T10:18:56.3864991Z",
+  "sources": [
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/en_US/tft-augments.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"7b211105558f4554bfdb1429460cb7fe\"",
+      "Sha256": "2fa6579bbd2894cc13d98ff74123a2fb9328d70903adf5195d3e56ae6a05b64c",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/en_US/tft-champion.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"0c08915185805d076df8cd7d5d4cc8c6\"",
+      "Sha256": "b462e2a68b911b1bc919b7e96a34cd6fc05a4a00d49757c613c580f24abeca64",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/en_US/tft-item.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"5b07cd85ed60786f5d83a0d9a61b9757\"",
+      "Sha256": "bf0722bae14169f6154b82ee5410c959f3062b2c7f271ff80049e1ed21bee2da",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/en_US/tft-trait.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"b648884bee53a69818244296d5f44288\"",
+      "Sha256": "efcd568d2f549287f7ae2450ec6244c25b8b4be7115c3b2d1454ae3e8e88c49f",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/ko_KR/tft-augments.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"17c9c73b15c72fde0df74b381befc9af\"",
+      "Sha256": "31368e50329805121e3ddc34fc6a5587cfd2b1d187f4a368f94ee663525ccb54",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/ko_KR/tft-champion.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3849959Z",
+      "ETag": "W/\"c2f841d100a0dca77aac59f0f0742826\"",
+      "Sha256": "0da09bba1da409b38d09a7582866d3eb63dc6aa4a8e970438715dfc54abe2f51",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/ko_KR/tft-item.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"f5622ae0b87c8809a9ec371cf17cd507\"",
+      "Sha256": "4c3065fddb51653f9ce05e49862464b7764a3388b309beabf55e0e88e546772b",
+      "IsSupplemental": false
+    },
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/ko_KR/tft-trait.json",
+      "RetrievedUtc": "2026-09-17T10:18:56.3864991Z",
+      "ETag": "W/\"96a049d1a0e361a596f9ed16be1c023a\"",
+      "Sha256": "383327b21e4809fc1116fbad4d286c9ffb26ab8382400187ae9db81ace24eb84",
+      "IsSupplemental": false
+    }
+  ],
+  "policyReviewDate": "2026-09-17T00:00:00Z",
+  "policyUrls": [
+    "https://developer.riotgames.com/docs/tft",
+    "https://support-developer.riotgames.com/hc/en-us/articles/22698591841939-General-Policies"
+  ],
+  "validationErrorCount": 0,
+  "validationWarningCount": 0,
+  "previousPatchSummary": "",
+  "communityDragonVersion": ""
+}
