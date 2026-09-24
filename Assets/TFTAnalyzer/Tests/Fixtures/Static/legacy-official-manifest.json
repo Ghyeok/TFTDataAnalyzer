@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "setId": "TFTSet18",
+  "setNumber": 18,
+  "patchId": "18.2",
+  "sourceGameVersion": "16.18.1",
+  "contentHash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "communityDragonVersion": "",
+  "sources": [
+    {
+      "SourceName": "Riot Data Dragon",
+      "Url": "https://ddragon.leagueoflegends.com/cdn/16.18.1/data/en_US/tft-champion.json",
+      "IsSupplemental": false
+    }
+  ]
+}

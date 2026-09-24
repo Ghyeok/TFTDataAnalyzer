@@ -16,6 +16,7 @@
 - UI copy says historical observation and relative placement advantage, never combat win rate or prediction.
 - Never render or log API key, PUUID, Riot ID, or raw Match ID.
 - CommunityDragon remains an unchecked opt-in on every static import.
+- Catalog rows and the active selection carry the complete `(setId, patchId, sourceGameVersion, sourceProfile)` identity. A schema-1 legacy row is selectable only after the official-only resolver validates it.
 - Player builds are blocked until a local compliance setting confirms current Riot registration/review.
 - The Editor tool remains usable while player builds are blocked.
 
@@ -93,7 +94,7 @@ git commit -m "feat: add TFT analyzer editor window shell"
 
 **Interfaces:**
 - Consumes: `StaticCatalogPipeline`, `CatalogIndex`, `CatalogDiffer`.
-- Produces: `CheckForUpdatesAsync`, `ImportAsync`, `CancelImport`, `SelectActivePatch`, and read-only patch rows.
+- Produces: `CheckForUpdatesAsync`, `ImportAsync`, `CancelImport`, `SelectActiveCatalog(CatalogIdentity)`, and read-only catalog rows.
 
 - [ ] **Step 1: Write failing explicit-consent tests**
 
@@ -105,7 +106,7 @@ States are `Idle`, `Checking`, `AwaitingApproval`, `Importing`, `Succeeded`, `Fa
 
 - [ ] **Step 3: Bind controls and patch table**
 
-Show Set, TFT patch, source game version, source badges, retrieved UTC, validation status, content hash prefix, and active selection. Require a modal confirmation summarizing sources before `ImportAsync`.
+Show Set, TFT patch, source game version, stable source-profile ID, source badges, retrieved UTC, validation status, content hash prefix, resolved target path, and active catalog selection. Require a modal confirmation with the full identity and target before `ImportAsync`.
 
 - [ ] **Step 4: Add patch-diff presentation**
 
@@ -180,12 +181,11 @@ git commit -m "feat: add bounded match collection workflow"
 public void Rows_DoNotUsePredictionLanguage()
 {
     var allCopy = string.Join(" ", _viewModel.Load(Fixture.Aggregates).Select(x => x.DisplayText));
-    Assert.That(allCopy, Does.Not.Contain("예측"));
-    Assert.That(allCopy, Does.Not.Contain("전투 승률"));
+    Assert.That(_viewModel.PredictionClaims(Fixture.Aggregates), Is.Empty);
 }
 ```
 
-Assert samples 99 show `표본 부족` and no percentage; 100 show rate plus confidence interval.
+The scan should reject positive prediction or combat-win-rate claims while allowing the explanatory negation `같은 로비의 최종 순위 비교이며 실제 전투 승률이 아닙니다.` Assert samples 99 show `표본 부족` and no percentage; 100 show rate plus confidence interval.
 
 - [ ] **Step 2: Implement filter intersection**
 

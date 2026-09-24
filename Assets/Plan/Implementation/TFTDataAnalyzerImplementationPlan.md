@@ -21,16 +21,17 @@
 - Legends and Legend-based augment win-rate metrics are blocked at the policy boundary.
 - API keys come only from `RIOT_API_KEY` or an OS credential provider; never from project files, `EditorPrefs`, URLs, or command-line arguments.
 - No live-game, spectator, overlay, screen-capture, opponent-tracking, or recommendation feature is introduced.
-- Current workspace has no Git repository. Before implementation, ask the user whether to initialize Git or use another VCS; execute the commit checkpoints only after that choice.
+- This workspace has a Git repository. The Phase 1 official-only Set 18 / 18.2 baseline was committed at `ec9d296`; preserve its generated catalog and manifest bytes.
+- A static catalog is selected by `CatalogIdentity = (setId, patchId, sourceGameVersion, sourceProfile)`. Profiles are `official-only` or `official-plus-communitydragon`; schema-1 official-only output is read through the guarded legacy resolver.
 
 ---
 
 ## Plan Order
 
 1. [Phase 1 — Static Data Pipeline](2026-09-17-tft-static-data-pipeline.md)
-   - Deliverable: Set 18 patch catalogs can be imported, normalized, validated, diffed, and indexed entirely from the Unity Editor.
+   - Baseline committed at `ec9d296`: official-only Set 18 / 18.2 catalog imported, normalized, validated, diffed, and indexed from the Unity Editor. The source-profile identity hardening cycle follows this baseline.
 2. [Phase 2 — Anonymous Match Analytics](2026-09-17-tft-match-analytics.md)
-   - Deliverable: bounded Match API collection produces only anonymous observations and aggregate metrics in `Library/TftAnalyzerStore`.
+   - Starts only after the four-field active catalog identity is stable. Bounded Match API collection produces only anonymous observations and aggregate metrics in `Library/TftAnalyzerStore`.
 3. [Phase 3 — Editor UI and Compliance](2026-09-17-tft-analyzer-editor-ui.md)
    - Deliverable: the complete `TFT Data Analyzer` window exposes import, collection, and analysis workflows with policy and build gates.
 

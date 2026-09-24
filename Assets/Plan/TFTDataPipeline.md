@@ -97,7 +97,7 @@ Riot Match API -----------> 경기 수집기 --> 익명화 --> 집계기
 
 ### 5.2 정적 카탈로그
 
-외부 데이터를 안정 ID 기준의 내부 표준 모델로 변환한다. 시즌과 패치별 카탈로그는 불변 스냅샷이며 새 패치가 기존 카탈로그를 수정하지 않는다.
+외부 데이터를 안정 ID 기준의 내부 표준 모델로 변환한다. 카탈로그 식별자는 `(setId, patchId, sourceGameVersion, sourceProfile)`이며 출처 프로필은 `official-only` 또는 `official-plus-communitydragon`이다. 각 식별자의 카탈로그는 불변 스냅샷이고 신규 경로는 `{setId}/{patchId}/{sourceGameVersion}/{sourceProfile}`이다. 기존 schema-1 `{setId}/{patchId}` 공식 전용 자산은 출처 검증 후 읽기만 하며 바이트를 수정하지 않는다.
 
 ### 5.3 경기 수집기
 
@@ -109,7 +109,7 @@ Riot Match API -----------> 경기 수집기 --> 익명화 --> 집계기
 
 ### 5.5 집계기
 
-익명화된 관측을 패치, 지역, 티어, 큐 및 조합 키별로 집계한다. 집계 결과에는 합계와 비율만이 아니라 분자·분모, 수집 기간, 데이터 버전 및 신뢰구간 계산에 필요한 값을 보존한다.
+익명화된 관측을 활성 정적 카탈로그의 전체 식별자(세트, TFT 패치, Data Dragon 버전, 출처 프로필), 지역, 티어, 큐 및 조합 키별로 집계한다. 패치 ID만으로 카탈로그를 조인하지 않는다. 집계 결과에는 합계와 비율만이 아니라 분자·분모, 수집 기간, 데이터 버전 및 신뢰구간 계산에 필요한 값을 보존한다.
 
 ### 5.6 분석 저장소
 
@@ -127,6 +127,7 @@ Unity 메뉴의 `TFT Data Analyzer` 창에서 데이터 업데이트, 수집 상
 - `setId`, `setNumber`, `setName`
 - `patchId`: TFT 패치 식별자
 - `sourceGameVersion`: 원본 게임 빌드 버전
+- `sourceProfile`: 공식 전용 `official-only` 또는 명시적으로 선택한 `official-plus-communitydragon`; schema 2 매니페스트에 기록
 - 생성 시각과 전체 콘텐츠 해시
 - 소스별 URL, 다운로드 시각, ETag 및 SHA-256
 - 정책 검토일과 정책 URL
@@ -272,6 +273,7 @@ API 키는 프로젝트 파일, `EditorPrefs`, 로그 또는 명령줄 인자에
 ### 12.1 데이터 관리
 
 - 지원 시즌과 패치 목록
+- 버전과 출처 프로필을 포함한 활성 카탈로그 선택 및 실제 저장 경로 확인
 - 새 패치 확인과 사용자 승인 다운로드
 - 소스별 버전, 해시, 수집 시각 및 검증 상태
 - CommunityDragon 보완 사용 여부

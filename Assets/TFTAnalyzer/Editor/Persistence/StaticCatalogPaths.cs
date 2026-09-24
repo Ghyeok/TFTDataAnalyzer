@@ -30,26 +30,42 @@ namespace TFTAnalyzer.Editor.Persistence
             ProjectRoot = Path.GetFullPath(projectRoot);
         }
 
-        public string FinalDirectory(PatchKey patch)
+        public string CanonicalFinalDirectory(CatalogIdentity identity)
         {
-            ValidatePatch(patch);
+            ValidateIdentity(identity);
             return Path.Combine(
                 ProjectRoot,
                 "Assets",
                 "TFTAnalyzer",
                 "Data",
                 "Generated",
-                patch.SetId,
-                patch.PatchId);
+                identity.Patch.SetId,
+                identity.Patch.PatchId,
+                identity.Patch.SourceGameVersion,
+                identity.ProfileId);
         }
 
-        public string RawDirectory(PatchKey patch)
+        public string LegacyFinalDirectory(PatchKey patch)
         {
             ValidatePatch(patch);
-            return Path.Combine(RawRootDirectory, patch.SetId, patch.PatchId);
+            return Path.Combine(ProjectRoot, "Assets", "TFTAnalyzer", "Data", "Generated",
+                patch.SetId, patch.PatchId);
         }
 
-        public string CatalogAssetPath(PatchKey patch)
+        public string RawDirectory(CatalogIdentity identity)
+        {
+            ValidateIdentity(identity);
+            return Path.Combine(RawRootDirectory, identity.Patch.SetId, identity.Patch.PatchId,
+                identity.Patch.SourceGameVersion, identity.ProfileId);
+        }
+
+        public string CatalogAssetPath(CatalogIdentity identity)
+        {
+            ValidateIdentity(identity);
+            return $"{GeneratedAssetDirectory}/{identity.Patch.SetId}/{identity.Patch.PatchId}/{identity.Patch.SourceGameVersion}/{identity.ProfileId}/catalog.json";
+        }
+
+        public string LegacyCatalogAssetPath(PatchKey patch)
         {
             ValidatePatch(patch);
             return $"{GeneratedAssetDirectory}/{patch.SetId}/{patch.PatchId}/catalog.json";
@@ -76,6 +92,18 @@ namespace TFTAnalyzer.Editor.Persistence
 
             ValidateSegment(patch.SetId, nameof(patch.SetId));
             ValidateSegment(patch.PatchId, nameof(patch.PatchId));
+            ValidateSegment(patch.SourceGameVersion, nameof(patch.SourceGameVersion));
+        }
+
+        private static void ValidateIdentity(CatalogIdentity identity)
+        {
+            if (identity == null)
+            {
+                throw new ArgumentNullException(nameof(identity));
+            }
+
+            ValidatePatch(identity.Patch);
+            ValidateSegment(identity.ProfileId, nameof(identity.ProfileId));
         }
 
         private static void ValidateSegment(string value, string name)
@@ -83,7 +111,10 @@ namespace TFTAnalyzer.Editor.Persistence
             if (string.IsNullOrWhiteSpace(value) ||
                 value.Contains("..") ||
                 value.IndexOf(Path.DirectorySeparatorChar) >= 0 ||
-                value.IndexOf(Path.AltDirectorySeparatorChar) >= 0)
+                value.IndexOf(Path.AltDirectorySeparatorChar) >= 0 ||
+                value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+                value.EndsWith(".", StringComparison.Ordinal) ||
+                value.EndsWith(" ", StringComparison.Ordinal))
             {
                 throw new ArgumentException("Path segment is unsafe.", name);
             }

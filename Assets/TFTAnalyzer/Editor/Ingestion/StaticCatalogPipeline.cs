@@ -11,6 +11,44 @@ using TFTAnalyzer.Validation;
 
 namespace TFTAnalyzer.Editor.Ingestion
 {
+    public enum StaticImportRecoveryState
+    {
+        PublishedUnindexed,
+        PublishedIndexedRefreshPending,
+        PublishedIndexStateUncertain
+    }
+
+    public sealed class StaticImportRecoveryException : InvalidOperationException
+    {
+        public StaticImportRecoveryState RecoveryState { get; }
+        public string FinalDirectory { get; }
+        public string IndexFilePath { get; }
+
+        public StaticImportRecoveryException(StaticImportRecoveryState recoveryState,
+            string finalDirectory, string indexFilePath, Exception innerException)
+            : base(SafeMessage(recoveryState, finalDirectory, indexFilePath), innerException)
+        {
+            RecoveryState = recoveryState;
+            FinalDirectory = finalDirectory;
+            IndexFilePath = indexFilePath;
+        }
+
+        private static string SafeMessage(StaticImportRecoveryState state, string directory, string indexPath)
+        {
+            switch (state)
+            {
+                case StaticImportRecoveryState.PublishedUnindexed:
+                    return $"Catalog published but unindexed at {directory}; rerun import to recover the index.";
+                case StaticImportRecoveryState.PublishedIndexedRefreshPending:
+                    return $"Catalog published and indexed but asset refresh failed at {directory}; refresh assets to recover.";
+                case StaticImportRecoveryState.PublishedIndexStateUncertain:
+                    return $"Catalog published at {directory}; index state uncertain at {indexPath}; inspect or repair index before rerunning.";
+                default:
+                    return $"Catalog published at {directory}; recovery state unknown.";
+            }
+        }
+    }
+
     public interface IStaticCatalogSource
     {
         Task<StaticSourceLoadResult> LoadAsync(
@@ -120,16 +158,24 @@ namespace TFTAnalyzer.Editor.Ingestion
                 throw new ArgumentNullException(nameof(request));
             }
 
-            var finalDirectory = _paths.FinalDirectory(request.Patch);
+            var resolution = new LegacyCatalogResolver(_paths).Resolve(request.Identity);
+            if (resolution.Status == LegacyCatalogStatus.AmbiguousLegacy)
+            {
+                throw new InvalidOperationException($"Existing legacy catalog cannot be classified safely: {resolution.FinalDirectory}");
+            }
+
+            var finalDirectory = resolution.FinalDirectory;
             var stagingRoot = _paths.CreateStagingDirectory();
             try
             {
                 token.ThrowIfCancellationRequested();
                 var loaded = await _source.LoadAsync(request, token);
                 token.ThrowIfCancellationRequested();
-                _writer.StoreRawSources(request.Patch, loaded.RawResponses);
+                _writer.StoreRawSources(request.Identity, loaded.RawResponses);
 
-                var validation = _validator.Validate(loaded.Catalog);
+                var catalog = PromoteManifest(loaded.Catalog, request.Identity);
+
+                var validation = _validator.Validate(catalog);
                 if (!validation.CanPublish)
                 {
                     return new StaticImportResult(
@@ -137,13 +183,13 @@ namespace TFTAnalyzer.Editor.Ingestion
                         false,
                         finalDirectory,
                         "",
-                        loaded.Catalog,
+                        catalog,
                         validation,
                         loaded.MergeConflicts);
                 }
 
                 var withIcons = await _writer.StageIconsAsync(
-                    loaded.Catalog,
+                    catalog,
                     _transport,
                     stagingRoot,
                     token);
@@ -160,21 +206,46 @@ namespace TFTAnalyzer.Editor.Ingestion
                         loaded.MergeConflicts);
                 }
 
+                token.ThrowIfCancellationRequested();
                 var staged = _writer.WriteStagedCatalog(
                     withIcons,
                     validation,
                     stagingRoot);
-                var idempotent = _writer.Publish(staged, finalDirectory);
-                _indexWriter.Upsert(
-                    request.Patch,
-                    staged.ContentHash,
-                    _paths.CatalogAssetPath(request.Patch));
-                _refreshAssets?.Invoke();
+                token.ThrowIfCancellationRequested();
+                var isLegacy = resolution.Status == LegacyCatalogStatus.CompatibleOfficialLegacy;
+                var idempotent = _writer.Publish(staged, finalDirectory, isLegacy);
+                var publishedHash = isLegacy ? staged.LegacyContentHash : staged.ContentHash;
+                try
+                {
+                    _indexWriter.Upsert(request.Identity, publishedHash, resolution.CatalogAssetPath);
+                }
+                catch (CatalogIndexRollbackException error)
+                {
+                    throw new StaticImportRecoveryException(
+                        StaticImportRecoveryState.PublishedIndexStateUncertain,
+                        finalDirectory, error.IndexFilePath, error);
+                }
+                catch (Exception error)
+                {
+                    throw new StaticImportRecoveryException(
+                        StaticImportRecoveryState.PublishedUnindexed,
+                        finalDirectory, "", error);
+                }
+                try
+                {
+                    _refreshAssets?.Invoke();
+                }
+                catch (Exception error)
+                {
+                    throw new StaticImportRecoveryException(
+                        StaticImportRecoveryState.PublishedIndexedRefreshPending,
+                        finalDirectory, "", error);
+                }
                 return new StaticImportResult(
                     true,
                     idempotent,
                     finalDirectory,
-                    staged.ContentHash,
+                    publishedHash,
                     withIcons,
                     validation,
                     loaded.MergeConflicts);
@@ -183,6 +254,30 @@ namespace TFTAnalyzer.Editor.Ingestion
             {
                 _writer.CleanupStaging(stagingRoot);
             }
+        }
+
+        private static StaticCatalog PromoteManifest(StaticCatalog catalog, CatalogIdentity identity)
+        {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            var source = catalog.Manifest;
+            if (!new CatalogIdentity(source.Patch, identity.SourceProfile).Equals(identity))
+                throw new InvalidOperationException("Loaded catalog patch differs from requested identity.");
+            if (source.Identity != null && !source.Identity.Equals(identity))
+                throw new InvalidOperationException("Loaded catalog identity differs from request.");
+            if (!identity.IncludesCommunityDragon &&
+                (!string.IsNullOrEmpty(source.CommunityDragonVersion) ||
+                 source.Sources.Any(stamp => stamp.IsSupplemental)))
+                throw new InvalidOperationException("Official-only import contains supplemental sources.");
+            if (identity.IncludesCommunityDragon &&
+                (string.IsNullOrWhiteSpace(source.CommunityDragonVersion) ||
+                 !source.Sources.Any(stamp => stamp.IsSupplemental)))
+                throw new InvalidOperationException("Supplemented import is missing CommunityDragon provenance.");
+
+            var manifest = new PatchManifest(2, identity, source.SetName, source.CreatedUtc,
+                source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
+                source.ValidationErrorCount, source.ValidationWarningCount,
+                source.PreviousPatchSummary, source.CommunityDragonVersion);
+            return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments);
         }
     }
 }

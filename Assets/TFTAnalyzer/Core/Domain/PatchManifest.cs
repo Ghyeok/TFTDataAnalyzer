@@ -7,6 +7,7 @@ namespace TFTAnalyzer.Domain
     {
         public int SchemaVersion { get; }
         public PatchKey Patch { get; }
+        public CatalogIdentity Identity { get; }
         public string SetName { get; }
         public DateTime CreatedUtc { get; }
         public string ContentHash { get; }
@@ -31,6 +32,45 @@ namespace TFTAnalyzer.Domain
             int validationWarningCount,
             string previousPatchSummary,
             string communityDragonVersion)
+            : this(schemaVersion, patch, null, setName, createdUtc, contentHash, sources,
+                policyReviewDate, policyUrls, validationErrorCount, validationWarningCount,
+                previousPatchSummary, communityDragonVersion)
+        {
+        }
+
+        public PatchManifest(
+            int schemaVersion,
+            CatalogIdentity identity,
+            string setName,
+            DateTime createdUtc,
+            string contentHash,
+            IEnumerable<SourceStamp> sources,
+            DateTime policyReviewDate,
+            IEnumerable<string> policyUrls,
+            int validationErrorCount,
+            int validationWarningCount,
+            string previousPatchSummary,
+            string communityDragonVersion)
+            : this(schemaVersion, identity?.Patch, identity, setName, createdUtc, contentHash,
+                sources, policyReviewDate, policyUrls, validationErrorCount,
+                validationWarningCount, previousPatchSummary, communityDragonVersion)
+        {
+        }
+
+        private PatchManifest(
+            int schemaVersion,
+            PatchKey patch,
+            CatalogIdentity identity,
+            string setName,
+            DateTime createdUtc,
+            string contentHash,
+            IEnumerable<SourceStamp> sources,
+            DateTime policyReviewDate,
+            IEnumerable<string> policyUrls,
+            int validationErrorCount,
+            int validationWarningCount,
+            string previousPatchSummary,
+            string communityDragonVersion)
         {
             if (schemaVersion <= 0)
             {
@@ -42,8 +82,15 @@ namespace TFTAnalyzer.Domain
                 throw new ArgumentOutOfRangeException(nameof(validationErrorCount));
             }
 
+            if ((schemaVersion == 1 && identity != null) ||
+                (schemaVersion >= 2 && identity == null))
+            {
+                throw new ArgumentException("Schema 1 has no profile; schema 2 requires an identity.");
+            }
+
             SchemaVersion = schemaVersion;
             Patch = patch ?? throw new ArgumentNullException(nameof(patch));
+            Identity = identity;
             SetName = setName ?? "";
             CreatedUtc = DomainValues.AsUtc(createdUtc);
             ContentHash = contentHash ?? "";

@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Preserve immutable patch snapshots; never overwrite an existing `{setId}/{patchId}` output.
+- Preserve immutable catalog snapshots; new outputs use `{setId}/{patchId}/{sourceGameVersion}/{sourceProfile}`. The committed schema-1 `{setId}/{patchId}` official-only output remains byte-identical and is selected only after legacy provenance validation.
 - Fetch `ko_KR` and `en_US`; stable IDs, never display names, join localized records.
 - Data Dragon wins every non-empty conflict; CommunityDragon only fills missing values and is explicitly enabled per request.
 - Keep downloaded source JSON under `Library/TftAnalyzerCache`; never place raw source archives under `Assets`.
@@ -456,7 +456,7 @@ git commit -m "feat: supplement missing TFT fields from CommunityDragon"
 
 **Interfaces:**
 - Produces: `Task<StaticImportResult> StaticCatalogPipeline.RunAsync(StaticImportRequest request, CancellationToken token)`.
-- Produces immutable output at `Assets/TFTAnalyzer/Data/Generated/{setId}/{patchId}/catalog.json` and `manifest.json`.
+- Produces immutable schema-2 output at `Assets/TFTAnalyzer/Data/Generated/{setId}/{patchId}/{sourceGameVersion}/{sourceProfile}/catalog.json` and `manifest.json`. Both profile IDs and the Data Dragon source version distinguish raw cache, output, manifest, and index entries.
 - Produces/updates `Assets/TFTAnalyzer/Data/Generated/CatalogIndex.asset` only after validation succeeds.
 
 - [ ] **Step 1: Write a failing atomic-publish test**

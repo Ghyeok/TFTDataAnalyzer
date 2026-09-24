@@ -20,17 +20,23 @@ namespace TFTAnalyzer.Editor.Persistence
         public string PatchDirectory { get; }
         public string IconsDirectory { get; }
         public string ContentHash { get; }
+        public string LegacyContentHash { get; }
+        public CatalogIdentity Identity { get; }
 
         public StagedCatalog(
             string stagingRoot,
             string patchDirectory,
             string iconsDirectory,
-            string contentHash)
+            string contentHash,
+            string legacyContentHash = null,
+            CatalogIdentity identity = null)
         {
             StagingRoot = stagingRoot;
             PatchDirectory = patchDirectory;
             IconsDirectory = iconsDirectory;
             ContentHash = contentHash;
+            LegacyContentHash = legacyContentHash ?? contentHash;
+            Identity = identity;
         }
     }
 
@@ -44,9 +50,9 @@ namespace TFTAnalyzer.Editor.Persistence
             _paths = paths ?? throw new ArgumentNullException(nameof(paths));
         }
 
-        public void StoreRawSources(PatchKey patch, IEnumerable<HttpResponseData> responses)
+        public void StoreRawSources(CatalogIdentity identity, IEnumerable<HttpResponseData> responses)
         {
-            var directory = _paths.RawDirectory(patch);
+            var directory = _paths.RawDirectory(identity);
             foreach (var response in responses ?? Enumerable.Empty<HttpResponseData>())
             {
                 Directory.CreateDirectory(directory);
@@ -166,6 +172,10 @@ namespace TFTAnalyzer.Editor.Persistence
             var catalogJson = CanonicalCatalogSerializer.Serialize(
                 NormalizeForContentSnapshot(catalog));
             var contentHash = ContentHasher.Sha256Hex(catalogJson);
+            var legacyContentHash = catalog.Manifest.Identity?.SourceProfile == CatalogSourceProfile.OfficialOnly
+                ? ContentHasher.Sha256Hex(CanonicalCatalogSerializer.Serialize(
+                    NormalizeForContentSnapshot(AsSchemaOne(catalog))))
+                : contentHash;
             File.WriteAllText(
                 Path.Combine(patchDirectory, "catalog.json"),
                 catalogJson,
@@ -179,6 +189,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 setName = catalog.Manifest.SetName,
                 patchId = catalog.Manifest.Patch.PatchId,
                 sourceGameVersion = catalog.Manifest.Patch.SourceGameVersion,
+                sourceProfile = catalog.Manifest.Identity?.ProfileId,
                 contentHash,
                 createdUtc = catalog.Manifest.CreatedUtc,
                 sources = catalog.Manifest.Sources
@@ -191,7 +202,8 @@ namespace TFTAnalyzer.Editor.Persistence
                 previousPatchSummary = catalog.Manifest.PreviousPatchSummary,
                 communityDragonVersion = catalog.Manifest.CommunityDragonVersion
             };
-            var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented)
+            var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented,
+                    new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })
                 .Replace("\r\n", "\n") + "\n";
             File.WriteAllText(
                 Path.Combine(patchDirectory, "manifest.json"),
@@ -201,15 +213,18 @@ namespace TFTAnalyzer.Editor.Persistence
                 stagingRoot,
                 patchDirectory,
                 Path.Combine(stagingRoot, "icons"),
-                contentHash);
+                contentHash,
+                legacyContentHash,
+                catalog.Manifest.Identity);
         }
 
-        public bool Publish(StagedCatalog staged, string finalDirectory)
+        public bool Publish(StagedCatalog staged, string finalDirectory, bool compatibleLegacy = false)
         {
             if (Directory.Exists(finalDirectory))
             {
-                var existingHash = ReadPublishedHash(finalDirectory);
-                if (!string.Equals(existingHash, staged.ContentHash, StringComparison.Ordinal))
+                var existingHash = VerifyPublishedHash(finalDirectory, staged.Identity, compatibleLegacy);
+                var expectedHash = compatibleLegacy ? staged.LegacyContentHash : staged.ContentHash;
+                if (!string.Equals(existingHash, expectedHash, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
                         $"Immutable catalog already exists with different content: {finalDirectory}");
@@ -259,15 +274,108 @@ namespace TFTAnalyzer.Editor.Persistence
             }
         }
 
-        private static string ReadPublishedHash(string finalDirectory)
+        public static string VerifyPublishedHash(string finalDirectory,
+            CatalogIdentity expectedIdentity, bool compatibleLegacy)
         {
             var manifestPath = Path.Combine(finalDirectory, "manifest.json");
+            var catalogPath = Path.Combine(finalDirectory, "catalog.json");
             if (!File.Exists(manifestPath))
             {
                 throw new InvalidDataException($"Published catalog has no manifest: {finalDirectory}");
             }
 
-            return JObject.Parse(File.ReadAllText(manifestPath))["contentHash"]?.ToString() ?? "";
+            if (!File.Exists(catalogPath))
+            {
+                throw new InvalidDataException($"Published catalog has no catalog: {finalDirectory}");
+            }
+
+            var manifest = JObject.Parse(File.ReadAllText(manifestPath));
+            if (expectedIdentity != null &&
+                (manifest.Value<int?>("schemaVersion") != (compatibleLegacy ? 1 : 2) ||
+                 !string.Equals(manifest.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
+                 manifest.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
+                 !string.Equals(manifest.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
+                 !string.Equals(manifest.Value<string>("sourceGameVersion"), expectedIdentity.Patch.SourceGameVersion, StringComparison.Ordinal) ||
+                 (!compatibleLegacy && !string.Equals(manifest.Value<string>("sourceProfile"), expectedIdentity.ProfileId, StringComparison.Ordinal)) ||
+                 (compatibleLegacy && manifest["sourceProfile"] != null)))
+            {
+                throw new InvalidDataException($"Published manifest identity does not match target: {finalDirectory}");
+            }
+
+            var declaredHash = manifest["contentHash"]?.ToString() ?? "";
+            var catalogBytes = File.ReadAllBytes(catalogPath);
+            var actualHash = ContentHasher.Sha256Hex(catalogBytes);
+            if (string.IsNullOrWhiteSpace(declaredHash) ||
+                !string.Equals(declaredHash, actualHash, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"Published catalog hash does not match its bytes: {finalDirectory}");
+            }
+
+            if (expectedIdentity != null)
+            {
+                JObject embedded;
+                try
+                {
+                    embedded = JObject.Parse(Encoding.UTF8.GetString(catalogBytes))["manifest"] as JObject;
+                }
+                catch (JsonException error)
+                {
+                    throw new InvalidDataException($"Published catalog manifest is malformed: {finalDirectory}", error);
+                }
+
+                if (embedded == null ||
+                    embedded.Value<int?>("schemaVersion") != (compatibleLegacy ? 1 : 2) ||
+                    !string.Equals(embedded.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
+                    embedded.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
+                    !string.Equals(embedded.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
+                    !string.Equals(embedded.Value<string>("sourceGameVersion"), expectedIdentity.Patch.SourceGameVersion, StringComparison.Ordinal) ||
+                    (!compatibleLegacy && !string.Equals(embedded.Value<string>("sourceProfile"), expectedIdentity.ProfileId, StringComparison.Ordinal)) ||
+                    (compatibleLegacy && embedded["sourceProfile"] != null) ||
+                    !SameProvenance(manifest, embedded, expectedIdentity))
+                {
+                    throw new InvalidDataException($"Published manifest provenance differs from catalog: {finalDirectory}");
+                }
+            }
+
+            return declaredHash;
+        }
+
+        private static bool SameProvenance(JObject standalone, JObject embedded, CatalogIdentity identity)
+        {
+            var outerSources = standalone["sources"] as JArray;
+            var innerSources = embedded["sources"] as JArray;
+            if (outerSources == null || innerSources == null ||
+                outerSources.Count != innerSources.Count)
+                return false;
+
+            var outer = outerSources.Select(SourceProvenance).ToArray();
+            var inner = innerSources.Select(SourceProvenance).ToArray();
+            if (outer.Any(value => value == null) || inner.Any(value => value == null) ||
+                !outer.OrderBy(value => value, StringComparer.Ordinal)
+                    .SequenceEqual(inner.OrderBy(value => value, StringComparer.Ordinal)))
+                return false;
+
+            var version = standalone.Value<string>("communityDragonVersion") ?? "";
+            if (!string.Equals(version, embedded.Value<string>("communityDragonVersion") ?? "", StringComparison.Ordinal))
+                return false;
+            var supplemental = outerSources.Any(source =>
+                (source as JObject)?.GetValue("isSupplemental", StringComparison.OrdinalIgnoreCase)?.Value<bool>() == true);
+            return identity.IncludesCommunityDragon
+                ? !string.IsNullOrWhiteSpace(version) && supplemental
+                : string.IsNullOrWhiteSpace(version) && !supplemental;
+        }
+
+        private static string SourceProvenance(JToken token)
+        {
+            var source = token as JObject;
+            var name = source?.GetValue("sourceName", StringComparison.OrdinalIgnoreCase)?.ToString();
+            var url = source?.GetValue("url", StringComparison.OrdinalIgnoreCase)?.ToString();
+            var sha = source?.GetValue("sha256", StringComparison.OrdinalIgnoreCase)?.ToString();
+            var supplemental = source?.GetValue("isSupplemental", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url) ||
+                string.IsNullOrWhiteSpace(sha) || supplemental?.Type != JTokenType.Boolean)
+                return null;
+            return JsonConvert.SerializeObject(new object[] { name, url, sha, supplemental.Value<bool>() });
         }
 
         private static bool IsWebUrl(string value)
@@ -296,9 +404,14 @@ namespace TFTAnalyzer.Editor.Persistence
                     source.IsSupplemental);
             }
 
-            var manifest = new PatchManifest(
+            var manifest = catalog.Manifest.Identity == null
+                ? new PatchManifest(
+                    1, catalog.Manifest.Patch, catalog.Manifest.SetName, DateTime.UnixEpoch, "",
+                    catalog.Manifest.Sources.Select(NormalizeSource), DateTime.UnixEpoch,
+                    catalog.Manifest.PolicyUrls, 0, 0, "", catalog.Manifest.CommunityDragonVersion)
+                : new PatchManifest(
                 catalog.Manifest.SchemaVersion,
-                catalog.Manifest.Patch,
+                catalog.Manifest.Identity,
                 catalog.Manifest.SetName,
                 DateTime.UnixEpoch,
                 "",
@@ -344,6 +457,16 @@ namespace TFTAnalyzer.Editor.Persistence
                 value.IconPath,
                 value.Sources.Select(NormalizeSource)));
             return new StaticCatalog(manifest, units, traits, items, augments);
+        }
+
+        private static StaticCatalog AsSchemaOne(StaticCatalog catalog)
+        {
+            var source = catalog.Manifest;
+            var manifest = new PatchManifest(1, source.Patch, source.SetName, source.CreatedUtc,
+                source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
+                source.ValidationErrorCount, source.ValidationWarningCount,
+                source.PreviousPatchSummary, source.CommunityDragonVersion);
+            return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments);
         }
     }
 }

@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Execute only after Phase 1 passes and its catalog interfaces are stable.
+- Execute only after Phase 1 and the source-profile identity cycle pass. Every observation and aggregate scope must carry the active `CatalogIdentity` with set ID, TFT patch, Data Dragon source version, and source profile; patch ID alone cannot select or join a catalog.
 - Read `RIOT_API_KEY` and `RIOT_TFT_SEED_PUUIDS` from environment memory; never persist or log either value.
 - The first implementation collects match IDs only for user-supplied seed PUUIDs; it never crawls other participants' PUUIDs.
 - Raw Match API bodies remain in memory streams only and are disposed after anonymization.
@@ -51,7 +51,7 @@ Assets/TFTAnalyzer/Tests/Fixtures/Matches/fabricated-match-v2.json
 
 **Interfaces:**
 - Produces: `AnonymousMatchObservation(string matchHash, MetricScope scope, DateTimeOffset playedAt, IReadOnlyList<AnonymousParticipant> participants)`.
-- Produces: `MetricScope(string patchId, string region, string queueId, string tierBucket)`.
+- Produces: `MetricScope(CatalogIdentity activeCatalog, string region, string queueId, string tierBucket)`. Persist the full active catalog identity with observations and aggregates; never infer it from a patch-only key.
 - Produces: `CompositionFingerprintBuilder.Build(AnonymousParticipant participant)`.
 
 - [ ] **Step 1: Write failing constructor and determinism tests**

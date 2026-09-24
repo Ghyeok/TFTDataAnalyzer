@@ -5,13 +5,13 @@ namespace TFTAnalyzer.Editor.Ingestion
 {
     public sealed class StaticImportRequest
     {
-        public PatchKey Patch { get; }
-        public bool IncludeCommunityDragon { get; }
+        public CatalogIdentity Identity { get; }
+        public PatchKey Patch => Identity.Patch;
+        public bool IncludeCommunityDragon => Identity.IncludesCommunityDragon;
 
-        public StaticImportRequest(PatchKey patch, bool includeCommunityDragon)
+        public StaticImportRequest(CatalogIdentity identity)
         {
-            Patch = patch ?? throw new ArgumentNullException(nameof(patch));
-            IncludeCommunityDragon = includeCommunityDragon;
+            Identity = identity ?? throw new ArgumentNullException(nameof(identity));
         }
     }
 }

@@ -77,6 +77,7 @@ namespace TFTAnalyzer.Serialization
                 SetName = manifest.SetName,
                 PatchId = manifest.Patch.PatchId,
                 SourceGameVersion = manifest.Patch.SourceGameVersion,
+                SourceProfile = manifest.Identity?.ProfileId,
                 CreatedUtc = manifest.CreatedUtc,
                 ContentHash = manifest.ContentHash,
                 Sources = manifest.Sources
@@ -95,19 +96,32 @@ namespace TFTAnalyzer.Serialization
 
         private static PatchManifest FromDto(ManifestDto dto)
         {
-            return new PatchManifest(
-                dto.SchemaVersion,
-                new PatchKey(dto.SetId, dto.SetNumber, dto.PatchId, dto.SourceGameVersion),
-                dto.SetName,
-                dto.CreatedUtc,
-                dto.ContentHash,
-                (dto.Sources ?? new List<SourceDto>()).Select(FromDto),
-                dto.PolicyReviewDate,
-                dto.PolicyUrls,
-                dto.ValidationErrorCount,
-                dto.ValidationWarningCount,
-                dto.PreviousPatchSummary,
-                dto.CommunityDragonVersion);
+            var patch = new PatchKey(dto.SetId, dto.SetNumber, dto.PatchId, dto.SourceGameVersion);
+            var sources = (dto.Sources ?? new List<SourceDto>()).Select(FromDto);
+            if (dto.SchemaVersion == 1)
+            {
+                if (dto.SourceProfile != null)
+                {
+                    throw new JsonSerializationException("Schema 1 must not declare a source profile.");
+                }
+
+                return new PatchManifest(1, patch, dto.SetName, dto.CreatedUtc, dto.ContentHash,
+                    sources, dto.PolicyReviewDate, dto.PolicyUrls, dto.ValidationErrorCount,
+                    dto.ValidationWarningCount, dto.PreviousPatchSummary, dto.CommunityDragonVersion);
+            }
+
+            try
+            {
+                var identity = new CatalogIdentity(patch, CatalogSourceProfileIds.Parse(dto.SourceProfile));
+                return new PatchManifest(dto.SchemaVersion, identity, dto.SetName, dto.CreatedUtc,
+                    dto.ContentHash, sources, dto.PolicyReviewDate, dto.PolicyUrls,
+                    dto.ValidationErrorCount, dto.ValidationWarningCount,
+                    dto.PreviousPatchSummary, dto.CommunityDragonVersion);
+            }
+            catch (ArgumentException error)
+            {
+                throw new JsonSerializationException("Invalid catalog identity in manifest.", error);
+            }
         }
 
         private static SourceDto ToDto(SourceStamp source)
@@ -300,6 +314,7 @@ namespace TFTAnalyzer.Serialization
             [JsonProperty("setName", Order = 4)] public string SetName { get; set; }
             [JsonProperty("patchId", Order = 5)] public string PatchId { get; set; }
             [JsonProperty("sourceGameVersion", Order = 6)] public string SourceGameVersion { get; set; }
+            [JsonProperty("sourceProfile", Order = 7, NullValueHandling = NullValueHandling.Ignore)] public string SourceProfile { get; set; }
             [JsonProperty("createdUtc", Order = 7)] public DateTime CreatedUtc { get; set; }
             [JsonProperty("contentHash", Order = 8)] public string ContentHash { get; set; }
             [JsonProperty("sources", Order = 9)] public List<SourceDto> Sources { get; set; }
