@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1 관측 모델·조합 식별자를 구현했다. 집중 테스트 32/32, 실제 Unity EditMode 전체 114/114가 통과했다. Task 2–7은 미구현이다. 실행 기록과 현재 위치는 [Checkpoint](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)를 확인한다.
+2026-10-16: Task 1 관측 모델·조합 식별자와 Task 2 키 안전 API 클라이언트·라우팅·호출 제한을 구현했다. 실제 Unity EditMode 전체 174/174가 통과했다. Task 3–7은 미구현이다. 현재 위치와 실행 증거는 [API 클라이언트 체크포인트](../Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)를 확인한다. Task 1 이력은 [관측 모델 체크포인트](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)에 보존한다.
 
 ## Global Constraints
 
@@ -32,6 +32,7 @@ Assets/TFTAnalyzer/Core/Analytics/
   {AnonymizationResult,MatchAnonymizer,CompositionFingerprintBuilder,WilsonInterval,AggregateBuilder,MetricPolicy}.cs
 Assets/TFTAnalyzer/Editor/RiotApi/
   {IRiotApiKeyProvider,EnvironmentRiotApiKeyProvider,RiotRouting,RiotApiClient}.cs
+  {IRiotApiTransport,UnityRiotApiTransport}.cs
   {RateLimitState,RiotApiException,MatchCollectionRequest,MatchCollectionSummary,MatchCollectionService}.cs
 Assets/TFTAnalyzer/Editor/Persistence/
   {ObservationStore,ProcessedMatchIndex,AggregateStore}.cs
@@ -108,6 +109,9 @@ git commit -m "feat: define anonymous TFT match observations"
 - Create: `Assets/TFTAnalyzer/Editor/RiotApi/RateLimitState.cs`
 - Create: `Assets/TFTAnalyzer/Editor/RiotApi/RiotApiException.cs`
 - Create: `Assets/TFTAnalyzer/Editor/RiotApi/RiotApiClient.cs`
+- Create: `Assets/TFTAnalyzer/Editor/RiotApi/IRiotApiTransport.cs` (owned in-memory response contract)
+- Create: `Assets/TFTAnalyzer/Editor/RiotApi/UnityRiotApiTransport.cs` (authenticated transport, redirects disabled)
+- Create: `Assets/TFTAnalyzer/Editor/AssemblyInfo.cs` (internal native-completion seam visible to tests)
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/RiotApi/RiotApiClientTests.cs`
 
 **Interfaces:**
@@ -115,7 +119,7 @@ git commit -m "feat: define anonymous TFT match observations"
 - Produces: `Task<Stream> RiotApiClient.GetMatchStreamAsync(string regionalRoute, string matchId, CancellationToken token)`.
 - Produces: `Task<IReadOnlyList<string>> GetMatchIdsAsync(string regionalRoute, string seedPuuid, int start, int count, CancellationToken token)`.
 
-- [ ] **Step 1: Write failing secret-redaction and 429 tests**
+- [x] **Step 1: Write failing secret-redaction and 429 tests**
 
 ```csharp
 [Test]
@@ -129,15 +133,15 @@ public void ExceptionMessage_NeverContainsApiKey()
 
 Assert a 429 response blocks the route until the parsed `Retry-After` UTC and makes no extra transport call during that interval.
 
-- [ ] **Step 2: Confirm focused failures**
+- [x] **Step 2: Confirm focused failures**
 
 Run with `--filter RiotApiClientTests`.
 
-- [ ] **Step 3: Implement environment-only key retrieval**
+- [x] **Step 3: Implement environment-only key retrieval**
 
 `EnvironmentRiotApiKeyProvider` reads `RIOT_API_KEY`, trims it, rejects blank values, and exposes only `IsConfigured` plus `GetRequiredKey`. It has no `ToString` override containing the value.
 
-- [ ] **Step 4: Implement regional routes and endpoints**
+- [x] **Step 4: Implement regional routes and endpoints**
 
 Map `KR`, `JP1`, `PH2`, `SG2`, `TH2`, `TW2`, and `VN2` to `asia`; `NA1`, `BR1`, `LA1`, `LA2`, and `OC1` to `americas`; European platforms to `europe`. Use:
 
@@ -148,11 +152,15 @@ https://{region}.api.riotgames.com/tft/match/v1/matches/{matchId}
 
 Send the key only in the `X-Riot-Token` header. Restrict `count` to 1–100 and percent-encode path values.
 
-- [ ] **Step 5: Parse rate-limit headers and retry policy**
+- [x] **Step 5: Parse rate-limit headers and retry policy**
 
 Track app/method limit headers by regional route. For 429, honor `Retry-After` exactly; for 500/502/503/504, retry at 1, 2, and 4 seconds; do not retry 400/401/403/404. Return response streams without logging bodies.
 
-- [ ] **Step 6: Run focused and full suites, then commit**
+Implementation decision: a 429 returns a safe retry timestamp immediately and blocks the route; no automatic 429 retry. Invalid/missing `Retry-After` conservatively blocks 60 seconds. Authenticated transport is separate from the verbose static-data HTTP transport. Received quota metadata survives cancellation before the consumer receives its response. All verification uses fabricated credentials/streams, not live Riot requests.
+
+- [x] **Step 6: Run focused and full suites, then commit**
+
+2026-10-16: actual Unity focused 60/60 and full EditMode 174/174 passed after the independent review fix. Native cancellation regression was observed RED in both event orderings before GREEN. This checklist accompanies the Task 2 Git checkpoint; detailed evidence and the deferred conservative quota issue are in the [development report](../Workflow/Cycles/2026-10-16-riot-api-client/refined/DevelopmentReport.md).
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/RiotApi Assets/TFTAnalyzer/Tests/EditMode/RiotApi
