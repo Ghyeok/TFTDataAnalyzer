@@ -1,5 +1,7 @@
 # Source Profile Identity Development Report
 
+> 이 보고서는 2026-09-24 개발 인계 당시의 이력이다. 아래 커밋 부재·연결 실패·미커밋 상태도 당시 기록으로 보존한다. 이후 구현은 `3715893`으로 커밋되었으며 현재 상태는 [Checkpoint](../Checkpoint.md), 통합 완료 조건은 [ImplementationPlan](ImplementationPlan.md)을 따른다.
+
 사이클: `2026-09-23-source-profile-identity`
 상태: 개발 구현·코드 검수 완료 / DONE_WITH_CONCERNS — native Unity 검증 게이트 미충족
 범위: 승인된 ImplementationPlan Tasks 1–5 / DevelopmentTodo D1–D6

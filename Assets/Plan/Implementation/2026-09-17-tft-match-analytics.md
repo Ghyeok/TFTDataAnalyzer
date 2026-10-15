@@ -1,6 +1,6 @@
 # TFT Anonymous Match Analytics Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 공통 모델·단계·기록 규칙은 [구현 계획 개요](TFTDataAnalyzerImplementationPlan.md)와 [워크플로](../Workflow/README.md)를 따른다. 아래 체크 항목은 이 단계의 구현·검증 상태를 관리한다.
 
 **Goal:** Collect bounded TFT match history through the official Riot API, immediately remove identity fields in memory, persist only anonymous observations, and calculate policy-safe historical aggregate metrics.
 
@@ -9,6 +9,10 @@
 **Tech Stack:** Unity 6000.3.8f1, C#, Newtonsoft Json streaming reader, UnityWebRequest, SHA-256, Unity Test Framework 1.6.0.
 
 **Spec:** `Assets/Plan/TFTDataPipeline.md`
+
+## 구현 현황
+
+2026-10-16: Task 1 관측 모델·조합 식별자를 구현했다. 집중 테스트 32/32, 실제 Unity EditMode 전체 114/114가 통과했다. Task 2–7은 미구현이다. 실행 기록과 현재 위치는 [Checkpoint](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)를 확인한다.
 
 ## Global Constraints
 
@@ -46,6 +50,7 @@ Assets/TFTAnalyzer/Tests/Fixtures/Matches/fabricated-match-v2.json
 - Create: `Assets/TFTAnalyzer/Core/Analytics/AnonymousUnit.cs`
 - Create: `Assets/TFTAnalyzer/Core/Analytics/AnonymousTrait.cs`
 - Create: `Assets/TFTAnalyzer/Core/Analytics/CompositionFingerprint.cs`
+- Create: `Assets/TFTAnalyzer/Core/Analytics/CompositionFingerprintBuilder.cs`
 - Create: `Assets/TFTAnalyzer/Core/Analytics/MetricScope.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/Analytics/AnonymousObservationTests.cs`
 
@@ -54,7 +59,7 @@ Assets/TFTAnalyzer/Tests/Fixtures/Matches/fabricated-match-v2.json
 - Produces: `MetricScope(CatalogIdentity activeCatalog, string region, string queueId, string tierBucket)`. Persist the full active catalog identity with observations and aggregates; never infer it from a patch-only key.
 - Produces: `CompositionFingerprintBuilder.Build(AnonymousParticipant participant)`.
 
-- [ ] **Step 1: Write failing constructor and determinism tests**
+- [x] **Step 1: Write failing constructor and determinism tests**
 
 ```csharp
 [Test]
@@ -67,17 +72,23 @@ public void Fingerprint_IsStableAcrossUnitAndItemOrder()
 }
 ```
 
-- [ ] **Step 2: Confirm failure and implement identity-free classes**
+- [x] **Step 2: Confirm failure and implement identity-free classes**
 
 No class in `Core/Analytics` may define properties named `Puuid`, `SummonerId`, `RiotId`, `GameName`, or `TagLine`. Constructors reject blank match hashes, invalid placement outside 1–8, and blank scope fields.
 
-- [ ] **Step 3: Implement a canonical fingerprint**
+The implementation additionally requires a 64-character SHA-256 hexadecimal match hash; raw Match IDs are rejected without including the input in errors. Full match admission and catalog membership checks belong to Task 3.
+
+- [x] **Step 3: Implement a canonical fingerprint**
 
 Build SHA-256 from ordinally sorted unit IDs with tier and sorted item IDs, then sorted active trait IDs and augment IDs. Prefix the canonical string with `fingerprint-v1|` so later schema changes do not collide.
 
-- [ ] **Step 4: Run focused and full suites**
+Canonical encoding is compact JSON `[units, activeTraitIds, augmentIds]`, where each unit is `[stableId, tier, sortedItemIds]`, after the prefix. Unit ties sort by tier then item-array JSON. Duplicate units/items remain significant; placement/last round and inactive traits do not affect the composition key.
+
+- [x] **Step 4: Run focused and full suites**
 
 Expected: deterministic fingerprints and all invariant tests pass.
+
+2026-10-16: actual Unity focused 32/32 and full default EditMode 114/114 passed; independent review found no Critical/Important/Minor issues. Step 5 remains pending until a scoped Git checkpoint is created.
 
 - [ ] **Step 5: Commit checkpoint**
 
@@ -190,6 +201,8 @@ Use `JsonTextReader` over the provided stream. Deserialize into internal Editor-
 - [ ] **Step 4: Validate and quarantine unknown static IDs**
 
 Return an `AnonymizationResult` containing the observation plus unknown stable IDs. Reject matches with missing patch, queue, participant collection, placement, or unit IDs. Never include raw JSON or identity values in errors.
+
+Admission must also validate complete-lobby participant count and placement consistency, retain safe match-version metadata, and verify static IDs against the active catalog. These payload-aware checks are not implied by Task 1 constructors, which only validate individual values and nonempty collections.
 
 - [ ] **Step 5: Run memory-safety and malformed-input tests**
 
