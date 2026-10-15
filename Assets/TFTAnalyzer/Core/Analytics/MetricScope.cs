@@ -3,6 +3,7 @@ using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Analytics
 {
+    /// <summary>A value key separating statistics by catalog identity and collection filters.</summary>
     public sealed class MetricScope : IEquatable<MetricScope>
     {
         public CatalogIdentity ActiveCatalog { get; }
@@ -10,6 +11,7 @@ namespace TFTAnalyzer.Analytics
         public string QueueId { get; }
         public string TierBucket { get; }
 
+        /// <summary>Binds statistics to a full catalog identity and nonblank region, queue and tier filters.</summary>
         public MetricScope(CatalogIdentity activeCatalog, string region, string queueId, string tierBucket)
         {
             ActiveCatalog = activeCatalog ?? throw new ArgumentNullException(nameof(activeCatalog));
@@ -18,6 +20,7 @@ namespace TFTAnalyzer.Analytics
             TierBucket = DomainValues.RequireStable(tierBucket, nameof(tierBucket));
         }
 
+        /// <summary>Compares the complete catalog identity and every filter using ordinal text equality.</summary>
         public bool Equals(MetricScope other)
         {
             return other != null && ActiveCatalog.Equals(other.ActiveCatalog) &&
@@ -26,8 +29,10 @@ namespace TFTAnalyzer.Analytics
                    string.Equals(TierBucket, other.TierBucket, StringComparison.Ordinal);
         }
 
+        /// <summary>Compares the complete catalog identity and every filter using ordinal text equality.</summary>
         public override bool Equals(object obj) => Equals(obj as MetricScope);
 
+        /// <summary>Returns a collection hash consistent with equality; this is not a persisted identifier.</summary>
         public override int GetHashCode()
         {
             unchecked

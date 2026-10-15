@@ -5,6 +5,7 @@ using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Analytics
 {
+    /// <summary>Identity-free final board and outcome data for one participant.</summary>
     public sealed class AnonymousParticipant
     {
         public int Placement { get; }
@@ -13,6 +14,7 @@ namespace TFTAnalyzer.Analytics
         public IReadOnlyList<AnonymousTrait> Traits { get; }
         public IReadOnlyList<string> AugmentIds { get; }
 
+        /// <summary>Snapshots the final board and augments with placement 1–8 and a nonnegative last round.</summary>
         public AnonymousParticipant(int placement, int lastRound, IEnumerable<AnonymousUnit> units,
             IEnumerable<AnonymousTrait> traits, IEnumerable<string> augmentIds)
         {

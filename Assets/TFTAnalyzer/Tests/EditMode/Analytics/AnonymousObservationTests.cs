@@ -10,10 +10,12 @@ using TFTAnalyzer.Serialization;
 
 namespace TFTAnalyzer.Tests.Analytics
 {
+    /// <summary>Regression tests for anonymous contracts, immutable snapshots and deterministic composition keys.</summary>
     public sealed class AnonymousObservationTests
     {
         private const string MatchHash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
+        /// <summary>Verifies equivalent final compositions share a key despite input enumeration order.</summary>
         [Test]
         public void FingerprintIsStableAcrossUnitItemTraitAndAugmentOrder()
         {
@@ -25,6 +27,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(CompositionFingerprintBuilder.Build(a), Is.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
+        /// <summary>Pins the fingerprint version prefix and JSON structure used by future persisted composition keys.</summary>
         [Test]
         public void FingerprintUsesVersionedStructuredCanonicalEncoding()
         {
@@ -36,6 +39,7 @@ namespace TFTAnalyzer.Tests.Analytics
                 Is.EqualTo(ContentHasher.Sha256Hex(canonical)));
         }
 
+        /// <summary>Ensures an ID containing a delimiter cannot impersonate multiple item IDs.</summary>
         [Test]
         public void FingerprintSeparatesDelimiterLikeIdsWithoutCollisions()
         {
@@ -44,6 +48,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(CompositionFingerprintBuilder.Build(a), Is.Not.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
+        /// <summary>Checks that every composition dimension and repeated unit changes the resulting key.</summary>
         [Test]
         public void FingerprintIncludesUnitTierItemsActiveTraitsAndAugments()
         {
@@ -61,6 +66,7 @@ namespace TFTAnalyzer.Tests.Analytics
                 Assert.That(CompositionFingerprintBuilder.Build(variant), Is.Not.EqualTo(baseline));
         }
 
+        /// <summary>Ensures a repeated equipped item remains significant rather than becoming a set entry.</summary>
         [Test]
         public void FingerprintRetainsRepeatedEquippedItems()
         {
@@ -69,6 +75,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(CompositionFingerprintBuilder.Build(a), Is.Not.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
+        /// <summary>Keeps composition identity independent of placement, last round and inactive trait records.</summary>
         [Test]
         public void FingerprintIgnoresInactiveTraitsAndParticipantOutcome()
         {
@@ -78,6 +85,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(CompositionFingerprintBuilder.Build(a), Is.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
+        /// <summary>Verifies ordinal ID ordering remains stable across English and Turkish cultures.</summary>
         [Test]
         public void FingerprintDoesNotDependOnCurrentCulture()
         {
@@ -93,6 +101,7 @@ namespace TFTAnalyzer.Tests.Analytics
             finally { CultureInfo.CurrentCulture = before; }
         }
 
+        /// <summary>Prevents observations with any different catalog or filter dimension from sharing a scope.</summary>
         [TestCase("set")]
         [TestCase("patch")]
         [TestCase("version")]
@@ -114,6 +123,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(new HashSet<MetricScope> { baseline, changed }.Count, Is.EqualTo(2));
         }
 
+        /// <summary>Checks the equality and collection-hashing contract for independently constructed scopes.</summary>
         [Test]
         public void EqualScopesHaveEqualHashCodes()
         {
@@ -121,6 +131,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(Scope().GetHashCode(), Is.EqualTo(Scope().GetHashCode()));
         }
 
+        /// <summary>Rejects missing region, queue and tier filters before observations can be grouped.</summary>
         [TestCase("")]
         [TestCase(" ")]
         [TestCase(null)]
@@ -131,12 +142,14 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.Throws<ArgumentException>(() => new MetricScope(Identity(), "asia", "QUEUE", blank));
         }
 
+        /// <summary>Requires an explicit active catalog instead of inferring one from a patch string.</summary>
         [Test]
         public void ScopeRejectsMissingCatalog()
         {
             Assert.Throws<ArgumentNullException>(() => new MetricScope(null, "asia", "QUEUE", "TIER"));
         }
 
+        /// <summary>Rejects placements outside the supported 1–8 interval.</summary>
         [TestCase(0)]
         [TestCase(9)]
         public void ParticipantRejectsOutOfRangePlacement(int placement)
@@ -145,6 +158,7 @@ namespace TFTAnalyzer.Tests.Analytics
                 new[] { Unit("TEST_A") }, null, null));
         }
 
+        /// <summary>Accepts both ends of the supported placement interval.</summary>
         [TestCase(1)]
         [TestCase(8)]
         public void ParticipantAcceptsBoundaryPlacements(int placement)
@@ -153,6 +167,7 @@ namespace TFTAnalyzer.Tests.Analytics
                 Is.EqualTo(placement));
         }
 
+        /// <summary>Rejects blank, raw and malformed match identifiers at the anonymous observation boundary.</summary>
         [TestCase("")]
         [TestCase(" ")]
         [TestCase(null)]
@@ -163,6 +178,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.Throws<ArgumentException>(() => Observation(hash));
         }
 
+        /// <summary>Exercises constructor guards and verifies rejected raw identifiers do not appear in errors.</summary>
         [Test]
         public void ContractsRejectMissingStateWithoutEchoingInputValues()
         {
@@ -188,6 +204,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(error.ToString(), Does.Not.Contain("FAKE_PRIVATE_RAW_ID"));
         }
 
+        /// <summary>Verifies callers cannot mutate stored composition state through original or exposed collections.</summary>
         [Test]
         public void CollectionsAreDefensiveReadOnlySnapshots()
         {
@@ -210,6 +227,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.Throws<NotSupportedException>(() => ((IList<AnonymousUnit>)participant.Units)[0] = Unit("OTHER"));
         }
 
+        /// <summary>Checks JSON reconstruction preserves complete scope, normalized time and composition identity.</summary>
         [Test]
         public void ObservationRoundTripsWithFullScopeAndUtcTimestamp()
         {
@@ -226,6 +244,7 @@ namespace TFTAnalyzer.Tests.Analytics
                 Is.EqualTo(CompositionFingerprintBuilder.Build(observation.Participants[0])));
         }
 
+        /// <summary>Guards the public analytics contract against accidental personal-identity properties.</summary>
         [Test]
         public void AnalyticsContractsExposeNoPersonalIdentityProperties()
         {
@@ -237,17 +256,23 @@ namespace TFTAnalyzer.Tests.Analytics
                 Assert.That(forbidden, Does.Not.Contain(property.Name), type.FullName + "." + property.Name);
         }
 
+        /// <summary>Creates a fabricated catalog identity whose dimensions can be varied independently.</summary>
         private static CatalogIdentity Identity(string set = "TEST_SET", string patch = "18.2",
             string version = "16.18.1", CatalogSourceProfile profile = CatalogSourceProfile.OfficialOnly)
             => new CatalogIdentity(new PatchKey(set, 18, patch, version), profile);
 
+        /// <summary>Creates the baseline fabricated statistics scope used by contract tests.</summary>
         private static MetricScope Scope() => new MetricScope(Identity(), "asia", "TEST_QUEUE", "MASTER+");
+        /// <summary>Creates a fabricated final unit with the requested tier and equipped item sequence.</summary>
         private static AnonymousUnit Unit(string id, int tier = 1, params string[] items)
             => new AnonymousUnit(id, tier, items);
+        /// <summary>Creates an active fabricated trait for composition-key tests.</summary>
         private static AnonymousTrait Trait(string id) => new AnonymousTrait(id, 1);
+        /// <summary>Creates a fabricated participant with a valid baseline outcome and supplied final board.</summary>
         private static AnonymousParticipant Participant(IEnumerable<AnonymousUnit> units,
             IEnumerable<AnonymousTrait> traits = null, IEnumerable<string> augments = null)
             => new AnonymousParticipant(1, 20, units, traits, augments);
+        /// <summary>Creates a valid fabricated observation while varying only its match hash.</summary>
         private static AnonymousMatchObservation Observation(string hash)
             => new AnonymousMatchObservation(hash, Scope(), DateTimeOffset.UnixEpoch,
                 new[] { Participant(new[] { Unit("TEST_A") }) });

@@ -1,7 +1,7 @@
 # 익명 관측 모델 체크포인트
 
 갱신일: 2026-10-16
-상태: Task 1 구현·검증·독립 코드 검수·Git 체크포인트 완료. 외부 검수·병합 상태는 GitHub PR에서 확인.
+상태: Task 1 구현·검증·독립 코드 검수·Git 체크포인트 완료. 외부 검수·병합 상태는 [PR #2](https://github.com/Ghyeok/TFTDataAnalyzer/pull/2)에서 확인.
 승인 근거: 사용자의 “구현 계획을 확인하고 다음 구현을 진행해줘” 지시에 따라 다음 구현 단위인 Task 1 진행.
 
 - 단일 실행 계획: [Phase 2 Task 1](../../../Implementation/2026-09-17-tft-match-analytics.md#task-1-define-anonymous-observation-contracts). 별도 TODO는 생성하지 않는다.

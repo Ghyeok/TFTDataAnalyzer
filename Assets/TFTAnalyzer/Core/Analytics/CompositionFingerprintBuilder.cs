@@ -6,8 +6,10 @@ using TFTAnalyzer.Serialization;
 
 namespace TFTAnalyzer.Analytics
 {
+    /// <summary>Produces deterministic versioned keys from final composition state.</summary>
     public static class CompositionFingerprintBuilder
     {
+        /// <summary>Hashes the versioned ordinal composition encoding, excluding outcome fields and inactive traits.</summary>
         public static CompositionFingerprint Build(AnonymousParticipant participant)
         {
             if (participant == null) throw new ArgumentNullException(nameof(participant));
