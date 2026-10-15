@@ -10,10 +10,10 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 |---|---|---|
 | 1. 정적 데이터 파이프라인 | 공식 데이터 수집, 선택형 보완 소스, 정규화·검증·패치 비교, 불변 카탈로그 저장 | 구현됨 |
 | 1-1. 카탈로그 식별자 강화 | 세트·패치·원본 버전·출처 프로필 분리, 기존 데이터 호환, 무결성 검증 | 구현됨 |
-| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 관측 모델·API 클라이언트 구현, 익명화·저장·집계 예정 |
+| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 관측 모델·API 클라이언트·익명화 구현, 저장·집계 예정 |
 | 3. 통합 Editor UI | 데이터 관리·경기 수집·분석·정책 안내 화면 | 설계 및 구현 계획 작성 |
 
-현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 API 클라이언트는 키 안전성·호출 제한·재시도를 포함하며, 익명화와 수집 화면 연결은 다음 작업입니다. 2026-10-16에 실제 Unity EditMode 전체 174개가 통과했습니다. 기존 카탈로그 로드·인덱스 저장·Import 창 기본화면도 확인한 상태입니다. 실제 네트워크 import·Match API 호출과 네이티브 확인창 클릭은 미실행입니다.
+현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 API 클라이언트와 메모리 내 익명화기를 구현했으며, 익명 관측 저장·집계·수집 화면 연결은 다음 작업입니다. 2026-10-16에 실제 Unity EditMode 전체 226개가 통과했습니다. 기존 카탈로그 로드·인덱스 저장·Import 창 기본화면도 확인한 상태입니다. 실제 네트워크 import·Match API 호출과 네이티브 확인창 클릭은 미실행입니다.
 
 ## 핵심 설계
 
@@ -57,8 +57,8 @@ flowchart TD
     A[Riot Data Dragon] --> C[정적 데이터 수집·정규화·검증]
     B[CommunityDragon: 실행별 선택] --> C
     C --> D[불변 정적 카탈로그]
-    E[Riot Match API 클라이언트] --> F[메모리 내 익명화·중복 제거: 구현 예정]
-    F --> G[익명 관측 저장소]
+    E[Riot Match API 클라이언트] --> F[메모리 내 익명화·검증]
+    F --> G[익명 관측 저장·중복 제거: 구현 예정]
     D --> H[집계기: 구현 예정]
     G --> H
     H --> I[과거 경기 통계·통합 Editor UI: 구현 예정]
@@ -83,6 +83,7 @@ flowchart TD
 - 키를 프로젝트 파일, `EditorPrefs`, URL, 명령줄 인자나 로그에 저장하지 않습니다.
 - 식별 정보가 포함된 원본 Match API 응답은 디스크나 로그에 기록하지 않습니다.
 - 플레이어 이름과 PUUID는 메모리에서 제거하고, 원본 Match ID는 중복 제거용 SHA-256 해시로 변환합니다.
+- 익명화기는 전체 카탈로그 식별자·세트·원본 게임 릴리스와 8인 로비의 순위 일관성을 확인합니다. 알 수 없는 정적 ID가 있으면 경기 전체를 격리하고, 진단에는 분류와 ID 해시만 남깁니다.
 - 익명 관측과 집계 결과만 로컬 저장소에 보관합니다.
 - 호출 제한과 `Retry-After`를 반영하고, 사용자가 수집량을 제한하거나 취소할 수 있도록 합니다.
 
@@ -160,6 +161,7 @@ CodeRabbit의 저장소 설정은 [`.coderabbit.yaml`](.coderabbit.yaml)에서 �
 - [카탈로그 식별자 강화 통합 실행 계획](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md)
 - [익명 관측 모델 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)
 - [Riot API 클라이언트 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)
+- [경기 익명화 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-match-anonymizer/Checkpoint.md)
 - [2026-09-24 개발 인계 기록](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/DevelopmentReport.md)
 
 ## 데이터와 프로젝트 고지
