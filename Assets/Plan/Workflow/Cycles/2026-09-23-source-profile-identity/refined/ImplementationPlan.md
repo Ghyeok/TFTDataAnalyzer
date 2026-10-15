@@ -1,6 +1,11 @@
 # Static Catalog Composite Identity Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:test-driven-development`. The Development Lead must create exactly one implementation agent and one read-only review agent for this cycle. Steps use checkbox (`- [x]`) syntax for tracking.
+갱신일: 2026-10-16
+상태: 구현·코드 검수·오프라인 Unity QA 통과, 최종 사용자 완료 승인 대기
+
+이 문서는 실행 순서와 개발 TODO·완료·검수·QA 조건의 단일 관리 문서다. 기존 `DevelopmentTodo.md`의 조건을 통합했다. Tasks 1–5는 원래 구현 절차이며 구현 이력은 [2026-09-24 개발 기록](DevelopmentReport.md), 새 검증은 [2026-10-16 QA 보고서](QAReport.md)에 근거한다. 현재 위치와 Git 상태는 [Checkpoint](../Checkpoint.md)를 따른다.
+
+모델 선택은 [AGENTS.md](../../../../../../AGENTS.md), 제품 코드의 TDD·검수 절차는 [워크플로](../../../README.md)를 따른다. 완료된 구현과 코드 검수를 다시 배정하지 않는다.
 
 **Goal:** Make static catalog identity include Set, TFT patch, Data Dragon source version, and source profile while preserving the committed legacy official-only catalog byte-for-byte.
 
@@ -9,6 +14,17 @@
 **Tech Stack:** Unity 6000.3.8f1, C#, Newtonsoft Json 3.2.2, Unity Test Framework 1.6.0, Unity Editor APIs.
 
 **Spec:** `Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/PlanningReview.md`
+
+## 개발·검수·QA 조건
+
+| ID / 실행 항목 | 객관적 완료 조건 | 개발 검수 조건 | QA 필수 증거 |
+|---|---|---|---|
+| D1 / Task 1 | 두 프로필이 요청·manifest 직렬화에서 왕복하고 알 수 없는 값은 거부됨 | 프로필과 CommunityDragon 사용 여부가 단일 계약에서 파생됨 | 집중 테스트 결과와 직렬화 예시 |
+| D2 / Task 2 | 같은 set/patch의 두 프로필·두 원본 버전이 별도 경로·인덱스로 공존 | `setId+patchId`만으로 항목을 선택·제거하지 않음 | 네 identity 공존 테스트와 실제 경로 목록 |
+| D3 / Task 3 | 기존 18.2 catalog/manifest/.meta 바이트가 변하지 않고 official-only로 검색·재검증 가능 | 판별 불가능한 legacy를 추측하지 않음 | 작업 전후 SHA-256과 legacy fixture, 실제 Unity 기존 index 역직렬화 |
+| D4 / Task 3 | 변조를 감지하고 같은 identity의 다른 콘텐츠가 기존 파일·인덱스를 바꾸지 않음 | manifest 해시 문자열만 신뢰하지 않음 | 변조·충돌·취소·실패 테스트와 실제 AssetDatabase 확인 |
+| D5 / Task 4 | 확인·결과에 version/profile/대상 경로 표시, 확인 전 취소 시 네트워크 0건 | 보완 소스를 매 실행 명시적으로 선택하고 기본 false | fake transport 테스트와 실제 Editor 창 수동 확인 |
+| D6 / Task 5 | 컴파일 성공, 기본 EditMode 전체 통과, 기본 테스트는 네트워크 없음, 계획·코드 계약 일치 | 범위 밖 Phase 2 변경과 사용자 파일 변경 제외 | 명령·종료 상태·테스트 수·git diff 요약 |
 
 ## Global Constraints
 
@@ -47,6 +63,7 @@
 - Produces: stable profile IDs `official-only` and `official-plus-communitydragon`.
 - Produces: `bool IncludesCommunityDragon` derived only from `SourceProfile`.
 - `StaticImportRequest` consumes a `CatalogIdentity`; its `Patch` and `IncludeCommunityDragon` values are derived views.
+- Canonical serialization remains deterministic for the same identity and content; retain schema-1 deserialization regression coverage.
 
 - [x] **Step 1: Write failing identity tests**
 
@@ -64,7 +81,7 @@ Use constructor-validated immutable values. Do not allow callers to pass a profi
 
 New manifests use schema version 2 and serialize the stable profile ID. Schema-1 deserialization may map to official-only only through the legacy resolver in Task 3, not through a universal silent default.
 
-- [ ] **Step 5: Run focused and full default EditMode tests**
+- [x] **Step 5: Run focused and full default EditMode tests**
 
 Expected: all tests pass, no network.
 
@@ -84,6 +101,7 @@ Expected: all tests pass, no network.
 - `StaticCatalogPaths.CatalogAssetPath(CatalogIdentity identity)` uses the same segments.
 - `ICatalogIndexWriter.Upsert` consumes `CatalogIdentity`.
 - `CatalogIndexEntry` exposes the four identity fields.
+- Raw cache paths distinguish input identities, or safely share content-addressed originals under a tested contract.
 
 - [x] **Step 1: Write failing path coexistence tests**
 
@@ -105,7 +123,7 @@ Keep deterministic ordering by set number, patch ID, source version, then profil
 
 No code may select or remove an index entry using only set ID and patch ID.
 
-- [ ] **Step 6: Run focused and full default suites**
+- [x] **Step 6: Run focused and full default suites**
 
 Expected: all pass, no network.
 
@@ -125,6 +143,7 @@ Expected: all pass, no network.
 - Produces: a resolution result `NotFound`, `CompatibleOfficialLegacy`, or `AmbiguousLegacy` plus the resolved path.
 - A compatible legacy result requires matching set, patch, source version, no CommunityDragon version, and no supplemental source stamps.
 - `Publish` verifies the actual existing `catalog.json` SHA-256 against its manifest before comparing with staged content.
+- A legacy index entry keeps its existing asset path; an identical official-only rerun must not create a duplicate output directory.
 
 - [x] **Step 1: Capture pre-change SHA-256 values**
 
@@ -146,7 +165,7 @@ Do not accept parse errors caused by a malformed fixture when testing identity b
 
 Do not migrate or rewrite legacy files. Any partial-publish condition must return/throw a recoverable error describing paths without response bodies.
 
-- [ ] **Step 6: Recompute protected file hashes and run suites**
+- [x] **Step 6: Recompute protected file hashes and run suites**
 
 Expected: hashes are identical to Step 1 and all focused/full tests pass.
 
@@ -162,6 +181,7 @@ Expected: hashes are identical to Step 1 and all focused/full tests pass.
 **Interfaces:**
 - Produces a confirmation summary containing set ID, patch ID, source version, profile stable ID, and resolved target path.
 - CommunityDragon selection resets to false after success, cancellation, and failure.
+- Error status includes identity and safe recovery information without response bodies or secret values.
 
 - [x] **Step 1: Write failing presentation and consent tests**
 
@@ -175,7 +195,7 @@ Use a fake command/state boundary rather than asserting Unity framework internal
 
 Keep `EditorWindow` thin. Do not introduce the planned Phase-3 UI Toolkit window.
 
-- [ ] **Step 4: Run focused and full default suites**
+- [x] **Step 4: Run focused and full default suites**
 
 Expected: all pass, no network.
 
@@ -203,7 +223,7 @@ Replace the obsolete no-Git statement, record Phase 1 baseline, and replace the 
 
 Phase 2 must not identify observations by patch ID alone. Phase 3 must select a full catalog identity. Text scans must allow the documented negative disclaimer while forbidding prediction claims.
 
-- [ ] **Step 3: Run final verification**
+- [x] **Step 3: Run final verification**
 
 Run Unity recompile, full default EditMode tests, protected-file SHA-256 comparison, index/path/manifest consistency scan, and `git diff --check`.
 
@@ -213,14 +233,16 @@ Record commands, exit states, exact test counts, skipped explicit tests, review 
 
 ## Development Completion Gate
 
-- Both profiles coexist for one set/patch/version.
-- Two source versions coexist for one set/patch/profile.
-- Existing legacy assets remain byte-identical and selectable.
-- Tampering prevents idempotent success.
-- Index entries resolve to existing valid catalogs.
-- CommunityDragon remains explicit opt-in.
-- Unity compilation is clean and the full default EditMode suite has zero failures.
-- Implementation agent self-review and read-only review agent approval are recorded.
-- No out-of-scope code or unrelated user file is included.
+- [x] D1–D5 implementation, self-review and independent code-review approval recorded.
+- [x] Two profiles and two source versions coexist; the index resolves valid test catalogs.
+- [x] Protected legacy bytes are unchanged; compatible legacy lookup is covered by fixtures.
+- [x] Tampering, collision, cancellation and failure-preservation regression evidence recorded.
+- [x] CommunityDragon remains explicit opt-in for each run.
+- [x] D6 plan alignment and historical development/raw evidence recorded.
+- [x] Implementation committed as `3715893`; unrelated user changes excluded.
+- [x] Actual Unity compilation is clean and the full default EditMode suite has zero failures (82/82 baseline, then 114/114 including the new contracts).
+- [x] Actual Unity legacy-index loading, native index persistence and Import window defaults inspected; publication/recovery and consent behavior covered by offline regression tests (see QA scope).
+- [x] D1–D6 offline QA evidence accepted by an independent reviewer and the 2026-10-16 report recorded.
+- [ ] Final user completion approval recorded. This does not block the separately requested next implementation.
 
-> 2026-09-24 개발 인계: 구현 및 같은 독립 리뷰어의 수정 검수 승인 완료. 보완 .NET 회귀 80/0, Unity 참조 컴파일 0 warnings/errors. 실제 Unity 재컴파일/EditMode/AssetDatabase/UI 검증은 Pipeline 연결 불가로 미완료이며 관련 게이트는 체크하지 않았다. 전체 근거와 Git 커밋 이관은 `DevelopmentReport.md`, raw 기록 참조. QA는 시작하지 않았다.
+2026-09-24의 보완 결과는 이력으로 보존한다. 2026-10-16의 실제 Unity 결과와 QA 범위는 [QAReport](QAReport.md)를 따른다. 실제 네트워크 import, 네이티브 확인창 클릭, production `CatalogIndexWriter.Upsert` 전체 발행의 네이티브 실행은 미실행이며 해당 범위까지 검증했다고 주장하지 않는다.

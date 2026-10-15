@@ -1,6 +1,6 @@
 # TFT Data Analyzer Implementation Plan Index
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 모델 선택은 [AGENTS.md](../../../AGENTS.md), 단계·역할·기록은 [개발 워크플로](../Workflow/README.md)를 따른다. 단계별 계획은 구현 절차이며 현재 진행 상태와 과거 실행 근거를 구분한다.
 
 **Goal:** Build a policy-bounded Unity Editor tool that imports patch-versioned TFT static data, ingests Riot Match API responses without persisting identity-bearing payloads, and displays anonymous historical aggregate statistics.
 
@@ -29,7 +29,7 @@
 ## Plan Order
 
 1. [Phase 1 — Static Data Pipeline](2026-09-17-tft-static-data-pipeline.md)
-   - Baseline committed at `ec9d296`: official-only Set 18 / 18.2 catalog imported, normalized, validated, diffed, and indexed from the Unity Editor. The source-profile identity hardening cycle follows this baseline.
+   - 기준 카탈로그는 `ec9d296`, source-profile identity 강화는 `3715893`에 반영됐다. 기능 구현과 실제 Unity 검증 완료를 구분하며, 남은 검증·QA는 [현재 체크포인트](../Workflow/Cycles/2026-09-23-source-profile-identity/Checkpoint.md)를 따른다.
 2. [Phase 2 — Anonymous Match Analytics](2026-09-17-tft-match-analytics.md)
    - Starts only after the four-field active catalog identity is stable. Bounded Match API collection produces only anonymous observations and aggregate metrics in `Library/TftAnalyzerStore`.
 3. [Phase 3 — Editor UI and Compliance](2026-09-17-tft-analyzer-editor-ui.md)

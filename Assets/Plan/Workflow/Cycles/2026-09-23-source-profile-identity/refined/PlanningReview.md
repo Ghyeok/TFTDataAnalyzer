@@ -151,7 +151,7 @@ Assets/TFTAnalyzer/Data/Generated/
 1. 접근 A의 복합 identity를 채택한다.
 2. 기존 18.2 생성 파일은 자동 이동하지 않고 legacy official-only로 읽는다.
 3. 이번 사이클은 정적 카탈로그 identity와 무결성으로 제한한다.
-4. `DevelopmentTodo.md`의 모든 완료 조건을 개발·검수·QA가 증명해야 한다.
+4. [ImplementationPlan.md](ImplementationPlan.md)의 D1–D6 완료·검수·QA 조건을 증명해야 한다. 기존 `DevelopmentTodo.md`의 조건은 2026-10-16에 실행 계획으로 통합했다.
 5. Phase 2와 외부 배포는 별도 기획 승인 없이는 시작하지 않는다.
 
 ## 9. 승인 기록

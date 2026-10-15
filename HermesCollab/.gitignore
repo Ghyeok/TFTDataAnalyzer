@@ -1,0 +1,3 @@
+# Keep exchanged snapshots, logs and results local by default.
+/tasks/*
+!/tasks/.gitkeep

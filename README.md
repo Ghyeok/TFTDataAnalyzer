@@ -10,10 +10,10 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 |---|---|---|
 | 1. 정적 데이터 파이프라인 | 공식 데이터 수집, 선택형 보완 소스, 정규화·검증·패치 비교, 불변 카탈로그 저장 | 구현됨 |
 | 1-1. 카탈로그 식별자 강화 | 세트·패치·원본 버전·출처 프로필 분리, 기존 데이터 호환, 무결성 검증 | 구현됨 |
-| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 설계 및 구현 계획 작성 |
+| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 관측 모델·조합 식별 구현, 수집·집계 예정 |
 | 3. 통합 Editor UI | 데이터 관리·경기 수집·분석·정책 안내 화면 | 설계 및 구현 계획 작성 |
 
-현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 수집·통계 분석과 UI Toolkit 기반 통합 창은 향후 구현 범위입니다. 최근 개발 인계 문서에는 실제 Unity 환경의 전체 EditMode 테스트와 수동 UI 검증이 미완료로 기록되어 있습니다.
+현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 수집·통계 분석과 UI Toolkit 기반 통합 창은 향후 구현 범위입니다. 2026-10-16에 실제 Unity EditMode 전체 114개가 통과했고, 기존 카탈로그 로드·인덱스 저장·Import 창 기본화면을 확인했습니다. 실제 네트워크 import와 네이티브 확인창 클릭은 미실행입니다.
 
 ## 핵심 설계
 
@@ -156,7 +156,10 @@ CodeRabbit의 저장소 설정은 [`.coderabbit.yaml`](.coderabbit.yaml)에서 �
 - [1단계: 정적 데이터 파이프라인](Assets/Plan/Implementation/2026-09-17-tft-static-data-pipeline.md)
 - [2단계: 익명 경기 통계](Assets/Plan/Implementation/2026-09-17-tft-match-analytics.md)
 - [3단계: Editor UI와 정책 경계](Assets/Plan/Implementation/2026-09-17-tft-analyzer-editor-ui.md)
-- [카탈로그 식별자 강화 개발 인계](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/DevelopmentReport.md)
+- [카탈로그 식별자 강화 현재 상태·남은 검증](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/Checkpoint.md)
+- [카탈로그 식별자 강화 통합 실행 계획](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md)
+- [익명 관측 모델 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)
+- [2026-09-24 개발 인계 기록](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/DevelopmentReport.md)
 
 ## 데이터와 프로젝트 고지
 

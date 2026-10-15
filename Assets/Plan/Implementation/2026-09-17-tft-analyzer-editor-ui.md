@@ -1,6 +1,6 @@
 # TFT Data Analyzer Editor UI and Compliance Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 공통 모델·단계·기록 규칙은 [구현 계획 개요](TFTDataAnalyzerImplementationPlan.md)와 [워크플로](../Workflow/README.md)를 따른다. 아래 체크 항목은 이 단계의 구현·검증 상태를 관리한다.
 
 **Goal:** Provide a complete Unity UI Toolkit Editor workflow for static imports, bounded match collection, historical metric exploration, policy disclosure, and deployment blocking until compliance is acknowledged.
 
