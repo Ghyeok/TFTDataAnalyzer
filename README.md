@@ -139,6 +139,16 @@ Unity의 **`Window > General > Test Runner`**에서 EditMode 테스트를 실행
 
 기본 테스트는 네트워크나 Riot API 키 없이 픽스처를 사용합니다. 외부 네트워크 검증은 `[Explicit]` 테스트로 분리합니다. 소스 매핑, 공식 값 우선 병합, 참조 검증, 결정적 직렬화, 불변 저장, 버전·출처 프로필 공존과 오류 복구를 검증하며, 경기 분석 단계에서는 익명화·중복 제거·집계·최소 표본 차단 검증을 추가할 계획입니다.
 
+## 코드 리뷰
+
+CodeRabbit의 저장소 설정은 [`.coderabbit.yaml`](.coderabbit.yaml)에서 관리합니다.
+
+- 변경 작업은 별도 브랜치에서 진행하고 `main`을 대상으로 PR을 생성합니다.
+- 일반 PR은 한국어로 자동 리뷰하며, Draft PR은 자동 리뷰 대상에서 제외합니다.
+- 추가 리뷰가 필요하면 PR 댓글에 `@coderabbitai review`를 입력합니다.
+- 리뷰 지적은 코드와 실제 테스트 결과로 확인한 뒤 반영합니다. CodeRabbit 리뷰가 Unity 컴파일이나 EditMode 테스트를 대체하지 않습니다.
+- `main`에 직접 push하는 작업은 PR 리뷰를 거치지 않습니다.
+
 ## 상세 설계 문서
 
 - [전체 제품·데이터 설계](Assets/Plan/TFTDataPipeline.md)
