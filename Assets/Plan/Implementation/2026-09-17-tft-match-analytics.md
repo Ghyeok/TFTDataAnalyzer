@@ -88,9 +88,9 @@ Canonical encoding is compact JSON `[units, activeTraitIds, augmentIds]`, where 
 
 Expected: deterministic fingerprints and all invariant tests pass.
 
-2026-10-16: actual Unity focused 32/32 and full default EditMode 114/114 passed; independent review found no Critical/Important/Minor issues. Step 5 remains pending until a scoped Git checkpoint is created.
+2026-10-16: actual Unity focused 32/32 and full default EditMode 114/114 passed; independent review found no Critical/Important/Minor issues. Implementation checkpoint: `5ffc910`.
 
-- [ ] **Step 5: Commit checkpoint**
+- [x] **Step 5: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Core/Analytics Assets/TFTAnalyzer/Tests/EditMode/Analytics
