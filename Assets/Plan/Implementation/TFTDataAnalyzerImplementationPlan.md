@@ -42,14 +42,14 @@ Each phase must pass its own EditMode suite before the next phase begins. Networ
 After adding or changing scripts:
 
 ```powershell
-& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command recompile --project-path 'C:\Unity\TFTSimulator' --format json
-& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command recompile_status --project-path 'C:\Unity\TFTSimulator' --format json
+& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command recompile --project-path 'C:\Unity\TFTDataAnalyzer' --format json
+& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command recompile_status --project-path 'C:\Unity\TFTDataAnalyzer' --format json
 ```
 
 Run the full EditMode suite:
 
 ```powershell
-& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command run_tests --project-path 'C:\Unity\TFTSimulator' --mode editor --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300 --format json
+& 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command run_tests --project-path 'C:\Unity\TFTDataAnalyzer' --mode editor --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300 --format json
 ```
 
 Success requires `success: true`, completed test status, zero failed tests, and no compiler errors in the fresh command output.

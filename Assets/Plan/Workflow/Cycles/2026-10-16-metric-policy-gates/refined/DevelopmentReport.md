@@ -27,7 +27,7 @@
 | 출처·캐시 | 참가자/쌍 증강 목록의 정렬·복사·쓰기 금지, 파일 보존, 스키마1 원본 바이트 보존과 스키마2 생성 |
 | 정적 보존 | 기존 생성 카탈로그 diff 없음. 사용자 volume SHA-256 `4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A` 유지 |
 
-명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter MetricPolicyTests`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`다. 모두 `--project-path C:/Unity/TFTSimulator --format json`을 사용했고 결과는 Git 제외 `Library/TftAnalyzerValidation/task6-*.json`에 있다. 최종 검사에서9개 C# 파일 함수71/71 XML 설명·형식,Markdown8개 파일 상대 링크,C#/Markdown 공백,보호 파일의 원래 해시와 카탈로그 diff 없음을 확인했다.
+명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter MetricPolicyTests`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`다. 모두 `--project-path C:/Unity/TFTDataAnalyzer --format json`을 사용했고 결과는 Git 제외 `Library/TftAnalyzerValidation/task6-*.json`에 있다. 최종 검사에서9개 C# 파일 함수71/71 XML 설명·형식,Markdown8개 파일 상대 링크,C#/Markdown 공백,보호 파일의 원래 해시와 카탈로그 diff 없음을 확인했다.
 
 ## 판단과 제한
 

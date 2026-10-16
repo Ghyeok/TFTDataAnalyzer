@@ -28,7 +28,7 @@
 | 독립 검수 | Critical 0 / Important 0 / Minor 0. [실제 공개 응답](../raw/Reviewer.md). 검수자는 Unity·네트워크를 실행하지 않음 |
 | 파일 보존 | 생성 카탈로그 diff 없음. 사용자 volume SHA-256 `4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A` 유지 |
 
-최종 명령은 `unity run C:/Unity/TFTSimulator --command run_tests --timeout 360 --format json -- --mode editor --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300`이다. 집중 검증은 `--filter_type testName --filter ObservationStoreTests`를 사용했다. 전체 JSON과 로그는 Git 제외 `Library/TftAnalyzerValidation/task4-*.json`, `task4-*-stderr.log`에 있다. 테스트 종료 로그의 debugger listen 경고는 결과 실패가 아니며 최종 261 passed / 0 failed를 직접 확인했다.
+최종 명령은 `unity run C:/Unity/TFTDataAnalyzer --command run_tests --timeout 360 --format json -- --mode editor --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300`이다. 집중 검증은 `--filter_type testName --filter ObservationStoreTests`를 사용했다. 전체 JSON과 로그는 Git 제외 `Library/TftAnalyzerValidation/task4-*.json`, `task4-*-stderr.log`에 있다. 테스트 종료 로그의 debugger listen 경고는 결과 실패가 아니며 최종 261 passed / 0 failed를 직접 확인했다.
 
 실제 파일 기반 검증은 중복·동시 중복·scope 분리·재오픈·손상/누락/유령 인덱스·인덱스 게시 실패 후 재시도·불완전 끝부분·완성 기록 손상·파일 잠금 오류·사전 취소·빈 저장소·문화권별 바이트 결정성·경로 제한을 포함한다. 가짜 식별 정보가 있는 기존 Match API 픽스처를 실제 익명화기에 통과시킨 뒤 저장 폴더의 모든 파일을 스캔했다. 실제 경기 응답이나 비밀값은 사용하지 않았다.
 

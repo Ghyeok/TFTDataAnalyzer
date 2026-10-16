@@ -2,7 +2,7 @@
 
 ## Exact dispatch prompt
 
-> You are the sole implementation child for source-profile-identity Development in C:\Unity\TFTSimulator, branch codex/source-profile-identity. Implement the complete Tasks 1–5 batch. Read first (requirements and exact values): Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md; also completely read PlanningReview.md and DevelopmentTodo.md beside it, workflow README.md, and raw/DevelopmentLead.md for rulings/protected hashes. Read relevant production code and tests before edits.
+> You are the sole implementation child for source-profile-identity Development in C:\Unity\TFTDataAnalyzer, branch codex/source-profile-identity. Implement the complete Tasks 1–5 batch. Read first (requirements and exact values): Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md; also completely read PlanningReview.md and DevelopmentTodo.md beside it, workflow README.md, and raw/DevelopmentLead.md for rulings/protected hashes. Read relevant production code and tests before edits.
 >
 > Mandatory skills: completely read C:/Users/gulww/.codex/plugins/cache/claude-plugins-official/superpowers/6.4.1/skills/test-driven-development/SKILL.md and writing-good-tests.md, verification-before-completion/SKILL.md; C:/Users/gulww/.agents/skills/unity-cli/SKILL.md plus references/build-run-test.md before Unity commands. Follow strict TDD: record RED command/output BEFORE production edits, then focused GREEN and full default regression evidence. You may use safe offline C# compilation/test harness if live Unity is unavailable, but label it precisely; never claim it is Unity EditMode execution. Missing identity types compile RED is specifically allowed by Task 1.
 >
@@ -128,7 +128,7 @@ Native-reference compile after the provenance fix: `dotnet build 'Library/Source
 
 ### Fresh environment and preservation checks
 
-`unity pipeline list --format json` exit 0: one running `TFTSimulator` Pipeline 0.7.0-exp.1 Editor, `pipelineServer.isReachable: false`, `reachableServers: 0`. Safe non-restarting `unity command recompile --project-path C:\Unity\TFTSimulator --format json` exit 1, `COMMAND_FAILED`: `No Pipeline instance found for project: C:\Unity\TFTSimulator`. No Editor stop/restart or conflicting batch instance was used. Native Unity recompile and EditMode tests could not run.
+`unity pipeline list --format json` exit 0: one running `TFTDataAnalyzer` Pipeline 0.7.0-exp.1 Editor, `pipelineServer.isReachable: false`, `reachableServers: 0`. Safe non-restarting `unity command recompile --project-path C:\Unity\TFTDataAnalyzer --format json` exit 1, `COMMAND_FAILED`: `No Pipeline instance found for project: C:\Unity\TFTDataAnalyzer`. No Editor stop/restart or conflicting batch instance was used. Native Unity recompile and EditMode tests could not run.
 
 Fresh SHA-256 values are unchanged: `Assets/DefaultVolumeProfile.asset` 4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A; committed legacy `catalog.json` B306B524FAD37119EA88FE28F2F7241423EE997F06BDDC563890ADB35F0C27F9; `manifest.json` FDDA8D453AC444350CD7785995135B59FB9319FFF0DA507ED6897E3FF93E0D71; `catalog.json.meta` E4FE14333934D51BB60A4241C5B034221913BA682978DE105FDB195E0304B265; `manifest.json.meta` 6167B7251D766D9141760D862D385B5CE86E8BCD261B24B6877B7F9DC5B4AE74. No protected or generated output was edited, staged, deleted, or moved.
 
@@ -141,7 +141,7 @@ Self-review covered all production diffs, new tests, five plan diffs, scope, can
 
 ## Independent-review fix wave (completed; subsequent reviewer approval in Reviewer.md)
 
-The sole independent reviewer found two important and two minor gaps. Git staging was attempted once before the review handoff and failed `fatal: Unable to create 'C:/Unity/TFTSimulator/.git/index.lock': Permission denied`; an escalated retry was user-aborted after 712.5 seconds. No source files were staged or committed. Per Master/lead, no further Git attempts will be made; Master owns scoped commits.
+The sole independent reviewer found two important and two minor gaps. Git staging was attempted once before the review handoff and failed `fatal: Unable to create 'C:/Unity/TFTDataAnalyzer/.git/index.lock': Permission denied`; an escalated retry was user-aborted after 712.5 seconds. No source files were staged or committed. Per Master/lead, no further Git attempts will be made; Master owns scoped commits.
 
 Standalone provenance TDD command: `dotnet run --project 'Library/SourceProfileOfflineTests/SourceProfileOfflineTests.csproj' --no-restore`. RED exit 1, 75 passed/2 failed: `RunAsync_ChangedStandaloneProvenanceCannotReturnIdempotent` for `community-version` and `supplemental-stamp` each expected `InvalidDataException` but got no exception. Production now compares standalone vs hashed embedded manifest identity, version and source name/URL/SHA/supplemental fields, while ignoring intentionally normalized retrieval timestamp and ETag. Initial GREEN attempt exit 1, 74 passed/3 failed because empty synthetic source lists were rejected and one new stamp mutation indexed an empty fixture; adjusted the minimum test fixture and empty-list handling. Focused GREEN exit 0, 77 passed/0 failed.
 
@@ -161,7 +161,7 @@ DONE_WITH_CONCERNS
 Commits: none; Git staging was permission-blocked, and Master owns scoped commits.
 Tests: supplemental offline 80 passed, 0 failed; native-reference compile 0 warnings, 0 errors.
 Concerns: Unity recompile, EditMode tests, and manual UI remain unverified because the running Pipeline is unreachable.
-Report: [Implementer.md](C:/Unity/TFTSimulator/Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/raw/Implementer.md).
+Report: [Implementer.md](C:/Unity/TFTDataAnalyzer/Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/raw/Implementer.md).
 
 ## Additional exact follow-up task prompts preserved by lead
 

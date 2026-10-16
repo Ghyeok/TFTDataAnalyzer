@@ -26,7 +26,7 @@
 | 최종 GREEN | 전체 실제 Unity EditMode 174/174. API 관련 60건 모두 통과. 컴파일 오류 없음 |
 | 보존 | 기존 생성 카탈로그 변경 없음. 사용자 volume profile SHA-256 `4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A` 유지 |
 
-명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter RiotApiClientTests`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`를 사용했다. 모두 `--project-path C:/Unity/TFTSimulator --format json`이며 테스트 timeout은 300초다. 로그는 Git 제외 `Library/TftAnalyzerValidation/task2-*.json`에 있다. 컴파일 도중 한 번 실행한 `NativeWait` 필터는 0건이어서 증거에서 제외하고, 컴파일 완료 후 전체 테스트 클래스로 RED를 재현했다.
+명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter RiotApiClientTests`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`를 사용했다. 모두 `--project-path C:/Unity/TFTDataAnalyzer --format json`이며 테스트 timeout은 300초다. 로그는 Git 제외 `Library/TftAnalyzerValidation/task2-*.json`에 있다. 컴파일 도중 한 번 실행한 `NativeWait` 필터는 0건이어서 증거에서 제외하고, 컴파일 완료 후 전체 테스트 클래스로 RED를 재현했다.
 
 ## 구현 판단과 남은 제한
 

@@ -4,7 +4,7 @@
 
 ## 실제 호출 요청
 
-Perform the single fresh read-only final review specified in C:/Unity/TFTSimulator/Library/TftAnalyzerValidation/task5-review-request.md. Read that complete request, named exact source/test files, approved Task5/spec and ledger. New files untracked, inspect directly. Do not modify files, run Unity, access credentials/network/live APIs, or spawn agents. Return actionable Critical/Important/Minor defects with file:line and scenarios; separately behaviors declined to judge. Parent owns actual Unity execution/evidence. Requested Astra High follows user AGENTS sensitive persistence/data integrity guidance and executing-plans/requesting-code-review sole-review rule.
+Perform the single fresh read-only final review specified in C:/Unity/TFTDataAnalyzer/Library/TftAnalyzerValidation/task5-review-request.md. Read that complete request, named exact source/test files, approved Task5/spec and ledger. New files untracked, inspect directly. Do not modify files, run Unity, access credentials/network/live APIs, or spawn agents. Return actionable Critical/Important/Minor defects with file:line and scenarios; separately behaviors declined to judge. Parent owns actual Unity execution/evidence. Requested Astra High follows user AGENTS sensitive persistence/data integrity guidance and executing-plans/requesting-code-review sole-review rule.
 
 상세 요청 원문은 [ReviewRequest.md](ReviewRequest.md)에 보존한다. 전체 테스트 종료 후 다음 공개 보충 메시지를 전달했다.
 

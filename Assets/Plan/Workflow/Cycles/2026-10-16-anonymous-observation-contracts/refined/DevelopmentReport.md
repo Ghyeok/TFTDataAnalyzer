@@ -26,7 +26,7 @@
 | 독립 최종 코드 검수 | Critical/Important/Minor 없음. [실제 요청·응답](../raw/Reviewer.md) |
 | 보호 파일 | 사용자 volume profile 및 기존 catalog/manifest/두 메타의 SHA-256이 기존 보호 값과 동일 |
 
-실행 명령은 `unity command run_tests --project-path C:/Unity/TFTSimulator --mode editor --filter_type testName --filter AnonymousObservationTests --timeout 300 --format json`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`를 사용했다. 전체 JSON 로그는 로컬 `Library/TftAnalyzerValidation/task1-focused.json`, `task1-full.json`에 저장했다.
+실행 명령은 `unity command run_tests --project-path C:/Unity/TFTDataAnalyzer --mode editor --filter_type testName --filter AnonymousObservationTests --timeout 300 --format json`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`를 사용했다. 전체 JSON 로그는 로컬 `Library/TftAnalyzerValidation/task1-focused.json`, `task1-full.json`에 저장했다.
 
 ## 판단과 남은 범위
 

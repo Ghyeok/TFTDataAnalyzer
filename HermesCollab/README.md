@@ -2,7 +2,7 @@
 
 **프로젝트에서 Hermes와 주고받는 모든 요청, 참고 자료, 코드 스냅샷, 로그, 응답, 수정 제안과 결과 파일은 반드시 이 폴더를 거친다.** 이 규칙은 Codex와 Hermes 모두에 적용한다.
 
-Windows 경로는 `C:\Unity\TFTSimulator\HermesCollab`, WSL 경로는 `/mnt/c/Unity/TFTSimulator/HermesCollab`이다. 같은 폴더를 가리키므로 별도 복사본을 만들지 않는다.
+Windows 경로는 `C:\Unity\TFTDataAnalyzer\HermesCollab`, WSL 경로는 `/mnt/c/Unity/TFTDataAnalyzer/HermesCollab`이다. 같은 폴더를 가리키므로 별도 복사본을 만들지 않는다.
 
 ## 구조
 

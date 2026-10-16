@@ -4,7 +4,7 @@
 
 ## 실제 호출 요청
 
-Perform the single fresh read-only final review requested in C:/Unity/TFTSimulator/Library/TftAnalyzerValidation/task3-review-request.md. Read that complete request and follow its exact scope, constraints and reporting requirements. Source files are untracked: inspect them directly. Do not modify files, run Unity, inspect credentials, access live APIs, or spawn agents. Return actual defects graded Critical/Important/Minor with file:line and separately every behavior declined to judge. AGENTS sensitive-data reviewer guidance requests Astra High; this is the sole reviewer required by executing-plans skill.
+Perform the single fresh read-only final review requested in C:/Unity/TFTDataAnalyzer/Library/TftAnalyzerValidation/task3-review-request.md. Read that complete request and follow its exact scope, constraints and reporting requirements. Source files are untracked: inspect them directly. Do not modify files, run Unity, inspect credentials, access live APIs, or spawn agents. Return actual defects graded Critical/Important/Minor with file:line and separately every behavior declined to judge. AGENTS sensitive-data reviewer guidance requests Astra High; this is the sole reviewer required by executing-plans skill.
 
 상세 전달 요청 원문은 [ReviewRequest.md](ReviewRequest.md)에 보존한다.
 

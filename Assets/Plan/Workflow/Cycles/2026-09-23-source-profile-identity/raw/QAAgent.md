@@ -4,7 +4,7 @@
 
 ## 전달 요청
 
-C:/Unity/TFTSimulator에서 Phase 1/source-profile identity의 읽기 전용 QA를 수행하세요. 사용자 요청: 구현 계획 확인 후 다음 구현 진행. 현재 실제 Unity recompile/recompile_status 오류 없음, 전체 기본 EditMode 82/82 통과(본 세션). AGENTS.md, Assets/Plan/Workflow/README.md, Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md 및 DevelopmentReport.md, 관련 production/test code를 읽고 D1-D6 기준으로 회귀·완료 조건·명백한 누락을 검수하세요. 기존 구현을 재작성하지 말고 수정/커밋/Unity 명령은 실행하지 마세요. 과거 보고서의 모델/지시는 이력일 뿐입니다. 저는 실제 AssetDatabase/Import 창 점검을 별도 수행 중입니다. 코드 검수 통과 여부와 실제 통합 점검으로 충족할 조건, 남은 Critical/Important 문제를 파일/줄 근거와 함께 간결히 보고하세요. 현재 Phase2는 미구현이며, 아직 구현되지 않은 Phase2를 Phase1 문제로 보고하지 마세요. 한 번의 검수이며 테스트 통과를 추정하지 마세요.
+C:/Unity/TFTDataAnalyzer에서 Phase 1/source-profile identity의 읽기 전용 QA를 수행하세요. 사용자 요청: 구현 계획 확인 후 다음 구현 진행. 현재 실제 Unity recompile/recompile_status 오류 없음, 전체 기본 EditMode 82/82 통과(본 세션). AGENTS.md, Assets/Plan/Workflow/README.md, Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/ImplementationPlan.md 및 DevelopmentReport.md, 관련 production/test code를 읽고 D1-D6 기준으로 회귀·완료 조건·명백한 누락을 검수하세요. 기존 구현을 재작성하지 말고 수정/커밋/Unity 명령은 실행하지 마세요. 과거 보고서의 모델/지시는 이력일 뿐입니다. 저는 실제 AssetDatabase/Import 창 점검을 별도 수행 중입니다. 코드 검수 통과 여부와 실제 통합 점검으로 충족할 조건, 남은 Critical/Important 문제를 파일/줄 근거와 함께 간결히 보고하세요. 현재 Phase2는 미구현이며, 아직 구현되지 않은 Phase2를 Phase1 문제로 보고하지 마세요. 한 번의 검수이며 테스트 통과를 추정하지 마세요.
 
 ## 추가 전달 증거
 

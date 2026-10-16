@@ -5,11 +5,11 @@
 ## Master → Agent A
 
 ```text
-You are Planning Agent A for the Unity project at C:\Unity\TFTSimulator. Work READ-ONLY: do not edit files, do not run destructive commands, and do not implement code.
+You are Planning Agent A for the Unity project at C:\Unity\TFTDataAnalyzer. Work READ-ONLY: do not edit files, do not run destructive commands, and do not implement code.
 
 Review these documents and current repository state:
-- C:\Unity\TFTSimulator\Assets\Plan\TFTDataPipeline.md
-- C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-static-data-pipeline.md
+- C:\Unity\TFTDataAnalyzer\Assets\Plan\TFTDataPipeline.md
+- C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-static-data-pipeline.md
 - relevant git log/status and generated manifest if helpful
 
 Context: The product is a conservative TFT data analysis tool, not a combat simulator. Phase 1 static data pipeline is implemented. A recent issue showed that official-only and official+CommunityDragon outputs for the same set/patch collide because the immutable path does not include the source profile. The user requires a master workflow ordered Planning -> Development -> QA -> Documentation, with explicit approval gates and Markdown records split into refined and raw agent communications.
@@ -29,7 +29,7 @@ Do not expose hidden chain-of-thought; provide conclusions and evidence only.
 ## Master → Agent A 추가 자료
 
 ```text
-Additional existing roadmap documents were discovered. Please also read and cross-check: C:\Unity\TFTSimulator\Assets\Plan\Implementation\TFTDataAnalyzerImplementationPlan.md, C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-analyzer-editor-ui.md, and C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-match-analytics.md. Include any sequencing or scope contradictions in your final report.
+Additional existing roadmap documents were discovered. Please also read and cross-check: C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\TFTDataAnalyzerImplementationPlan.md, C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-analyzer-editor-ui.md, and C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-match-analytics.md. Include any sequencing or scope contradictions in your final report.
 ```
 
 ## Agent A → Master 최종 응답
