@@ -1,0 +1,30 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements">
+    <ui:Style src="TftDataAnalyzerWindow.uss" />
+    <ui:VisualElement name="analyzer-shell" class="tft-analyzer-shell">
+        <editor:Toolbar class="tft-tab-toolbar">
+            <ui:Button name="data-tab-button" text="데이터 관리" />
+            <ui:Button name="collection-tab-button" text="경기 수집" />
+            <ui:Button name="analysis-tab-button" text="과거 집계 분석" />
+            <ui:Button name="about-tab-button" text="정책 안내" />
+        </editor:Toolbar>
+        <ui:VisualElement class="tft-tab-content">
+            <ui:VisualElement name="data-tab" class="tft-tab">
+                <ui:Label text="정적 데이터 관리" class="tft-tab-title" />
+                <ui:Label text="시즌·패치별 정적 카탈로그를 관리하는 화면입니다. 데이터 가져오기와 카탈로그 선택 기능은 후속 단계에서 연결됩니다." />
+            </ui:VisualElement>
+            <ui:VisualElement name="collection-tab" class="tft-tab tft-tab-hidden">
+                <ui:Label text="과거 경기 수집" class="tft-tab-title" />
+                <ui:Label text="과거 경기의 익명 집계에 사용할 수집 조건을 설정하는 화면입니다. 수집 상한·필터·취소 기능은 후속 단계에서 연결됩니다." />
+            </ui:VisualElement>
+            <ui:VisualElement name="analysis-tab" class="tft-tab tft-tab-hidden">
+                <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
+                <ui:Label text="동일 카탈로그의 과거 경기 결과를 익명 집계로 살펴보는 화면입니다. 표본 수·신뢰구간·정책 필터를 반영한 분석 표시는 후속 단계에서 연결됩니다." />
+            </ui:VisualElement>
+            <ui:VisualElement name="about-tab" class="tft-tab tft-tab-hidden">
+                <ui:Label text="데이터 출처와 정책" class="tft-tab-title" />
+                <ui:Label text="데이터 출처와 이용 정책을 확인하는 화면입니다. 출처 상세 안내와 정책 확인 기능은 후속 단계에서 연결됩니다." />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label name="historical-data-disclaimer" class="tft-disclaimer" text="과거 관측 결과이며 전투 예측이나 플레이 권고가 아닙니다." />
+    </ui:VisualElement>
+</ui:UXML>

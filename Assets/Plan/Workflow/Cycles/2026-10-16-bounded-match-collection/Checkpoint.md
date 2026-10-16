@@ -1,7 +1,7 @@
 # 제한된 경기 수집 체크포인트
 
 날짜: 2026-10-16
-상태: Task 7 구현·실제 Unity366/366·독립 검수 지적 보완 완료. PR 검수·병합과 사용자 최종 승인은 별도다. 프로젝트 물리 폴더 이동은 아래 잠금 때문에 대기한다.
+상태: Task 7 구현·실제 Unity366/366·독립 검수 지적 보완 및 PR #8 병합 완료. 프로젝트 물리 폴더 이동도 완료됐다. 사용자가 이름 변경 완료 확인 후 다음 작업 재개를 요청했다.
 승인 근거: 다음 작업을 수집 서비스로 안내한 뒤 사용자가 "좋아 이제 다음 작업 진행해보자"라고 요청했다.
 
 - 실행 계획은 [Phase 2 Task 7](../../../Implementation/2026-09-17-tft-match-analytics.md#task-7-orchestrate-bounded-collection-from-user-supplied-seeds) 한곳에서 관리한다.
@@ -17,3 +17,9 @@
 - 실제 폴더 이동은 현재 작업 Codex 프로세스의 디렉터리 잠금으로 Windows가 거부했다. Unity는 정상 종료할 수 있고 미저장 scene은 없었다. Codex를 강제 종료하지 않는다. 현재 물리 폴더 이동을 완료했다고 주장하지 않는다.
 - Git 제외 `Library/TftAnalyzerValidation/rename-project-after-codex.ps1`은 Codex 프로세스 종료 후 정확히 승인된 두 경로만 이동하고 솔루션·로컬 MCP 경로 갱신, 보호 해시 확인, 새 경로의 전체 EditMode 검증 및 Unity 열기를 수행하도록 준비했다. 구문·DryRun 확인만으로 이동/새 경로 테스트 성공을 주장하지 않는다. 실행·대기 상태와 최종 결과는 `project-rename-result.json`에서 확인한다.
 - 다음 재개 시 우선 실제 경로·위 이동 결과 JSON·최신 PR 검수부터 확인한다. CodeRabbit 대기 반복·자동 AI 재개는 하지 않는다. 새 PR 검수 통과 후 다음 제품 작업은 Phase 3 통합 Editor UI다.
+
+## 2026-10-16 재개 확인
+
+- 위 잠금·대기 항목은 당시 이력이다. 현재 `C:/Unity/TFTDataAnalyzer`에서 `project-rename-result.json`의 Completed, 보호 해시 보존·이동 후366/366 기록과 productName을 확인했다.
+- 재개 시 새 경로에서 실제 전체 EditMode366/366을 다시 확인했다. PR #8 최신 `e3b35f1` CodeRabbit SUCCESS·미해결 thread0 후 main `0b1eab9`로 병합했다.
+- 다음 작업은 [통합 Editor 창 체크포인트](../2026-10-16-editor-window-shell/Checkpoint.md)에서 이어간다.
