@@ -40,6 +40,14 @@ namespace TFTAnalyzer.Editor.Persistence
                 ContentHasher.Sha256Hex("scope-v1|" + key.ToString(Formatting.None)) + ".ndjson");
         }
 
+        /// <summary>Locates a versioned aggregate using the exact same complete-scope digest as observations.</summary>
+        public string AggregatePath(MetricScope scope, int schemaVersion = 1)
+        {
+            if (schemaVersion <= 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
+            return Path.Combine(RootDirectory, "aggregates", schemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Path.GetFileNameWithoutExtension(ObservationPath(scope)) + ".json");
+        }
+
         /// <summary>Rejects existing junctions or symlinks again at each filesystem boundary.</summary>
         internal void EnsureSafe()
         {
@@ -47,6 +55,7 @@ namespace TFTAnalyzer.Editor.Persistence
             RejectReparsePoints(ObservationsDirectory);
             RejectReparsePoints(ProcessedMatchIndexPath);
             RejectReparsePoints(LeasePath);
+            RejectReparsePoints(Path.Combine(RootDirectory, "aggregates"));
         }
 
         /// <summary>Rejects a link at the target or any existing ancestor before store access.</summary>

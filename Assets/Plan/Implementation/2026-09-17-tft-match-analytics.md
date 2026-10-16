@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1–3의 관측 모델·API 클라이언트·경기 익명화에 이어 Task 4의 익명 관측 저장·중복 제거·인덱스 복구를 구현했다. 실제 Unity EditMode 전체 261/261가 통과했다. Task 5–7은 미구현이다. 현재 위치와 실행 증거는 [익명 관측 저장 체크포인트](../Workflow/Cycles/2026-10-16-anonymous-observation-store/Checkpoint.md)를 확인한다. 앞선 Task 1–3의 기록은 이력으로 보존한다.
+2026-10-16: Task 1–4에 이어 Task 5의 과거 순위·상대 배치 집계, Wilson 신뢰구간과 scope별 집계 저장을 구현했다. 실제 Unity EditMode 전체 307/307가 통과했다. Task 6–7은 미구현이다. 현재 위치와 실행 증거는 [과거 집계 체크포인트](../Workflow/Cycles/2026-10-16-historical-aggregate-metrics/Checkpoint.md)를 확인한다. 앞선 Task 1–4의 기록은 이력으로 보존한다.
 
 ## Global Constraints
 
@@ -282,33 +282,37 @@ git commit -m "feat: persist deduplicated anonymous observations"
 - Create: `Assets/TFTAnalyzer/Editor/Persistence/AggregateStore.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/Analytics/AggregateBuilderTests.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/Analytics/WilsonIntervalTests.cs`
+- Create: `Assets/TFTAnalyzer/Tests/EditMode/Persistence/AggregateStoreTests.cs`
+- Modify: `Assets/TFTAnalyzer/Editor/Persistence/AnalyzerStorePaths.cs` (versioned aggregate paths using the existing complete-scope digest)
 
 **Interfaces:**
 - Produces: `AggregateSnapshot AggregateBuilder.Build(IEnumerable<AnonymousMatchObservation> observations)`.
 - Produces: count, placement sum, average placement, top-four numerator, first-place numerator, and pairwise higher-placement numerators.
 - Produces: `ConfidenceInterval WilsonInterval.Calculate(int successes, int total, double z = 1.959963984540054)`.
 
-- [ ] **Step 1: Write failing known-vector tests**
+- [x] **Step 1: Write failing known-vector tests**
 
 For 56 successes in 100 observations, assert the 95% Wilson interval rounded to four decimals is approximately `[0.4623, 0.6533]`. Add eight fabricated participants and assert 28 unordered pairwise comparisons.
 
-- [ ] **Step 2: Confirm focused failures**
+- [x] **Step 2: Confirm focused failures**
 
 Run filters `WilsonIntervalTests` and `AggregateBuilderTests`.
 
-- [ ] **Step 3: Implement deterministic aggregate building**
+- [x] **Step 3: Implement deterministic aggregate building**
 
 Group by the complete `MetricScope` and `CompositionFingerprint`. Compute pairwise higher-placement counts only within one match and one scope. Sort outputs by scope then fingerprint before serialization.
 
-- [ ] **Step 4: Implement aggregate persistence**
+- [x] **Step 4: Implement aggregate persistence**
 
 Write one canonical snapshot to `Library/TftAnalyzerStore/aggregates/{schemaVersion}/{scopeHash}.json` using temporary-file replacement. Store numerator/denominator, not only rendered percentages.
 
-- [ ] **Step 5: Run exact-count, empty-input, and rebuild tests**
+- [x] **Step 5: Run exact-count, empty-input, and rebuild tests**
 
 Expected: rebuilding from the same observations is byte-identical; different patches never merge. Run full suite.
 
-- [ ] **Step 6: Commit checkpoint**
+2026-10-16: actual Unity compiler RED for missing types, then clean compile, Wilson16/16 and aggregate/persistence30/30 focused GREEN, full EditMode307/307. Retain played-at ranges and sorted match versions; no actual collection timestamps exist in the observation contract. Spec3.5 uses lobbies as pair denominators: compare each distinct composition pair at most once per lobby; if either composition repeats, increment an explicit ambiguous-lobby exclusion instead of selecting an arbitrary board. Ordinary metrics still count all participants. Duplicate match hashes are counted once, conflicting scope/outcome/time/version inputs fail closed. AggregateStore.SaveAsync accepts one ScopeAggregate, so replacement is atomic per scope and does not prune other scopes. Raw ratios/intervals remain computation data; Task6 policy gates are not implemented here. Evidence and limitations: [development report](../Workflow/Cycles/2026-10-16-historical-aggregate-metrics/refined/DevelopmentReport.md).
+
+- [x] **Step 6: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Core/Analytics Assets/TFTAnalyzer/Editor/Persistence/AggregateStore.cs Assets/TFTAnalyzer/Tests/EditMode/Analytics
