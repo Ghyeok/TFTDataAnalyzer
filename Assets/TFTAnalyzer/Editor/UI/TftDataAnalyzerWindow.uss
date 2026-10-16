@@ -1,0 +1,47 @@
+.tft-analyzer-tree,
+.tft-analyzer-shell,
+.tft-tab-content {
+    flex-grow: 1;
+}
+
+.tft-analyzer-shell Label {
+    white-space: normal;
+}
+
+.tft-tab-toolbar {
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    height: auto;
+}
+
+.tft-tab-toolbar Button {
+    flex-grow: 1;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.tft-tab-selected {
+    -unity-font-style: bold;
+    border-bottom-width: 2px;
+    border-bottom-color: var(--unity-colors-button-text);
+}
+
+.tft-tab {
+    padding: 12px;
+}
+
+.tft-tab-title {
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.tft-tab-hidden {
+    display: none;
+}
+
+.tft-disclaimer {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-button-border);
+}

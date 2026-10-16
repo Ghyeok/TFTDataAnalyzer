@@ -41,6 +41,8 @@ Assets/TFTAnalyzer/Tests/EditMode/Compliance/
 
 ### Task 1: Build the Editor Window Shell
 
+2026-10-16 실행 범위: [창 체크포인트](../Workflow/Cycles/2026-10-16-editor-window-shell/Checkpoint.md). 사용자 재개 요청에 따라 이 Task의 창·탭 전환만 수행한다. Task 2 이후 기능은 이번 구현에 포함하지 않는다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/UI/TftDataAnalyzerWindow.cs`
 - Create: `Assets/TFTAnalyzer/Editor/UI/TftDataAnalyzerWindow.uxml`
@@ -51,7 +53,7 @@ Assets/TFTAnalyzer/Tests/EditMode/Compliance/
 - Produces menu item `TFT Analyzer/Open Data Analyzer`.
 - Produces named tab roots `data-tab`, `collection-tab`, `analysis-tab`, and `about-tab`.
 
-- [ ] **Step 1: Write a failing UI structure test**
+- [x] **Step 1: Write a failing UI structure test**
 
 ```csharp
 [Test]
@@ -66,15 +68,17 @@ public void CreateGUI_ContainsAllPolicyBoundedTabs()
 }
 ```
 
-- [ ] **Step 2: Confirm failure and implement UXML shell**
+- [x] **Step 2: Confirm failure and implement UXML shell**
 
 Use a toolbar for tab buttons, one content root per tab, and a persistent footer label named `historical-data-disclaimer`. No `Update()` polling; view-model events schedule UI updates through `EditorApplication.delayCall`.
 
-- [ ] **Step 3: Add resilient asset loading**
+The initial selection shows only `data-tab`; clicking each toolbar button shows exactly its corresponding content. Preserve selection across UI reconstruction without duplicating roots, callbacks, or stylesheet references. Keep the historical disclaimer outside all tab roots and present it on the missing-asset screen too. Test real UI events, each missing asset independently, recovery after failure, and serialized selection restoration without moving existing assets. Reconstructing the UI alone is not evidence of a complete domain reload.
+
+- [x] **Step 3: Add resilient asset loading**
 
 Load UXML/USS through fixed asset paths and show a plain IMGUI-style error label if either asset is missing, so a broken stylesheet does not make the tool unusable.
 
-- [ ] **Step 4: Run focused and full suites, then commit**
+- [x] **Step 4: Run focused and full suites, then commit**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/UI Assets/TFTAnalyzer/Tests/EditMode/UI
