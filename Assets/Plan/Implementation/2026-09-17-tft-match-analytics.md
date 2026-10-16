@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1 관측 모델, Task 2 API 클라이언트와 Task 3 메모리 내 익명화·경기 검증을 구현했다. 실제 Unity EditMode 전체 226/226가 통과했다. Task 4–7은 미구현이다. 현재 위치와 실행 증거는 [경기 익명화 체크포인트](../Workflow/Cycles/2026-10-16-match-anonymizer/Checkpoint.md)를 확인한다. [Task 1](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)과 [Task 2](../Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)의 기록은 이력으로 보존한다.
+2026-10-16: Task 1–3의 관측 모델·API 클라이언트·경기 익명화에 이어 Task 4의 익명 관측 저장·중복 제거·인덱스 복구를 구현했다. 실제 Unity EditMode 전체 261/261가 통과했다. Task 5–7은 미구현이다. 현재 위치와 실행 증거는 [익명 관측 저장 체크포인트](../Workflow/Cycles/2026-10-16-anonymous-observation-store/Checkpoint.md)를 확인한다. 앞선 Task 1–3의 기록은 이력으로 보존한다.
 
 ## Global Constraints
 
@@ -245,23 +245,25 @@ git commit -m "feat: anonymize TFT matches before persistence"
 - Produces: `IAsyncEnumerable<AnonymousMatchObservation> ObservationStore.ReadAllAsync(CancellationToken token)`.
 - Stores NDJSON under `Library/TftAnalyzerStore/observations/{scopeHash}.ndjson` and hashed IDs under `processed-match-hashes.json`.
 
-- [ ] **Step 1: Write failing idempotency and leak-scan tests**
+- [x] **Step 1: Write failing idempotency and leak-scan tests**
 
 Append the same observation twice and assert one line. Recursively scan the temporary store and assert fake PUUID/name/raw Match ID strings are absent.
 
-- [ ] **Step 2: Confirm failure and implement safe paths**
+- [x] **Step 2: Confirm failure and implement safe paths**
 
 Resolve the store root from `Path.GetFullPath(Path.Combine(projectRoot, "Library", "TftAnalyzerStore"))`; reject any override that resolves inside `Assets`, `Packages`, or `ProjectSettings`.
 
-- [ ] **Step 3: Implement atomic index and NDJSON append**
+- [x] **Step 3: Implement atomic index and NDJSON append**
 
 Lock per store instance, check the hash index, append one canonical JSON line, flush, then atomically replace the index via temporary file. On cancellation before flush, append nothing; on index failure, rebuild hashes from observations at next open.
 
-- [ ] **Step 4: Test recovery and concurrent duplicate attempts**
+- [x] **Step 4: Test recovery and concurrent duplicate attempts**
 
 Run two append tasks for the same hash and assert exactly one success. Corrupt the index and assert rebuilding recovers all hashes. Run full suite.
 
-- [ ] **Step 5: Commit checkpoint**
+2026-10-16: actual Unity compiler RED for missing store types, focused 32/32 and full EditMode 261/261 (including 35 persistence tests) passed. A test-only synchronous NUnit exception assertion initially blocked Unity's async continuations; an awaited helper fixed it and the approved exact Editor restart allowed fresh verification. Store decisions: default Library root or project-external override only, reparse points rejected; global match-hash deduplication, first scope wins; scan committed canonical records on each operation, with an exclusive operation lease across instances. Unterminated crash tails truncate to the committed prefix; malformed complete records fail closed. Cancellation before flush rolls back, while post-flush index errors retain observations for retry recovery. Full-store scans and snapshot reads trade throughput/memory for simple recovery. See the [development report](../Workflow/Cycles/2026-10-16-anonymous-observation-store/refined/DevelopmentReport.md) for evidence and limits.
+
+- [x] **Step 5: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/Persistence Assets/TFTAnalyzer/Tests/EditMode/Persistence

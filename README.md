@@ -10,10 +10,10 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 |---|---|---|
 | 1. 정적 데이터 파이프라인 | 공식 데이터 수집, 선택형 보완 소스, 정규화·검증·패치 비교, 불변 카탈로그 저장 | 구현됨 |
 | 1-1. 카탈로그 식별자 강화 | 세트·패치·원본 버전·출처 프로필 분리, 기존 데이터 호환, 무결성 검증 | 구현됨 |
-| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 관측 모델·API 클라이언트·익명화 구현, 저장·집계 예정 |
+| 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 관측 모델·API 클라이언트·익명화·관측 저장 구현, 집계 예정 |
 | 3. 통합 Editor UI | 데이터 관리·경기 수집·분석·정책 안내 화면 | 설계 및 구현 계획 작성 |
 
-현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 API 클라이언트와 메모리 내 익명화기를 구현했으며, 익명 관측 저장·집계·수집 화면 연결은 다음 작업입니다. 2026-10-16에 실제 Unity EditMode 전체 226개가 통과했습니다. 기존 카탈로그 로드·인덱스 저장·Import 창 기본화면도 확인한 상태입니다. 실제 네트워크 import·Match API 호출과 네이티브 확인창 클릭은 미실행입니다.
+현재는 정적 데이터 가져오기 창을 사용할 수 있습니다. 경기 API 클라이언트, 메모리 내 익명화기와 중복 제거·복구 가능한 익명 관측 저장소를 구현했으며, 집계·수집 화면 연결은 다음 작업입니다. 2026-10-16에 실제 Unity EditMode 전체 261개가 통과했습니다. 기존 카탈로그 로드·인덱스 저장·Import 창 기본화면도 앞선 단계에서 확인한 상태입니다. 실제 네트워크 import·Match API 호출과 네이티브 확인창 클릭은 미실행입니다.
 
 ## 핵심 설계
 
@@ -58,7 +58,7 @@ flowchart TD
     B[CommunityDragon: 실행별 선택] --> C
     C --> D[불변 정적 카탈로그]
     E[Riot Match API 클라이언트] --> F[메모리 내 익명화·검증]
-    F --> G[익명 관측 저장·중복 제거: 구현 예정]
+    F --> G[익명 관측 저장·중복 제거·인덱스 복구]
     D --> H[집계기: 구현 예정]
     G --> H
     H --> I[과거 경기 통계·통합 Editor UI: 구현 예정]
@@ -85,6 +85,7 @@ flowchart TD
 - 플레이어 이름과 PUUID는 메모리에서 제거하고, 원본 Match ID는 중복 제거용 SHA-256 해시로 변환합니다.
 - 익명화기는 전체 카탈로그 식별자·세트·원본 게임 릴리스와 8인 로비의 순위 일관성을 확인합니다. 알 수 없는 정적 ID가 있으면 경기 전체를 격리하고, 진단에는 분류와 ID 해시만 남깁니다.
 - 익명 관측과 집계 결과만 로컬 저장소에 보관합니다.
+- 관측은 기본 `Library/TftAnalyzerStore/` 또는 지정한 프로젝트 외부 경로에 저장합니다. 관측 파일에서 해시 인덱스를 복구하며, 미완성 끝부분만 제거하고 손상된 완성 기록은 보존한 채 오류로 처리합니다. 저장소 전체에서 같은 경기 해시는 한 번만 저장하므로 다른 카탈로그·필터로 재수집하려면 별도 저장소가 필요합니다.
 - 호출 제한과 `Retry-After`를 반영하고, 사용자가 수집량을 제한하거나 취소할 수 있도록 합니다.
 
 ## 제품 범위
@@ -118,7 +119,7 @@ flowchart TD
 | `Assets/TFTAnalyzer/Data/Generated/` | 정적 카탈로그, 매니페스트, 아이콘, 카탈로그 인덱스 |
 | `Assets/Plan/` | 확정 설계, 단계별 구현 계획, 개발 인계 기록 |
 | `Library/TftAnalyzerCache/` | 정적 원본·임시 다운로드 캐시. Git 제외 |
-| `Library/TftAnalyzerStore/` | 향후 익명 관측·집계 저장소. Git 제외 |
+| `Library/TftAnalyzerStore/` | 익명 관측·해시 인덱스 저장소. 집계는 후속 구현. Git 제외 |
 
 신규 카탈로그의 저장 경로는 다음과 같습니다.
 
@@ -138,7 +139,7 @@ Assets/TFTAnalyzer/Data/Generated/{setId}/{patchId}/{sourceGameVersion}/{sourceP
 
 Unity의 **`Window > General > Test Runner`**에서 EditMode 테스트를 실행할 수 있습니다. 테스트 어셈블리는 `TFTAnalyzer.Tests.EditMode`입니다.
 
-기본 테스트는 네트워크나 Riot API 키 없이 픽스처를 사용합니다. 외부 네트워크 검증은 `[Explicit]` 테스트로 분리합니다. 소스 매핑, 공식 값 우선 병합, 참조 검증, 결정적 직렬화, 불변 저장, 버전·출처 프로필 공존과 오류 복구를 검증하며, 경기 분석 단계에서는 익명화·중복 제거·집계·최소 표본 차단 검증을 추가할 계획입니다.
+기본 테스트는 네트워크나 Riot API 키 없이 픽스처를 사용합니다. 외부 네트워크 검증은 `[Explicit]` 테스트로 분리합니다. 소스 매핑, 공식 값 우선 병합, 참조 검증, 결정적 직렬화, 불변 저장, 버전·출처 프로필 공존과 오류 복구, 경기 익명화·관측 중복 제거·저장 복구를 검증합니다. 집계·최소 표본 차단 검증은 후속 구현에서 추가할 계획입니다.
 
 ## 코드 리뷰
 
@@ -162,6 +163,7 @@ CodeRabbit의 저장소 설정은 [`.coderabbit.yaml`](.coderabbit.yaml)에서 �
 - [익명 관측 모델 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)
 - [Riot API 클라이언트 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)
 - [경기 익명화 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-match-anonymizer/Checkpoint.md)
+- [익명 관측 저장·복구 구현·다음 작업](Assets/Plan/Workflow/Cycles/2026-10-16-anonymous-observation-store/Checkpoint.md)
 - [2026-09-24 개발 인계 기록](Assets/Plan/Workflow/Cycles/2026-09-23-source-profile-identity/refined/DevelopmentReport.md)
 
 ## 데이터와 프로젝트 고지
