@@ -1,0 +1,21 @@
+# Task 5 single independent review request
+
+Review once, read-only. Approved scope: Task5 historical aggregation, Wilson intervals, canonical per-scope aggregate persistence. Base af69eaf8a6f0a6fde64161e7d8b84fbdafa55318 on origin/main; branch codex/historical-aggregate-metrics. Source/test files mostly untracked, read directly. Do not change files, run Unity, access credentials/seeds/network/live APIs, or spawn agents. No Hermes. Safe local read-only probes against compiled assemblies are permitted if useful; no identifying/raw-data writes. Return concrete actionable Critical/Important/Minor defects with source:line and triggering scenario, separately behavior declined to judge. Do not grade documented performance/threat limitations as implemented promises.
+
+Read:
+- Assets/TFTAnalyzer/Core/Analytics/{AggregateBuilder,AggregateMetric,PairwiseMetric,WilsonInterval}.cs
+- Assets/TFTAnalyzer/Editor/Persistence/{AggregateStore,AnalyzerStorePaths}.cs
+- Assets/TFTAnalyzer/Tests/EditMode/Analytics/{AggregateBuilderTests,WilsonIntervalTests}.cs
+- Assets/TFTAnalyzer/Tests/EditMode/Persistence/AggregateStoreTests.cs
+- Existing AnonymousMatchObservation, AnonymousParticipant, CompositionFingerprintBuilder, MetricScope, CatalogIdentity/PatchKey contracts as needed.
+- Task5 in Assets/Plan/Implementation/2026-09-17-tft-match-analytics.md and spec3.5,5.5,10.2/10.3 in Assets/Plan/TFTDataPipeline.md.
+- Library/TftAnalyzerValidation/phase2-task5-progress.md decision ledger.
+
+Key decisions to evaluate for correctness within the contract:
+1. Consume accepted anonymous complete8-player observations only, revalidate distinct1..8 placements. Deduplicate match hashes globally; same aggregate-relevant observation tolerates participant order, conflicting scope/time/version/board results reject instead of selecting input order. Hash signatures remain memory-only.
+2. Full structured scope includes set/number/patch/source version/profile/region/queue/tier, ordinal output sorting. Per-composition participant count, placement sum, top4/first numerators and played-at ranges. Scope match count, sorted data/game versions and played-at period. Input lacks actual collection timestamps; do not invent them.
+3. Spec defines pair denominator as lobbies. Distinct composition pair contributes at most once/lobby. If either composition appears multiple times, count AmbiguousLobbyCount, exclude that lobby from eligible count/numerators; self-composition pairs skipped. All participants retained in ordinary composition metrics. Zero eligible pair count -> null rate/interval. This conservative resolution avoids arbitrary best/worst board choice; existing plan only specifies28 comparisons for8distinct boards.
+4. Wilson default95% z, validated int successes/total and finite positive z; stable algebra for huge finite z. Counts/numerators retained. Raw core ratio properties are internal computation contracts; Task6 policy/min100/Legends suppression and UI/export not implemented here.
+5. SaveAsync accepts one ScopeAggregate. Deterministic allowlist JSON stores raw counts, exclusions, version/range metadata; no raw board contents/match hashes/wall-clock timestamp. Schema1 scope file uses same scope digest as observations. Transient exclusive store.lock and per-instance gate; competing instances fail safely. Flush temp then atomic same-directory replacement; cancel before replacement preserves target. Per-file atomicity only, no multi-scope transaction or stale-scope pruning. Source observations/other scopes untouched. Existing path policy/reparse-point checks inherited; malicious same-account races/hardware durability not promised.
+
+Parent evidence: actual compiler RED for missing types after test-first changes, then clean compiler and focused Wilson16/16 plus Aggregate30/30 passed. Full actual Unity regression pending (expected307=261baseline+46new); parent owns running/verifying actual tests/artifacts. Awaited test error helper avoids prior Task4 NUnit synchronous ThrowsAsync deadlock. All new methods have XML summaries. Existing catalogs/user volume must remain unchanged. Requested review model per sensitive persistence/data integrity guidance: gpt-6-astra High. Actual runtime identity/usage is unobservable; don't claim a switch.
