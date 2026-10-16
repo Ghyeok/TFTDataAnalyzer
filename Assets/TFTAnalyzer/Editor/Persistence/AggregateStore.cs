@@ -80,6 +80,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 ["metrics"] = new JArray(value.Metrics.Select(row => new JObject
                 {
                     ["fingerprint"] = row.Fingerprint.Value, ["count"] = row.Count,
+                    ["augmentIds"] = new JArray(row.AugmentIds),
                     ["placementSum"] = row.PlacementSum, ["topFourCount"] = row.TopFourCount,
                     ["firstPlaceCount"] = row.FirstPlaceCount,
                     ["firstPlayedAt"] = Utc(row.FirstPlayedAt), ["lastPlayedAt"] = Utc(row.LastPlayedAt)
@@ -87,6 +88,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 ["pairs"] = new JArray(value.Pairs.Select(row => new JObject
                 {
                     ["first"] = row.First.Value, ["second"] = row.Second.Value,
+                    ["firstAugmentIds"] = new JArray(row.FirstAugmentIds), ["secondAugmentIds"] = new JArray(row.SecondAugmentIds),
                     ["count"] = row.Count, ["firstHigherCount"] = row.FirstHigherCount,
                     ["secondHigherCount"] = row.SecondHigherCount, ["ambiguousLobbyCount"] = row.AmbiguousLobbyCount,
                     ["firstPlayedAt"] = Utc(row.FirstPlayedAt), ["lastPlayedAt"] = Utc(row.LastPlayedAt)

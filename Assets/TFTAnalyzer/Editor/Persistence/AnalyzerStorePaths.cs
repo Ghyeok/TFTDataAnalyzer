@@ -41,7 +41,7 @@ namespace TFTAnalyzer.Editor.Persistence
         }
 
         /// <summary>Locates a versioned aggregate using the exact same complete-scope digest as observations.</summary>
-        public string AggregatePath(MetricScope scope, int schemaVersion = 1)
+        public string AggregatePath(MetricScope scope, int schemaVersion = AggregateSnapshot.CurrentSchemaVersion)
         {
             if (schemaVersion <= 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
             return Path.Combine(RootDirectory, "aggregates", schemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture),

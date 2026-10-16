@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Analytics
 {
@@ -7,6 +10,7 @@ namespace TFTAnalyzer.Analytics
     {
         public MetricScope Scope { get; }
         public CompositionFingerprint Fingerprint { get; }
+        public IReadOnlyList<string> AugmentIds { get; }
         public int Count { get; private set; }
         public long PlacementSum { get; private set; }
         public int TopFourCount { get; private set; }
@@ -20,10 +24,13 @@ namespace TFTAnalyzer.Analytics
         public ConfidenceInterval FirstPlaceInterval => WilsonInterval.Calculate(FirstPlaceCount, Count);
 
         /// <summary>Starts an internal accumulator that is published only after a complete build.</summary>
-        internal AggregateMetric(MetricScope scope, CompositionFingerprint fingerprint, DateTimeOffset playedAt)
+        internal AggregateMetric(MetricScope scope, CompositionFingerprint fingerprint, DateTimeOffset playedAt,
+            IEnumerable<string> augmentIds)
         {
             Scope = scope;
             Fingerprint = fingerprint;
+            AugmentIds = DomainValues.Copy((augmentIds ?? throw new ArgumentNullException(nameof(augmentIds)))
+                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
             FirstPlayedAt = LastPlayedAt = playedAt;
         }
 

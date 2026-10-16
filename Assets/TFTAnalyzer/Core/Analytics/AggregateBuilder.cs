@@ -11,7 +11,7 @@ namespace TFTAnalyzer.Analytics
     /// <summary>A deterministic collection of scope snapshots with no match identifiers or wall-clock build metadata.</summary>
     public sealed class AggregateSnapshot
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
         public int SchemaVersion => CurrentSchemaVersion;
         public IReadOnlyList<ScopeAggregate> Scopes { get; }
 
@@ -132,7 +132,7 @@ namespace TFTAnalyzer.Analytics
                 {
                     if (!_metrics.TryGetValue(board.Fingerprint.Value, out var metric))
                     {
-                        metric = new AggregateMetric(_scope, board.Fingerprint, observation.PlayedAt);
+                        metric = new AggregateMetric(_scope, board.Fingerprint, observation.PlayedAt, board.Participant.AugmentIds);
                         _metrics.Add(board.Fingerprint.Value, metric);
                     }
                     metric.Add(board.Participant.Placement, observation.PlayedAt);
@@ -147,7 +147,8 @@ namespace TFTAnalyzer.Analytics
                     var key = first.Fingerprint.Value + "|" + second.Fingerprint.Value;
                     if (!_pairs.TryGetValue(key, out var pair))
                     {
-                        pair = new PairwiseMetric(_scope, first.Fingerprint, second.Fingerprint, observation.PlayedAt);
+                        pair = new PairwiseMetric(_scope, first.Fingerprint, second.Fingerprint, observation.PlayedAt,
+                            first.Participant.AugmentIds, second.Participant.AugmentIds);
                         _pairs.Add(key, pair);
                     }
                     pair.Add(groups[i].Length == 1 && groups[j].Length == 1

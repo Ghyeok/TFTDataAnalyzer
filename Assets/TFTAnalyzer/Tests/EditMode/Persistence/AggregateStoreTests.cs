@@ -52,7 +52,7 @@ namespace TFTAnalyzer.Tests.Persistence
             finally { CultureInfo.CurrentCulture = originalCulture; }
             Assert.That(File.ReadAllBytes(path), Is.EqualTo(first));
             var json = JObject.Parse(File.ReadAllText(path));
-            Assert.That((int)json["schemaVersion"], Is.EqualTo(1));
+            Assert.That((int)json["schemaVersion"], Is.EqualTo(2));
             Assert.That((int)json["matchCount"], Is.EqualTo(2));
             Assert.That(json["metrics"].Sum(row => (int)row["count"]), Is.EqualTo(16));
             Assert.That(json["metrics"].Sum(row => (long)row["placementSum"]), Is.EqualTo(72));
@@ -146,6 +146,44 @@ namespace TFTAnalyzer.Tests.Persistence
             using (File.Open(_paths.LeasePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
                 await ThrowsAsync<IOException>(() => store.SaveAsync(snapshot, CancellationToken.None));
             await store.SaveAsync(snapshot, CancellationToken.None);
+        }
+
+        /// <summary>Policy classification receives copied augment provenance for compositions and both pair orientations.</summary>
+        [Test]
+        public async Task PolicyAugmentProvenanceSurvivesBuildAndPersistence()
+        {
+            var original = AggregateTestData.Match("provenance");
+            var first = original.Participants[0];
+            var augmented = new AnonymousParticipant(first.Placement, first.LastRound, first.Units, first.Traits,
+                new[] { "AUG_B", "AUG_A", "AUG_A" });
+            var boards = new[] { augmented }.Concat(original.Participants.Skip(1)).ToArray();
+            var scope = AggregateBuilder.Build(new[] { AggregateTestData.Match("provenance", boards) }).Scopes.Single();
+            var key = CompositionFingerprintBuilder.Build(augmented);
+            var metric = scope.Metrics.Single(row => row.Fingerprint.Equals(key));
+            Assert.That(metric.AugmentIds, Is.EqualTo(new[] { "AUG_A", "AUG_B" }));
+            Assert.Throws<NotSupportedException>(() => ((System.Collections.Generic.IList<string>)metric.AugmentIds).Add("OTHER"));
+            foreach (var pair in scope.Pairs.Where(row => row.First.Equals(key) || row.Second.Equals(key)))
+                Assert.That(pair.First.Equals(key) ? pair.FirstAugmentIds : pair.SecondAugmentIds,
+                    Is.EqualTo(new[] { "AUG_A", "AUG_B" }));
+            await new AggregateStore(_paths).SaveAsync(scope, CancellationToken.None);
+            var json = JObject.Parse(File.ReadAllText(_paths.AggregatePath(scope.Scope)));
+            Assert.That(json["metrics"].Single(row => (string)row["fingerprint"] == key.Value)["augmentIds"].Values<string>(),
+                Is.EqualTo(new[] { "AUG_A", "AUG_B" }));
+            Assert.That(json["pairs"].All(row => row["firstAugmentIds"] != null && row["secondAugmentIds"] != null), Is.True);
+        }
+
+        /// <summary>Adding policy provenance creates a new cache schema without altering existing schema-one files.</summary>
+        [Test]
+        public async Task PolicySchemaUpgradeLeavesPreviousCacheUntouched()
+        {
+            var scope = Build("one");
+            var legacyPath = _paths.AggregatePath(scope.Scope, 1);
+            Directory.CreateDirectory(Path.GetDirectoryName(legacyPath));
+            File.WriteAllText(legacyPath, "legacy-snapshot");
+            await new AggregateStore(_paths).SaveAsync(scope, CancellationToken.None);
+            Assert.That(File.ReadAllText(legacyPath), Is.EqualTo("legacy-snapshot"));
+            Assert.That(_paths.AggregatePath(scope.Scope), Is.Not.EqualTo(legacyPath));
+            Assert.That((int)JObject.Parse(File.ReadAllText(_paths.AggregatePath(scope.Scope)))["schemaVersion"], Is.EqualTo(2));
         }
 
         /// <summary>Builds a single fabricated statistics scope through the real aggregate builder.</summary>

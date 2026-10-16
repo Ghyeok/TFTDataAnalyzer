@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1–4에 이어 Task 5의 과거 순위·상대 배치 집계, Wilson 신뢰구간과 scope별 집계 저장을 구현했다. 실제 Unity EditMode 전체 307/307가 통과했다. Task 6–7은 미구현이다. 현재 위치와 실행 증거는 [과거 집계 체크포인트](../Workflow/Cycles/2026-10-16-historical-aggregate-metrics/Checkpoint.md)를 확인한다. 앞선 Task 1–4의 기록은 이력으로 보존한다.
+2026-10-16: Task 1–5에 이어 Task 6의 최소 표본·Legend 정책과 표시용 데이터 계층을 구현했다. 실제 Unity EditMode 전체 340/340가 통과했다. Task 7 수집 서비스는 미구현이다. 현재 위치와 실행 증거는 [정책 필터 체크포인트](../Workflow/Cycles/2026-10-16-metric-policy-gates/Checkpoint.md)를 확인한다. 앞선 Task 1–5의 기록은 이력으로 보존한다.
 
 ## Global Constraints
 
@@ -327,12 +327,14 @@ git commit -m "feat: aggregate historical TFT placement metrics"
 - Create: `Assets/TFTAnalyzer/Core/Analytics/MetricPolicy.cs`
 - Create: `Assets/TFTAnalyzer/Core/Analytics/MetricPresentation.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/Analytics/MetricPolicyTests.cs`
+- Modify: `AggregateMetric.cs`, `PairwiseMetric.cs`, `AggregateBuilder.cs` (copied augment provenance and aggregate schema 2)
+- Modify: `Editor/Persistence/AggregateStore.cs`, `AnalyzerStorePaths.cs`, and `Tests/EditMode/Persistence/AggregateStoreTests.cs` (retain provenance in new cache files without altering schema 1)
 
 **Interfaces:**
 - Produces: `MetricPresentation MetricPolicy.Evaluate(AggregateMetric metric, StaticCatalog catalog)`.
 - Produces states `Visible`, `InsufficientSample`, and `PolicyBlocked` with reason codes.
 
-- [ ] **Step 1: Write failing policy tests**
+- [x] **Step 1: Write failing policy tests**
 
 ```csharp
 [TestCase(99, "insufficient_sample")]
@@ -346,15 +348,17 @@ public void Evaluate_EnforcesOneHundredSampleFloor(int count, string expectedRea
 
 Add fabricated augment metadata tagged `LegendBased` and assert related win-rate metrics are `PolicyBlocked` regardless of sample size.
 
-- [ ] **Step 2: Confirm failure and implement centralized rules**
+- [x] **Step 2: Confirm failure and implement centralized rules**
 
 The minimum is a compile-time floor of 100; user settings may only increase it. Allow average placement with its sample count, but block ratio presentation under the floor. Use neutral copy keys: `historical_observation`, `relative_placement_advantage`, never prediction language.
 
-- [ ] **Step 3: Add an export-safe DTO**
+- [x] **Step 3: Add an export-safe DTO**
 
 `MetricPresentation` exposes only approved names, scope, counts, rates, and confidence interval; it cannot expose source PUUIDs, raw IDs, or real-time fields.
 
-- [ ] **Step 4: Run focused and full suites, then commit**
+2026-10-16: actual Unity compiler RED for missing policy types, then clean compile, focused policy31/31 and full EditMode340/340. Both participant and pairwise metrics use the immutable minimum>=100 gate. Suppressed DTOs contain no ratio/numerator/denominator/interval payload; averages remain allowed below the floor. Full catalog/profile/set-number and safe filter labels are checked before scope echo. Necessary interface repair: hashes alone cannot recover augment policies, so attach sorted copied augment IDs from the builder and persist new schema2 caches while preserving schema1. StaticCatalog has no policy tags: MetricPolicyMetadata supplies explicit reviewed Standard/LegendBased/Legend/Unknown classifications bound to the selected identity; missing/mismatched classifications fail closed, never infer from names. No real classification registry or current external policy verification was performed. See [development report](../Workflow/Cycles/2026-10-16-metric-policy-gates/refined/DevelopmentReport.md).
+
+- [x] **Step 4: Run focused and full suites, then commit**
 
 ```powershell
 git add Assets/TFTAnalyzer/Core/Analytics Assets/TFTAnalyzer/Tests/EditMode/Analytics/MetricPolicyTests.cs
