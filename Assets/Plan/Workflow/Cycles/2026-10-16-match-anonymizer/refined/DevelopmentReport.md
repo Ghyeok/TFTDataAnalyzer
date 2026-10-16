@@ -28,7 +28,7 @@
 | 독립 검수 | Critical 0, Important 1, Minor 0. [응답](../raw/Reviewer.md). Important는 같은 수정 단계에서 RED→GREEN으로 보완 |
 | 보존 | 생성 카탈로그 diff 없음. 사용자 volume profile SHA-256 `4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A` 유지 |
 
-명령: `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter MatchAnonymizerTests --timeout 300`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`. 모두 `--project-path C:/Unity/TFTSimulator --format json`을 사용했다. 전체 JSON은 Git 제외 `Library/TftAnalyzerValidation/task3-*.json`에 있다. 픽스처의 모든 식별 정보는 가짜이며 환경 변수·실제 경기 원본을 읽지 않았다.
+명령: `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter MatchAnonymizerTests --timeout 300`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`. 모두 `--project-path C:/Unity/TFTDataAnalyzer --format json`을 사용했다. 전체 JSON은 Git 제외 `Library/TftAnalyzerValidation/task3-*.json`에 있다. 픽스처의 모든 식별 정보는 가짜이며 환경 변수·실제 경기 원본을 읽지 않았다.
 
 ## 판단과 제한
 

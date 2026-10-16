@@ -8,7 +8,7 @@ namespace TFTAnalyzer.Tests.Ingestion
         [Test]
         public void ProductName_IsTftDataAnalyzer()
         {
-            Assert.That(PlayerSettings.productName, Is.EqualTo("TFT Data Analyzer"));
+            Assert.That(PlayerSettings.productName, Is.EqualTo("TFTDataAnalyzer"));
         }
     }
 }

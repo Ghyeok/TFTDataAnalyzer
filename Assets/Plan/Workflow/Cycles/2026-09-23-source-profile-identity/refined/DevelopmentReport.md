@@ -8,7 +8,7 @@
 
 ## 기준과 보호 조건
 
-- 작업 경로: `C:/Unity/TFTSimulator`
+- 작업 경로: `C:/Unity/TFTDataAnalyzer`
 - 브랜치: `codex/source-profile-identity`
 - 개발 기준 HEAD: `ec9d296ec877eda19a6167518df53b14471a15b7`
 - 사용자 수정 `Assets/DefaultVolumeProfile.asset`과 기존 generated catalog/icon은 변경 또는 이동하지 않는다.
@@ -62,7 +62,7 @@ Assets/TFTAnalyzer/Data/Generated/TFTSet18/18.2/16.18.2/official-plus-communityd
 | `dotnet run --project Library/SourceProfileOfflineTests/SourceProfileOfflineTests.csproj --no-restore` | exit 0, 80 passed / 0 failed; 실제 production source + 최소 Unity stub을 이용한 .NET 9 보완 실행 |
 | `dotnet build Library/SourceProfileNativeCompile/SourceProfileNativeCompile.csproj --no-restore --nologo --verbosity quiet` | exit 0, 모든 Core/Editor 소스 + 설치된 Unity 6000.3.8f1 참조, 컴파일 warnings/errors 0/0; workload update 안내는 정보 메시지 |
 | `unity pipeline list --format json` | exit 0, Editor 실행 중이나 `reachableServers=0`, `isReachable=false` |
-| `unity command recompile --project-path C:\Unity\TFTSimulator --format json` | exit 1, `COMMAND_FAILED`, 해당 프로젝트 Pipeline instance 없음 |
+| `unity command recompile --project-path C:\Unity\TFTDataAnalyzer --format json` | exit 1, `COMMAND_FAILED`, 해당 프로젝트 Pipeline instance 없음 |
 | `Get-FileHash -Algorithm SHA256 -LiteralPath <위 보호 5개 파일>` | 시작 해시와 전부 동일 |
 | `git diff --check -- Assets/TFTAnalyzer Assets/Plan` | whitespace 오류 없음; LF→CRLF Git 안내만 존재 |
 | `git diff --name-only -- Assets/TFTAnalyzer/Data/Generated` | 출력 없음 |

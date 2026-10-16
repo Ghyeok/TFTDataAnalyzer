@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1–5에 이어 Task 6의 최소 표본·Legend 정책과 표시용 데이터 계층을 구현했다. 실제 Unity EditMode 전체 340/340가 통과했다. Task 7 수집 서비스는 미구현이다. 현재 위치와 실행 증거는 [정책 필터 체크포인트](../Workflow/Cycles/2026-10-16-metric-policy-gates/Checkpoint.md)를 확인한다. 앞선 Task 1–5의 기록은 이력으로 보존한다.
+2026-10-16: Task 1–7의 익명 관측·API·익명화·저장·집계·정책·제한된 수집 연결을 구현했다. 실제 Unity EditMode 전체366/366 통과. UI·CSV·실제 Riot 호출은 별도이며 수집 코드의 PR 검수·병합과 사용자 최종 승인은 남아 있다. 현재 위치와 실행 증거는 [수집 체크포인트](../Workflow/Cycles/2026-10-16-bounded-match-collection/Checkpoint.md)를 확인한다. 앞선 기록은 이력으로 보존한다.
 
 ## Global Constraints
 
@@ -381,23 +381,23 @@ git commit -m "feat: enforce TFT analytics policy boundaries"
 - Reads comma-separated seed PUUIDs from `RIOT_TFT_SEED_PUUIDS` for the current process only.
 - Request includes platform, expected patch, queue, tier bucket, and maximum unique matches capped at 1,000 per run.
 
-- [ ] **Step 1: Write a failing bounded-collection test**
+- [x] **Step 1: Write a failing bounded-collection test**
 
 Use two fake seeds returning overlapping Match IDs. Assert each unique match is fetched once, mismatched patch/queue observations are excluded, no participant PUUID becomes a new seed, and the maximum-match cap is honored.
 
-- [ ] **Step 2: Confirm failure and implement the service**
+- [x] **Step 2: Confirm failure and implement the service**
 
 For each supplied seed, request Match IDs in pages of at most 100, de-duplicate IDs in memory, stop at the cap, fetch each stream, anonymize, filter scope, append, and report counts. Progress contains numeric counts and status codes only; never seed or Match ID values.
 
-- [ ] **Step 3: Implement cancellation and safe summaries**
+- [x] **Step 3: Implement cancellation and safe summaries**
 
 Cancellation stops before the next request, disposes an active stream, retains already committed anonymous observations, and returns no raw identifiers. Summary fields: requested, fetched, stored, duplicate, filtered, failed, cancelled, and retry-after UTC.
 
-- [ ] **Step 4: Run full tests and an explicit API-key absence test**
+- [x] **Step 4: Run full tests and an explicit API-key absence test**
 
 Default tests use fakes. Add an `[Explicit]` test that only verifies a configured key can call one user-authorized seed; skip with a clear reason when either environment variable is absent.
 
-- [ ] **Step 5: Commit checkpoint**
+- [x] **Step 5: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/RiotApi Assets/TFTAnalyzer/Tests/EditMode/RiotApi

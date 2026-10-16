@@ -127,7 +127,7 @@ Unrelated `Assets/DefaultVolumeProfile.asset`: `4789B43834DD5EFB32EEC4C3B436BAF0
 
 ## Git permission delay resolved operationally
 
-- Implementer reported one staging attempt failed: `fatal: Unable to create C:/Unity/TFTSimulator/.git/index.lock: Permission denied`.
+- Implementer reported one staging attempt failed: `fatal: Unable to create C:/Unity/TFTDataAnalyzer/.git/index.lock: Permission denied`.
 - Escalated retry was user-aborted after 712.5 seconds. This was not a code/test failure and is not reported as automatic-review rejection.
 - Lead interrupted the delayed current turn and resumed the SAME implementation agent with Git writes delegated to Master, per Master's explicit instruction. Code/test changes are preserved.
 - Implementer confirmed active work on all four review findings; no further staging/commit attempts by this child.

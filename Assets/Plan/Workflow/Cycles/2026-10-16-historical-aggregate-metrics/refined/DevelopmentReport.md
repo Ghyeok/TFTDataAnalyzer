@@ -26,7 +26,7 @@
 | 독립 검수 | Critical 0 / Important 0 / Minor 0. [공개 응답](../raw/Reviewer.md). 검수자는 Unity를 실행하지 않음 |
 | 보존 | 기존 생성 카탈로그 diff 없음. 사용자 volume SHA-256 `4789B43834DD5EFB32EEC4C3B436BAF0895C9F8CF2A0624121DA8DD812EE984A` 유지 |
 
-명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter WilsonIntervalTests`, `--filter Aggregate`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`이며 모두 `--project-path C:/Unity/TFTSimulator --format json`을 사용했다. 결과 JSON은 Git 제외 `Library/TftAnalyzerValidation/task5-*.json`에 있다. Task4에서 확인한 동기식 예외 검증의 Unity 교착을 반복하지 않도록 실제 파일I/O 실패 검증도 await helper로 처리했다.
+명령은 `unity command recompile`, `recompile_status`, `run_tests --mode editor --filter_type testName --filter WilsonIntervalTests`, `--filter Aggregate`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode`이며 모두 `--project-path C:/Unity/TFTDataAnalyzer --format json`을 사용했다. 결과 JSON은 Git 제외 `Library/TftAnalyzerValidation/task5-*.json`에 있다. Task4에서 확인한 동기식 예외 검증의 Unity 교착을 반복하지 않도록 실제 파일I/O 실패 검증도 await helper로 처리했다.
 
 ## 판단과 제한
 

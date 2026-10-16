@@ -5,11 +5,11 @@
 ## Master → Agent B
 
 ```text
-You are Planning Agent B for the Unity project at C:\Unity\TFTSimulator. Work READ-ONLY: do not edit files, do not run destructive commands, and do not implement code.
+You are Planning Agent B for the Unity project at C:\Unity\TFTDataAnalyzer. Work READ-ONLY: do not edit files, do not run destructive commands, and do not implement code.
 
 Review these documents and relevant code/tests:
-- C:\Unity\TFTSimulator\Assets\Plan\TFTDataPipeline.md
-- C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-static-data-pipeline.md
+- C:\Unity\TFTDataAnalyzer\Assets\Plan\TFTDataPipeline.md
+- C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-static-data-pipeline.md
 - Assets\TFTAnalyzer\Core
 - Assets\TFTAnalyzer\Editor
 - Assets\TFTAnalyzer\Tests
@@ -31,7 +31,7 @@ Do not expose hidden chain-of-thought; provide conclusions and evidence only.
 ## Master → Agent B 추가 자료
 
 ```text
-Additional implementation plans exist. Please also read and cross-check: C:\Unity\TFTSimulator\Assets\Plan\Implementation\TFTDataAnalyzerImplementationPlan.md, C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-analyzer-editor-ui.md, and C:\Unity\TFTSimulator\Assets\Plan\Implementation\2026-09-17-tft-match-analytics.md. Include technical sequencing/test contradictions in your final report.
+Additional implementation plans exist. Please also read and cross-check: C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\TFTDataAnalyzerImplementationPlan.md, C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-analyzer-editor-ui.md, and C:\Unity\TFTDataAnalyzer\Assets\Plan\Implementation\2026-09-17-tft-match-analytics.md. Include technical sequencing/test contradictions in your final report.
 ```
 
 ## Agent B → Master 중간 보고
