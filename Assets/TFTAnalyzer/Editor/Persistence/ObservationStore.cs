@@ -99,6 +99,7 @@ namespace TFTAnalyzer.Editor.Persistence
             }
         }
 
+        /// <summary>Recovers records and republishes their index under the gate and exclusive lease.</summary>
         private async Task<List<AnonymousMatchObservation>> ReadSnapshotAsync(CancellationToken token)
         {
             await _gate.WaitAsync(token);
@@ -119,6 +120,7 @@ namespace TFTAnalyzer.Editor.Persistence
             finally { _gate.Release(); }
         }
 
+        /// <summary>Validates paths and acquires an exclusive operation lease across store instances.</summary>
         private FileStream AcquireLease()
         {
             _paths.EnsureSafe();
@@ -128,6 +130,7 @@ namespace TFTAnalyzer.Editor.Persistence
             return new FileStream(_paths.LeasePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         }
 
+        /// <summary>Validates complete records, rebuilds hashes and removes only unterminated crash tails.</summary>
         private List<AnonymousMatchObservation> Recover(ProcessedMatchIndex index, CancellationToken token)
         {
             var records = new List<AnonymousMatchObservation>();
@@ -171,12 +174,14 @@ namespace TFTAnalyzer.Editor.Persistence
             return records;
         }
 
+        /// <summary>Creates a fixed diagnostic without paths, payload fragments or an original exception.</summary>
         private static IOException StoreError() => new IOException("anonymous_observation_store_failed");
     }
 
     /// <summary>Versioned allowlist encoding; unknown properties or altered canonical records fail closed.</summary>
     internal static class ObservationJson
     {
+        /// <summary>Encodes only approved observation fields in a fixed, culture-independent schema.</summary>
         internal static string Serialize(AnonymousMatchObservation value)
         {
             var scope = value.Scope;
@@ -219,6 +224,7 @@ namespace TFTAnalyzer.Editor.Persistence
             }.ToString(Formatting.None);
         }
 
+        /// <summary>Restores schema-one records only when exact canonical reserialization matches the input.</summary>
         internal static AnonymousMatchObservation Deserialize(string json)
         {
             using (var text = new StringReader(json))

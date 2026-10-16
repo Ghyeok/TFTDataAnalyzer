@@ -49,6 +49,7 @@ namespace TFTAnalyzer.Editor.Persistence
             RejectReparsePoints(LeasePath);
         }
 
+        /// <summary>Rejects a link at the target or any existing ancestor before store access.</summary>
         internal static void RejectReparsePoints(string path)
         {
             for (var current = Normalize(path); current != null; current = Path.GetDirectoryName(current))
@@ -63,6 +64,7 @@ namespace TFTAnalyzer.Editor.Persistence
             }
         }
 
+        /// <summary>Resolves a nonblank absolute path while preserving filesystem roots.</summary>
         private static string Normalize(string path)
         {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Store path is required.");
@@ -71,6 +73,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
 
+        /// <summary>Tests directory containment using a separator boundary and case-insensitive comparison.</summary>
         private static bool IsWithin(string path, string parent) =>
             string.Equals(path, parent, StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith(parent.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,

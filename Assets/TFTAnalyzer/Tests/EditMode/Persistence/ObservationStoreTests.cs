@@ -23,6 +23,7 @@ namespace TFTAnalyzer.Tests.Persistence
         private string _temporary;
         private AnalyzerStorePaths _paths;
 
+        /// <summary>Creates unique temporary project paths without touching the active project store.</summary>
         [SetUp]
         public void SetUp()
         {
@@ -30,12 +31,14 @@ namespace TFTAnalyzer.Tests.Persistence
             _paths = new AnalyzerStorePaths(Path.Combine(_temporary, "Project"));
         }
 
+        /// <summary>Removes only this test's uniquely named temporary directory.</summary>
         [TearDown]
         public void TearDown()
         {
             if (Directory.Exists(_temporary)) Directory.Delete(_temporary, true);
         }
 
+        /// <summary>Checks one durable line per match and lossless restoration of all anonymous fields.</summary>
         [Test]
         public async Task AppendIsIdempotentAndRoundTripsFullObservation()
         {
@@ -49,6 +52,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(File.ReadAllText(_paths.ProcessedMatchIndexPath), Does.Contain(observation.MatchHash));
         }
 
+        /// <summary>Scans real store files after anonymization for fabricated identity and raw-response markers.</summary>
         [Test]
         public async Task AnonymizerToDiskNeverPersistsFabricatedIdentityOrRawResponse()
         {
@@ -71,6 +75,7 @@ namespace TFTAnalyzer.Tests.Persistence
                 Assert.That(File.ReadAllText(file), Does.Not.Contain(forbidden));
         }
 
+        /// <summary>Separates observation files when any catalog identity or collection filter changes.</summary>
         [TestCase("set")]
         [TestCase("patch")]
         [TestCase("version")]
@@ -90,6 +95,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(store)).Count, Is.EqualTo(2));
         }
 
+        /// <summary>Confirms store-wide match deduplication retains the first admitted scope.</summary>
         [Test]
         public async Task MatchHashDeduplicatesAcrossScopesWithinOneStore()
         {
@@ -99,6 +105,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(store)).Count, Is.EqualTo(1));
         }
 
+        /// <summary>Recovers authoritative hashes despite missing, malformed, empty or forged index contents.</summary>
         [TestCase("missing")]
         [TestCase("malformed")]
         [TestCase("empty")]
@@ -118,6 +125,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(File.ReadAllText(_paths.ProcessedMatchIndexPath), Does.Not.Contain("FAKE-PUUID"));
         }
 
+        /// <summary>Runs competing appends on one instance and verifies exactly one durable insertion.</summary>
         [Test]
         public async Task ConcurrentDuplicateAttemptsCommitExactlyOneRecord()
         {
@@ -128,6 +136,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(store)).Count, Is.EqualTo(1));
         }
 
+        /// <summary>Ensures sequential store instances observe each other's committed match hashes.</summary>
         [Test]
         public async Task SeparateInstancesReconcileChangesBeforeAppending()
         {
@@ -139,6 +148,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(b)).Count, Is.EqualTo(2));
         }
 
+        /// <summary>Verifies pre-cancelled reads and writes preserve every file and permit a later retry.</summary>
         [Test]
         public async Task PreCancelledAppendLeavesExistingFilesByteIdentical()
         {
@@ -156,6 +166,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(await store.AppendIfNewAsync(Observation("second"), CancellationToken.None), Is.True);
         }
 
+        /// <summary>Forces index publication failure and recovers the already committed record without duplication.</summary>
         [Test]
         public async Task IndexPublicationFailureRetainsLogAndRetryDoesNotDuplicate()
         {
@@ -171,6 +182,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(Directory.GetFiles(_paths.RootDirectory, "*.tmp", SearchOption.AllDirectories), Is.Empty);
         }
 
+        /// <summary>Repairs an interrupted trailing record while retaining the complete prefix byte for byte.</summary>
         [Test]
         public async Task IncompleteTailIsRemovedWithoutLosingCommittedPrefix()
         {
@@ -185,6 +197,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(store)).Count, Is.EqualTo(2));
         }
 
+        /// <summary>Rejects complete corrupt records without changing files or disclosing their contents in errors.</summary>
         [TestCase("malformed")]
         [TestCase("extra-property")]
         [TestCase("duplicate")]
@@ -208,6 +221,7 @@ namespace TFTAnalyzer.Tests.Persistence
             AssertFiles(before);
         }
 
+        /// <summary>Uses a real file lock to verify failed access preserves data and a later append succeeds.</summary>
         [Test]
         public async Task WriteLockFailurePreservesExistingObservationAndAllowsRetry()
         {
@@ -220,6 +234,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(await store.AppendIfNewAsync(Observation("second"), CancellationToken.None), Is.True);
         }
 
+        /// <summary>Checks identical bytes across cultures and a single NDJSON line despite embedded newlines.</summary>
         [Test]
         public async Task CanonicalBytesIgnoreCurrentCultureAndEscapeEmbeddedNewlines()
         {
@@ -238,6 +253,7 @@ namespace TFTAnalyzer.Tests.Persistence
             finally { CultureInfo.CurrentCulture = previous; }
         }
 
+        /// <summary>Rejects unsafe in-project overrides before any project directory is created.</summary>
         [TestCase("Assets")]
         [TestCase("Assets/../Packages/data")]
         [TestCase("ProjectSettings/data")]
@@ -250,6 +266,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(Directory.Exists(_paths.ProjectRoot), Is.False);
         }
 
+        /// <summary>Checks the default root and project-external override use digest-only observation filenames.</summary>
         [Test]
         public async Task DefaultRootAndExternalOverrideUseOnlyHashedObservationNames()
         {
@@ -260,12 +277,14 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(name, Does.Match("^[0-9a-f]{64}\\.ndjson$"));
         }
 
+        /// <summary>Confirms a newly initialized store yields no observation records.</summary>
         [Test]
         public async Task EmptyStoreReadsNoObservations()
         {
             Assert.That(await ReadAll(new ObservationStore(_paths)), Is.Empty);
         }
 
+        /// <summary>Appends during enumeration to verify locks are released and the original snapshot stays stable.</summary>
         [Test]
         public async Task EnumerationDoesNotHoldTheWriteGateAndKeepsItsOriginalSnapshot()
         {
@@ -282,6 +301,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That((await ReadAll(store)).Count, Is.EqualTo(2));
         }
 
+        /// <summary>Holds the OS lease to verify another instance fails safely and succeeds after release.</summary>
         [Test]
         public async Task CompetingOperationLeaseFailsWithoutChangingCommittedData()
         {
@@ -295,6 +315,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(await store.AppendIfNewAsync(Observation("second"), CancellationToken.None), Is.True);
         }
 
+        /// <summary>Rejects an encoded observation beyond the record limit without creating store files.</summary>
         [Test]
         public async Task OversizedRecordFailsBeforeCreatingStoreFiles()
         {
@@ -307,15 +328,18 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(Directory.Exists(_paths.RootDirectory), Is.False);
         }
 
+        /// <summary>Snapshots every store file's contents for preservation assertions.</summary>
         private Dictionary<string, byte[]> Files() => Directory.GetFiles(_paths.RootDirectory, "*", SearchOption.AllDirectories)
             .ToDictionary(path => path, File.ReadAllBytes);
 
+        /// <summary>Asserts the store has the same file set and byte contents as the supplied snapshot.</summary>
         private void AssertFiles(Dictionary<string, byte[]> before)
         {
             Assert.That(Directory.GetFiles(_paths.RootDirectory, "*", SearchOption.AllDirectories), Is.EquivalentTo(before.Keys));
             foreach (var pair in before) Assert.That(File.ReadAllBytes(pair.Key), Is.EqualTo(pair.Value));
         }
 
+        /// <summary>Materializes the real asynchronous store reader while preserving cancellation behavior.</summary>
         private static async Task<List<AnonymousMatchObservation>> ReadAll(ObservationStore store, CancellationToken token = default)
         {
             var records = new List<AnonymousMatchObservation>();
@@ -323,7 +347,7 @@ namespace TFTAnalyzer.Tests.Persistence
             return records;
         }
 
-        // NUnit's synchronous ThrowsAsync blocks Unity's main-thread continuations during real file I/O.
+        /// <summary>Asserts an awaited exception without blocking Unity's main-thread file-I/O continuations.</summary>
         private static async Task<T> ThrowsAsync<T>(Func<Task> action) where T : Exception
         {
             try { await action(); }
@@ -332,11 +356,13 @@ namespace TFTAnalyzer.Tests.Persistence
             return null;
         }
 
+        /// <summary>Builds a fabricated catalog identity with an optional changed scope dimension.</summary>
         private static CatalogIdentity Identity(string dimension = "") => new CatalogIdentity(
             new PatchKey(dimension == "set" ? "TFTSet19" : "TFTSet18", dimension == "set" ? 19 : 18,
                 dimension == "patch" ? "18.3" : "18.2", dimension == "version" ? "16.18.2" : "16.18.1"),
             dimension == "profile" ? CatalogSourceProfile.OfficialPlusCommunityDragon : CatalogSourceProfile.OfficialOnly);
 
+        /// <summary>Builds an eight-participant anonymous fixture with repeated items, Unicode and safe version metadata.</summary>
         private static AnonymousMatchObservation Observation(string seed = "first", string dimension = "") =>
             new AnonymousMatchObservation(ContentHasher.Sha256Hex("match-v1|" + seed),
                 new MetricScope(Identity(dimension), dimension == "region" ? "europe" : "asia",

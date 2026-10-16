@@ -13,7 +13,9 @@ namespace TFTAnalyzer.Editor.Persistence
     {
         private readonly HashSet<string> _hashes = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>Registers a committed match hash and reports whether it was previously absent.</summary>
         internal bool Add(string hash) => _hashes.Add(hash);
+        /// <summary>Checks a hash against the index reconstructed from committed observations.</summary>
         internal bool Contains(string hash) => _hashes.Contains(hash);
 
         /// <summary>Flushes a complete replacement before publishing it atomically in the same directory.</summary>
