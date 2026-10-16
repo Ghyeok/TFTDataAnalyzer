@@ -2,6 +2,7 @@
 .tft-analyzer-shell,
 .tft-tab-content {
     flex-grow: 1;
+    min-height: 0;
 }
 
 .tft-analyzer-shell Label {
@@ -28,6 +29,79 @@
 
 .tft-tab {
     padding: 12px;
+}
+
+.tft-data-tab {
+    flex-grow: 1;
+    min-height: 0;
+    padding: 0;
+}
+
+.tft-data-scroll {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.tft-data-content {
+    padding: 12px;
+}
+
+.tft-data-section {
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.tft-data-field {
+    margin-bottom: 5px;
+    min-width: 0;
+}
+
+.tft-data-field > .unity-base-field__label {
+    min-width: 110px;
+    max-width: 110px;
+    white-space: normal;
+}
+
+.tft-data-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.tft-data-actions Button {
+    flex-grow: 1;
+    min-height: 25px;
+}
+
+.tft-data-status {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.tft-catalog-list {
+    height: 230px;
+    flex-shrink: 0;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-color: var(--unity-colors-button-border);
+    border-bottom-color: var(--unity-colors-button-border);
+}
+
+.tft-catalog-row {
+    padding: 8px 5px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-button-border);
+}
+
+.tft-catalog-invalid {
+    opacity: 0.6;
+}
+
+.tft-wrapped-text {
+    white-space: normal;
+    min-width: 0;
 }
 
 .tft-tab-title {
