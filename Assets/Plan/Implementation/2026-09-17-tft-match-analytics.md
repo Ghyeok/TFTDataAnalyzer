@@ -12,7 +12,7 @@
 
 ## 구현 현황
 
-2026-10-16: Task 1 관측 모델·조합 식별자와 Task 2 키 안전 API 클라이언트·라우팅·호출 제한을 구현했다. 실제 Unity EditMode 전체 174/174가 통과했다. Task 3–7은 미구현이다. 현재 위치와 실행 증거는 [API 클라이언트 체크포인트](../Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)를 확인한다. Task 1 이력은 [관측 모델 체크포인트](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)에 보존한다.
+2026-10-16: Task 1 관측 모델, Task 2 API 클라이언트와 Task 3 메모리 내 익명화·경기 검증을 구현했다. 실제 Unity EditMode 전체 226/226가 통과했다. Task 4–7은 미구현이다. 현재 위치와 실행 증거는 [경기 익명화 체크포인트](../Workflow/Cycles/2026-10-16-match-anonymizer/Checkpoint.md)를 확인한다. [Task 1](../Workflow/Cycles/2026-10-16-anonymous-observation-contracts/Checkpoint.md)과 [Task 2](../Workflow/Cycles/2026-10-16-riot-api-client/Checkpoint.md)의 기록은 이력으로 보존한다.
 
 ## Global Constraints
 
@@ -29,10 +29,11 @@
 Assets/TFTAnalyzer/Core/Analytics/
   {AnonymousMatchObservation,AnonymousParticipant,AnonymousUnit,AnonymousTrait}.cs
   {CompositionFingerprint,MetricScope,AggregateMetric,PairwiseMetric}.cs
-  {AnonymizationResult,MatchAnonymizer,CompositionFingerprintBuilder,WilsonInterval,AggregateBuilder,MetricPolicy}.cs
+  {AnonymizationResult,CompositionFingerprintBuilder,WilsonInterval,AggregateBuilder,MetricPolicy}.cs
 Assets/TFTAnalyzer/Editor/RiotApi/
   {IRiotApiKeyProvider,EnvironmentRiotApiKeyProvider,RiotRouting,RiotApiClient}.cs
   {IRiotApiTransport,UnityRiotApiTransport}.cs
+  {MatchAnonymizer,RiotMatchDtos}.cs
   {RateLimitState,RiotApiException,MatchCollectionRequest,MatchCollectionSummary,MatchCollectionService}.cs
 Assets/TFTAnalyzer/Editor/Persistence/
   {ObservationStore,ProcessedMatchIndex,AggregateStore}.cs
@@ -173,7 +174,8 @@ git commit -m "feat: add key-safe Riot match API client"
 
 **Files:**
 - Create: `Assets/TFTAnalyzer/Core/Analytics/AnonymizationResult.cs`
-- Create: `Assets/TFTAnalyzer/Core/Analytics/MatchAnonymizer.cs`
+- Create: `Assets/TFTAnalyzer/Editor/RiotApi/MatchAnonymizer.cs`
+- Modify: `Assets/TFTAnalyzer/Core/Analytics/AnonymousMatchObservation.cs` (safe match version metadata)
 - Create: `Assets/TFTAnalyzer/Editor/RiotApi/RiotMatchDtos.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/Analytics/MatchAnonymizerTests.cs`
 - Create: `Assets/TFTAnalyzer/Tests/Fixtures/Matches/fabricated-match-v2.json`
@@ -181,8 +183,9 @@ git commit -m "feat: add key-safe Riot match API client"
 **Interfaces:**
 - Produces: `AnonymizationResult MatchAnonymizer.Read(Stream utf8Json, string region, string tierBucket)`.
 - Consumes the stream once and never returns a Riot DTO.
+- Constructor: `MatchAnonymizer(StaticCatalog catalog, CatalogIdentity activeCatalog)` verifies the complete selected identity, including source profile. The parser is Editor-only to avoid Core referencing Editor DTOs.
 
-- [ ] **Step 1: Add a fabricated identity-bearing match fixture and failing redaction test**
+- [x] **Step 1: Add a fabricated identity-bearing match fixture and failing redaction test**
 
 The fixture includes fake `puuid`, `riotIdGameName`, `riotIdTagline`, Match ID, placements, units, items, traits, augments, queue, patch, and timestamp.
 
@@ -198,25 +201,29 @@ public void Read_RemovesEveryIdentityFieldFromSerializedObservation()
 }
 ```
 
-- [ ] **Step 2: Confirm the test fails**
+- [x] **Step 2: Confirm the test fails**
 
 Run with `--filter MatchAnonymizerTests`.
 
-- [ ] **Step 3: Implement streaming parse and immediate projection**
+- [x] **Step 3: Implement streaming parse and immediate projection**
 
-Use `JsonTextReader` over the provided stream. Deserialize into internal Editor-only DTOs, immediately compute `SHA256("match-v1|" + rawMatchId)`, project participants to anonymous records, clear DTO collection references in `finally`, and dispose the reader without closing a caller-owned stream.
+Use `JsonTextReader` over the provided stream. Populate internal Editor-only allowlist DTOs, immediately compute `SHA256("match-v1|" + rawMatchId)`, project participants to anonymous records, clear DTO collection references in `finally` (including partial parse failure), and dispose the reader without closing a caller-owned stream. Input is bounded to 8 MiB/depth 32; known scalar types are not coerced. Personal fields are skipped instead of being represented in the DTOs.
 
-- [ ] **Step 4: Validate and quarantine unknown static IDs**
+- [x] **Step 4: Validate and quarantine unknown static IDs**
 
-Return an `AnonymizationResult` containing the observation plus unknown stable IDs. Reject matches with missing patch, queue, participant collection, placement, or unit IDs. Never include raw JSON or identity values in errors.
+Return an `AnonymizationResult` containing either an accepted observation or unknown-ID quarantine diagnostics. Unknown IDs can contain arbitrary identity strings: store only category plus `SHA256("static-id-v1|" + category + "|" + rawUnknownId)` in the result; withhold the entire observation if any unknown exists. Raw unknown names are intentionally not exposed. Reject matches with missing patch, queue, participant collection, placement, or unit IDs. Never include raw JSON or identity values in errors.
 
 Admission must also validate complete-lobby participant count and placement consistency, retain safe match-version metadata, and verify static IDs against the active catalog. These payload-aware checks are not implied by Task 1 constructors, which only validate individual values and nonempty collections.
 
-- [ ] **Step 5: Run memory-safety and malformed-input tests**
+Support data version `2`, explicit `itemNames`/traits/augments arrays and eight unique placements 1–8. Compare set number and numeric game-release major/minor with the selected catalog source version, independently of its TFT patch label. Preserve numeric match build and data version; drop free-form build annotations. Exact build-to-catalog equivalence is not inferred. Malformed/mismatched payloads fail closed; no silent legacy numeric-item mapping.
+
+- [x] **Step 5: Run memory-safety and malformed-input tests**
 
 Assert malformed JSON produces a typed code such as `invalid_match_payload`; exception messages contain neither body fragments nor API values. Run full suite.
 
-- [ ] **Step 6: Commit checkpoint**
+2026-10-16: initial focused 44/44 and full 218/218; independent review found permissive Json.NET syntax normalization. Seven lexical regression cases were observed RED (45/52 passed), then a streaming syntax guard achieved focused 52/52 and actual full Unity EditMode 226/226. Normal escapes and tiny nonseekable reads also pass. Final review and limits are in the [development report](../Workflow/Cycles/2026-10-16-match-anonymizer/refined/DevelopmentReport.md).
+
+- [x] **Step 6: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Core/Analytics Assets/TFTAnalyzer/Editor/RiotApi/RiotMatchDtos.cs Assets/TFTAnalyzer/Tests

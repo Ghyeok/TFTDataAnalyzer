@@ -1,0 +1,19 @@
+{
+  "metadata": {"data_version":"2","match_id":"KR1_123456","participants":["FAKE-PUUID-1","FAKE-PUUID-2","FAKE-PUUID-3","FAKE-PUUID-4","FAKE-PUUID-5","FAKE-PUUID-6","FAKE-PUUID-7","FAKE-PUUID-8"]},
+  "info": {
+    "game_version":"Version 16.18.123.456 (FAKE-BUILD-NOTE)",
+    "game_datetime":1767225600000,
+    "queue_id":1100,
+    "tft_set_number":18,
+    "participants":[
+      {"puuid":"FAKE-PUUID-1","riotIdGameName":"FakePlayer1","riotIdTagline":"FAKE-TAG","placement":1,"last_round":40,"units":[{"character_id":"TEST_UNIT","tier":2,"itemNames":["TEST_ITEM"]}],"traits":[{"name":"TEST_TRAIT","tier_current":1}],"augments":["TEST_AUGMENT"]},
+      {"puuid":"FAKE-PUUID-2","riotIdGameName":"FakePlayer2","placement":2,"last_round":40,"units":[{"character_id":"TEST_UNIT","tier":2,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-3","riotIdGameName":"FakePlayer3","placement":3,"last_round":35,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-4","riotIdGameName":"FakePlayer4","placement":4,"last_round":34,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-5","riotIdGameName":"FakePlayer5","placement":5,"last_round":30,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-6","riotIdGameName":"FakePlayer6","placement":6,"last_round":28,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-7","riotIdGameName":"FakePlayer7","placement":7,"last_round":25,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]},
+      {"puuid":"FAKE-PUUID-8","riotIdGameName":"FakePlayer8","placement":8,"last_round":20,"units":[{"character_id":"TEST_UNIT","tier":1,"itemNames":[]}],"traits":[],"augments":[]}
+    ]
+  }
+}
