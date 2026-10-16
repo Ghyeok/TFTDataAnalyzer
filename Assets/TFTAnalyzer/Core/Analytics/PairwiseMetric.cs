@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Analytics
 {
@@ -8,6 +11,8 @@ namespace TFTAnalyzer.Analytics
         public MetricScope Scope { get; }
         public CompositionFingerprint First { get; }
         public CompositionFingerprint Second { get; }
+        public IReadOnlyList<string> FirstAugmentIds { get; }
+        public IReadOnlyList<string> SecondAugmentIds { get; }
         public int Count { get; private set; }
         public int FirstHigherCount { get; private set; }
         public int SecondHigherCount => Count - FirstHigherCount;
@@ -18,11 +23,16 @@ namespace TFTAnalyzer.Analytics
         public ConfidenceInterval FirstHigherInterval => Count == 0 ? null : WilsonInterval.Calculate(FirstHigherCount, Count);
 
         /// <summary>Starts a pair accumulator with fingerprints already ordered by ordinal hash.</summary>
-        internal PairwiseMetric(MetricScope scope, CompositionFingerprint first, CompositionFingerprint second, DateTimeOffset playedAt)
+        internal PairwiseMetric(MetricScope scope, CompositionFingerprint first, CompositionFingerprint second, DateTimeOffset playedAt,
+            IEnumerable<string> firstAugmentIds, IEnumerable<string> secondAugmentIds)
         {
             Scope = scope;
             First = first;
             Second = second;
+            FirstAugmentIds = DomainValues.Copy((firstAugmentIds ?? throw new ArgumentNullException(nameof(firstAugmentIds)))
+                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
+            SecondAugmentIds = DomainValues.Copy((secondAugmentIds ?? throw new ArgumentNullException(nameof(secondAugmentIds)))
+                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
             FirstPlayedAt = LastPlayedAt = playedAt;
         }
 
