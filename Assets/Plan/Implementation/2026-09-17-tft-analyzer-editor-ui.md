@@ -89,6 +89,8 @@ git commit -m "feat: add TFT analyzer editor window shell"
 
 ### Task 2: Implement the Static Data Management Tab
 
+2026-10-16 재개: [정적 데이터 관리 체크포인트](../Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md). 기존 계획의 기능 연결에 필요한 작은 서비스 어댑터·disposable tab binding과 `Editor/Persistence/PublishedCatalogLoader.cs`를 허용한다. VM은 HTTP/AssetDatabase를 직접 사용하지 않으며 기존 pipeline/serializer/hash 검증/differ를 재사용한다. 활성선택은 열린 창의 메모리에만 유지하고, 재생성은 binding 교체·VM 유지를 따른다. 표시용 실제 수집UTC/validation은 정규화된 catalog가 아닌 standalone manifest에서 읽는다. 취소는 실행 종료까지 busy를 유지하고 publish 후 성공을 늦은 취소로 번복하지 않는다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/UI/Data/DataManagerViewModel.cs`
 - Create: `Assets/TFTAnalyzer/Editor/UI/Data/PatchRowViewModel.cs`
@@ -100,23 +102,23 @@ git commit -m "feat: add TFT analyzer editor window shell"
 - Consumes: `StaticCatalogPipeline`, `CatalogIndex`, `CatalogDiffer`.
 - Produces: `CheckForUpdatesAsync`, `ImportAsync`, `CancelImport`, `SelectActiveCatalog(CatalogIdentity)`, and read-only catalog rows.
 
-- [ ] **Step 1: Write failing explicit-consent tests**
+- [x] **Step 1: Write failing explicit-consent tests**
 
 Assert checking versions performs no catalog or image download. Assert `IncludeCommunityDragon` defaults false and is reset false after every completed/cancelled import.
 
-- [ ] **Step 2: Implement the view-model state machine**
+- [x] **Step 2: Implement the view-model state machine**
 
 States are `Idle`, `Checking`, `AwaitingApproval`, `Importing`, `Succeeded`, `Failed`, and `Cancelled`. Commands reject invalid transitions and expose user-facing error codes without response bodies.
 
-- [ ] **Step 3: Bind controls and patch table**
+- [x] **Step 3: Bind controls and patch table**
 
 Show Set, TFT patch, source game version, stable source-profile ID, source badges, retrieved UTC, validation status, content hash prefix, resolved target path, and active catalog selection. Require a modal confirmation with the full identity and target before `ImportAsync`.
 
-- [ ] **Step 4: Add patch-diff presentation**
+- [x] **Step 4: Add patch-diff presentation**
 
 Show added/removed/changed counts per entity and an expandable field-level list. Retrieval timestamps never appear as content changes.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/UI Assets/TFTAnalyzer/Tests/EditMode/UI/DataManagerViewModelTests.cs

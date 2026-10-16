@@ -8,9 +8,41 @@
             <ui:Button name="about-tab-button" text="정책 안내" />
         </editor:Toolbar>
         <ui:VisualElement class="tft-tab-content">
-            <ui:VisualElement name="data-tab" class="tft-tab">
-                <ui:Label text="정적 데이터 관리" class="tft-tab-title" />
-                <ui:Label text="시즌·패치별 정적 카탈로그를 관리하는 화면입니다. 데이터 가져오기와 카탈로그 선택 기능은 후속 단계에서 연결됩니다." />
+            <ui:VisualElement name="data-tab" class="tft-tab tft-data-tab">
+                <ui:ScrollView name="data-scroll" class="tft-data-scroll" mode="Vertical">
+                    <ui:VisualElement class="tft-data-content">
+                        <ui:Label text="정적 데이터 관리" class="tft-tab-title" />
+                        <ui:Label text="세트·TFT 패치·원본 게임 버전과 출처별로 카탈로그를 가져오고 비교합니다." class="tft-wrapped-text" />
+                        <ui:VisualElement name="import-inputs" class="tft-data-section">
+                            <ui:TextField name="set-id" label="세트 ID" class="tft-data-field" />
+                            <ui:IntegerField name="set-number" label="세트 번호" class="tft-data-field" />
+                            <ui:TextField name="tft-patch" label="TFT 패치" class="tft-data-field" />
+                            <ui:TextField name="source-version" label="원본 게임 버전" class="tft-data-field" />
+                            <ui:Toggle name="communitydragon-toggle" label="CommunityDragon 보충 사용" />
+                            <ui:Label text="보충 자료 사용은 가져올 때마다 선택합니다. 가져오기 전에 대상과 저장 위치를 확인합니다." class="tft-wrapped-text" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="tft-data-actions">
+                            <ui:Button name="check-updates-button" text="원본 버전 확인" />
+                            <ui:Button name="import-button" text="카탈로그 가져오기" />
+                            <ui:Button name="cancel-button" text="작업 취소" />
+                        </ui:VisualElement>
+                        <ui:Label name="data-status" class="tft-data-status tft-wrapped-text" />
+                        <ui:Foldout text="사용 가능한 원본 버전" value="false">
+                            <ui:Label name="available-versions" class="tft-wrapped-text" />
+                        </ui:Foldout>
+                        <ui:Label text="로컬 카탈로그" class="tft-tab-title tft-data-section" />
+                        <ui:Label text="행을 선택하면 이 창의 활성 카탈로그로 사용합니다. 검증에 실패한 행은 선택할 수 없습니다." class="tft-wrapped-text" />
+                        <ui:Label name="catalog-empty-state" text="아직 로컬 카탈로그가 없습니다. 가져올 패치를 입력해 주세요." class="tft-wrapped-text" />
+                        <ui:ListView name="catalog-list" class="tft-catalog-list" />
+                        <ui:Label name="active-catalog" class="tft-wrapped-text" />
+                        <ui:Label text="카탈로그 변경 비교" class="tft-tab-title tft-data-section" />
+                        <ui:DropdownField name="diff-before" label="이전" class="tft-data-field" />
+                        <ui:DropdownField name="diff-after" label="이후" class="tft-data-field" />
+                        <ui:Button name="compare-button" text="선택한 카탈로그 비교" />
+                        <ui:Label name="diff-empty-state" class="tft-wrapped-text" />
+                        <ui:VisualElement name="catalog-diff" class="tft-data-section" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
             </ui:VisualElement>
             <ui:VisualElement name="collection-tab" class="tft-tab tft-tab-hidden">
                 <ui:Label text="과거 경기 수집" class="tft-tab-title" />
