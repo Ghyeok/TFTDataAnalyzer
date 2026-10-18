@@ -23,22 +23,27 @@ namespace TFTAnalyzer.Tests.UI
         private DataManagerTab _binding;
         private bool _approve;
         private int _confirmations;
+        private OwnedEditorWindowScope _windows;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
-            _approve = false;
-            _confirmations = 0;
-            _service = new DataManagerFakeService
+            _windows = new OwnedEditorWindowScope();
+            try
             {
-                Rows = new[] { DataManagerTestSupport.Row(DataManagerTestSupport.Identity()),
-                    DataManagerTestSupport.Row(DataManagerTestSupport.Identity(profile:
-                        CatalogSourceProfile.OfficialPlusCommunityDragon), "After") }
-            };
-            _vm = new DataManagerViewModel(_service);
-            _host = ScriptableObject.CreateInstance<EditorWindow>();
-            _host.Show();
-            Rebuild();
+                _approve = false;
+                _confirmations = 0;
+                _service = new DataManagerFakeService
+                {
+                    Rows = new[] { DataManagerTestSupport.Row(DataManagerTestSupport.Identity()),
+                        DataManagerTestSupport.Row(DataManagerTestSupport.Identity(profile:
+                            CatalogSourceProfile.OfficialPlusCommunityDragon), "After") }
+                };
+                _vm = new DataManagerViewModel(_service);
+                _host = _windows.Create<EditorWindow>();
+                Rebuild();
+            }
+            catch { TearDown(); throw; }
             // Binding construction renders synchronously; no delayed model change exists here.
             yield break;
         }
@@ -46,9 +51,12 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown()
         {
-            _binding?.Dispose();
-            _vm?.Dispose();
-            if (_host != null) UnityEngine.Object.DestroyImmediate(_host);
+            try { _binding?.Dispose(); }
+            finally
+            {
+                try { _vm?.Dispose(); }
+                finally { _windows?.Dispose(); }
+            }
         }
 
         [UnityTest]
@@ -194,32 +202,7 @@ namespace TFTAnalyzer.Tests.UI
             yield return WaitForEditorRender();
         }
 
-        private IEnumerator WaitForEditorRender()
-        {
-            // Register after the binding's queued Flush; one test frame need not run delayCall.
-            var reachedDelayCall = false;
-            EditorApplication.CallbackFunction barrier = () => reachedDelayCall = true;
-            var previousFocus = EditorWindow.focusedWindow;
-            EditorApplication.delayCall += barrier;
-            try
-            {
-                // delayCall follows Inspector updates; a background test-host repaint is insufficient.
-                Assert.That(EditorApplication.ExecuteMenuItem("Window/General/Inspector"), Is.True,
-                    "Inspector activation is required to reach the Editor's delayed UI update phase.");
-                var deadline = EditorApplication.timeSinceStartup + 5;
-                while (!reachedDelayCall)
-                {
-                    Assert.That(EditorApplication.timeSinceStartup, Is.LessThan(deadline),
-                        "The Editor did not reach the scheduled UI render boundary.");
-                    yield return null;
-                }
-            }
-            finally
-            {
-                EditorApplication.delayCall -= barrier;
-                if (previousFocus != null) previousFocus.Focus();
-            }
-        }
+        private IEnumerator WaitForEditorRender() => EditorWindowTestSupport.WaitForRender();
 
         private void SetInputs()
         {

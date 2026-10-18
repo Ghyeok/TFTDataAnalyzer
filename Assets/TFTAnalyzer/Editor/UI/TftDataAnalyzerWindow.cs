@@ -1,8 +1,10 @@
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using TFTAnalyzer.Editor.Ingestion;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Data;
+using TFTAnalyzer.Editor.UI.Collection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -19,6 +21,8 @@ namespace TFTAnalyzer.Editor.UI
         [SerializeField] private string selectedTab = "data-tab";
         private DataManagerViewModel _dataManager;
         private DataManagerTab _dataBinding;
+        private CollectionViewModel _collection;
+        private CollectionTab _collectionBinding;
 
         [MenuItem("TFT Analyzer/Open Data Analyzer")]
         private static void Open()
@@ -36,6 +40,8 @@ namespace TFTAnalyzer.Editor.UI
         {
             _dataBinding?.Dispose();
             _dataBinding = null;
+            _collectionBinding?.Dispose();
+            _collectionBinding = null;
             rootVisualElement.Clear();
             var treeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
             var stylesheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
@@ -67,13 +73,33 @@ namespace TFTAnalyzer.Editor.UI
             }
             _dataBinding = new DataManagerTab(tree.Q("data-tab"), _dataManager,
                 summary => EditorUtility.DisplayDialog("카탈로그 가져오기", summary, "가져오기", "취소"));
+            if (_collection == null)
+                _collection = new CollectionViewModel(new CollectionService(new ObservationStore(
+                    new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath)))));
+            _dataManager.Changed -= SyncCollectionCatalog;
+            _dataManager.Changed += SyncCollectionCatalog;
+            SyncCollectionCatalog();
+            _collectionBinding = new CollectionTab(tree.Q("collection-tab"), _collection,
+                summary => EditorUtility.DisplayDialog("과거 경기 수집 조건 확인", summary, "수집", "취소"));
             SelectTab(selectedTab);
+        }
+
+        private void SyncCollectionCatalog()
+        {
+            var row = _dataManager.Rows.FirstOrDefault(value => value.IsSelectable &&
+                value.Identity.Equals(_dataManager.ActiveIdentity));
+            _collection?.SetCatalog(row?.Catalog, row?.Identity);
         }
 
         private void OnDisable()
         {
             _dataBinding?.Dispose();
             _dataBinding = null;
+            _collectionBinding?.Dispose();
+            _collectionBinding = null;
+            _collection?.Dispose();
+            _collection = null;
+            if (_dataManager != null) _dataManager.Changed -= SyncCollectionCatalog;
             _dataManager?.Dispose();
             _dataManager = null;
         }
