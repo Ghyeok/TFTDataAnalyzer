@@ -25,7 +25,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
         {
             if (!MatchesCatalog(catalog, identity)) throw new ArgumentException("analysis_catalog_invalid");
-            return Task.Run(async () =>
+            return AnalyzerStoreOperations.Shared.RunAsync(() => Task.Run(async () =>
             {
                 var observations = new List<AnonymousMatchObservation>();
                 await foreach (var observation in _observations.ReadAllAsync(token))
@@ -40,7 +40,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                     foreach (var scope in aggregate.Scopes) await _aggregates.SaveAsync(scope, token);
                 token.ThrowIfCancellationRequested();
                 return result;
-            }, token);
+            }, token), token);
         }
 
         public static AnalysisSnapshot BuildSnapshot(StaticCatalog catalog, CatalogIdentity identity,
