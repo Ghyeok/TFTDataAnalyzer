@@ -5,6 +5,7 @@ using TFTAnalyzer.Editor.Ingestion;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Data;
 using TFTAnalyzer.Editor.UI.Collection;
+using TFTAnalyzer.Editor.UI.Analysis;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -23,6 +24,8 @@ namespace TFTAnalyzer.Editor.UI
         private DataManagerTab _dataBinding;
         private CollectionViewModel _collection;
         private CollectionTab _collectionBinding;
+        private AnalysisViewModel _analysis;
+        private AnalysisTab _analysisBinding;
 
         [MenuItem("TFT Analyzer/Open Data Analyzer")]
         private static void Open()
@@ -42,6 +45,8 @@ namespace TFTAnalyzer.Editor.UI
             _dataBinding = null;
             _collectionBinding?.Dispose();
             _collectionBinding = null;
+            _analysisBinding?.Dispose();
+            _analysisBinding = null;
             rootVisualElement.Clear();
             var treeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
             var stylesheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
@@ -76,11 +81,20 @@ namespace TFTAnalyzer.Editor.UI
             if (_collection == null)
                 _collection = new CollectionViewModel(new CollectionService(new ObservationStore(
                     new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath)))));
+            if (_analysis == null)
+            {
+                var paths = new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath));
+                _analysis = new AnalysisViewModel(new AnalysisService(new ObservationStore(paths), new AggregateStore(paths)));
+            }
             _dataManager.Changed -= SyncCollectionCatalog;
             _dataManager.Changed += SyncCollectionCatalog;
             SyncCollectionCatalog();
             _collectionBinding = new CollectionTab(tree.Q("collection-tab"), _collection,
                 summary => EditorUtility.DisplayDialog("과거 경기 수집 조건 확인", summary, "수집", "취소"));
+            var exporter = new AnalysisCsvExporter(Path.GetDirectoryName(Application.dataPath));
+            _analysisBinding = new AnalysisTab(tree.Q("analysis-tab"), _analysis,
+                () => EditorUtility.SaveFilePanel("개인 연구용 과거 관측 CSV 저장", "", "tft-historical-observations", "csv"),
+                (path, rows) => exporter.Save(path, rows));
             SelectTab(selectedTab);
         }
 
@@ -89,6 +103,7 @@ namespace TFTAnalyzer.Editor.UI
             var row = _dataManager.Rows.FirstOrDefault(value => value.IsSelectable &&
                 value.Identity.Equals(_dataManager.ActiveIdentity));
             _collection?.SetCatalog(row?.Catalog, row?.Identity);
+            _analysis?.SetCatalog(row?.Catalog, row?.Identity);
         }
 
         private void OnDisable()
@@ -97,6 +112,10 @@ namespace TFTAnalyzer.Editor.UI
             _dataBinding = null;
             _collectionBinding?.Dispose();
             _collectionBinding = null;
+            _analysisBinding?.Dispose();
+            _analysisBinding = null;
+            _analysis?.Dispose();
+            _analysis = null;
             _collection?.Dispose();
             _collection = null;
             if (_dataManager != null) _dataManager.Changed -= SyncCollectionCatalog;
