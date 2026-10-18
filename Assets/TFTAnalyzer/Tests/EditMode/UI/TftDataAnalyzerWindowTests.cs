@@ -19,21 +19,25 @@ namespace TFTAnalyzer.Tests.UI
         private const string Disclaimer = "과거 관측 결과이며 전투 예측이나 플레이 권고가 아닙니다.";
         private static readonly string[] TabNames = { "data-tab", "collection-tab", "analysis-tab", "about-tab" };
         private TftDataAnalyzerWindow _window;
+        private OwnedEditorWindowScope _windows;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
-            _window = ScriptableObject.CreateInstance<TftDataAnalyzerWindow>();
-            _window.Show();
-            _window.CreateGUI();
+            _windows = new OwnedEditorWindowScope();
+            try
+            {
+                _window = _windows.Create<TftDataAnalyzerWindow>(CollectionUITestSupport.UseOfflineCollection);
+                _window.CreateGUI();
+            }
+            catch { TearDown(); throw; }
             yield return null;
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (_window != null)
-                Object.DestroyImmediate(_window);
+            _windows?.Dispose();
         }
 
         [Test]
@@ -97,18 +101,20 @@ namespace TFTAnalyzer.Tests.UI
             ActivateTab("about-tab");
             yield return null;
             var state = EditorJsonUtility.ToJson(_window);
-            var restored = ScriptableObject.CreateInstance<TftDataAnalyzerWindow>();
+            var restored = _windows.Create<TftDataAnalyzerWindow>(window =>
+            {
+                CollectionUITestSupport.UseOfflineCollection(window);
+                EditorJsonUtility.FromJsonOverwrite(state, window);
+            });
             try
             {
-                EditorJsonUtility.FromJsonOverwrite(state, restored);
                 restored.CreateGUI();
-                restored.Show();
                 yield return null;
                 AssertOnlyVisibleTab("about-tab", restored);
             }
             finally
             {
-                Object.DestroyImmediate(restored);
+                if (restored != null) restored.Close();
             }
         }
 

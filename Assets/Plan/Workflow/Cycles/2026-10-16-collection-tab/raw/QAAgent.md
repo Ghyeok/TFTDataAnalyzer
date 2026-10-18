@@ -1,0 +1,55 @@
+# Task 3 independent final QA
+
+Date: 2026-10-18. Base: `bc42f6527ae8e062bc953363692a10dfa2421303`. Scope: current tracked/untracked Collection tab, window wiring, scheduling/owned-window validation changes, tests and authorized plan/guidance changes. The user's Volume change and Generated catalog are protected inputs, not implementation scope. Requested reviewer model/reasoning: GPT-6.1 Sol / High per project complexity policy; actual runtime identity, reasoning and usage are not independently observable and are not claimed verified.
+
+## Verdict
+
+**PASS for Task 3 product, exception/regression coverage, current execution evidence and final documentation consistency. No blocking finding.** One nonblocking copy observation is recorded below. Documentation consistency was checked after root's updates as recorded in the final section. This is not user approval of the completed cycle, a commit/PR result, or approval of evidence that has not run.
+
+Reviewed AGENTS.md, instruction index, Unity validation guidance, workflow, Phase 3 Task 3 and its revised state/legacy contract, PlanningReview/PlanReReview, current source/tests/diff against the base, and prior independent feature/rebuild/window reviews. Prior approvals were context; code paths and current artifacts were inspected separately. This reviewer ran no Unity commands, network requests, credential/environment reads or git mutations. Only this report was written.
+
+## TODO and regression coverage
+
+| Approved requirement | Inspected implementation and meaningful coverage | Assessment |
+|---|---|---|
+| Configured-only credentials, no secret values, cap 1–1,000 | CollectionService provider flags; VM public surface and allowlisted request construction; configuration failure, fabricated-secret, bounds 1/1000 and 0/1001 tests | Covered |
+| Current visible draft and safe rebuild | Numeric draft reconstruction, allowlisted dropdown recovery and CaptureInput; invalid cap/rebuild/correction and pre-selection edit/rebuild/selection real UI regressions | Covered; prior P2 resolved |
+| Verified full identity, confirmation, immutable approved run | Window transfers verified row Catalog+Identity; MatchesCatalog checks set number/set ID/patch/source version and schema profile; approval/request/running label capture the pair; schema1 missing/mismatch rejection, schema1/2 adapter tests and legacy window flow | Covered; no legacy profile inferred |
+| Consent on each run; opening/navigation/rebinding must not collect | StartAsync approval before service call, busy reentry guard; accepted/rejected/throwing/cancelled consent and real button/navigation/rebuild tests | Covered |
+| Numeric progress, cancel/close and final saved counts | Numeric-only progress DTO, authoritative final result, busy until settlement, disposal cancellation; stale run/queued foreign-context progress rejection and real window close tests | Covered |
+| Controlled 401/403/429, partial failure, scan limit and manual retry | Safe fixed guidance, RetryAfterUtc, no auto-resume; thrown/settled HTTP, generic exception/cancellation and partial-result tests | Covered |
+| Existing backend and quota retained | One RiotApiClient per service; real fake-transport adapter→MatchCollectionService→anonymizer→ObservationStore tests for schemas1/2; duplicate and persisted fabricated raw-ID/secret absence; cross-run quota and bounded503 retry tests | Covered |
+| Window ownership and callbacks | Exact owned objects, Show-before-Close distinction, finally cleanup/focus restoration, one-shot Editor update unsubscribe; initialization failure/cleanup error/repeated-dispose tests and current inventories/probes | Covered for executed paths |
+| Shipped verified legacy catalog and small window | Current tracked wrapper loads verified selectable shipped row; both current PNGs independently opened and SHA256 checked | Covered; protected catalog unchanged |
+| Commit checkpoint | Product/execution evidence ready; commit/PR staging and current final documentation remain root's next work | Not claimed executed by QA |
+
+No new analysis/CSV/compliance/startup scheduler, automatic429 resumption, participant rank lookup, future prediction or Hermes daily automation implementation was found in the inspected delta. Task4–6 plan clarifications do not implement those features.
+
+## Current execution evidence independently inspected
+
+- `collection-legacy-final-compile.json`: outer success; inner JSON status `up_to_date`, failed=false, compilationFailed=false, errors empty. Package `RecompileCommand.cs` explicitly supports this terminal status and states no scripts needed recompilation. It is not a newly executed compilation. Current Console native ground truth also reports compilationFailed=false/compiling=false.
+- `collection-legacy-final-full.json`: outer/inner success; EditMode assembly `TFTAnalyzer.Tests.EditMode`; Total467, Passed467, Failed0, Skipped0, Inconclusive0, duration54.71s. Independently counted467 unique result names, all Passed, including90 UI results. This is the current complete suite after legacy correction; historical458 is not used as completion evidence.
+- `collection-legacy-full-before.json` / `after.json` and window comparison: identical managed IDs50586,50588,50590,50592,50594,50596,50598,50600,50602; native ContainerWindow50562 only; focus0 before/after; added/missing managed/native arrays empty. Thus the full run preserves these existing objects/frames and returns no owned validation windows.
+- `collection-visual-command.json` / `collection-visual-final.json`: nested success/Passed=true, empty command diagnostics/errors, offline injected configuration, verified official-only identity `TFTSet18/18/18.2/16.18.1`; managed/native inventories preserved, owned0, focus restored. Final fallback command has nested success and OwnedRemaining0.
+- Refreshed `collection-visual-failure-command.json` / failure-cleanup and initialization-failure command/cleanup: correct respective RunFailureProbe/RunInitializationFailureProbe entries; nested success/Passed=true with ExpectedFailure; same nine managed IDs/native50562 preserved, owned0, restored focus, no added/missing frames. These execute controlled post-Show and pre-Show failures; they do not prove OS crash/disconnection/real timeout cleanup.
+- Opened both actual current PNGs independently. 940×726 shows Collection tab, full catalog identity, inputs/counters and persistent historical footer. 500×326 shows the target tab, identity and footer with the collection scrollbar and clipped scroll content as expected. Hashes match `collection-visual-inspection.json`:940 `52FFC19CE1599B381B650E2BFC99D33D53A011D1D5EB9C70799C821C3F5E3D83`;500 `65B921034B97E4021490398721EF116461FE2E35B5E8CB94AE908CF71A332A68`. Geometry/cleanup success and pixel inspection are separate checks. Historical incorrect500 capture's cause is not claimed fixed; each future image still needs inspection.
+- `collection-protected-check.json`:1386 checked/Changed0. Independently recomputed all1386 baseline SHA256 entries, including user Volume and Generated: zero changed/missing. Cached diff was empty at QA inspection; root must keep protected files unstaged when preparing the commit.
+- `collection-console-final.json`: current native errors2, warnings0, logs6; compilationFailed=false. Both errors are `com.unity.pipeline` GET `/api/commands` transport/headers failures at2026-10-18T09:59:09Z, before the current visual/full run; no inspected error names Task3 product code. `collection-console-delta.json` uses the same session/cursor8 and returns0 new entries while native error count remains2. **Do not report a zero-error Console.** These visible tooling transport errors remain a limitation rather than evidence of a failing Task3 test.
+
+## Nonblocking observation and documentation handoff
+
+P3 copy: the current940 PNG shows a verified active catalog while the default status still instructs the user to select a verified catalog. `CollectionViewModel.SetCatalog` validates the pair but leaves initial Idle StatusText unchanged. Start availability still correctly follows catalog/configuration validation. Follow up with state-appropriate idle guidance; this does not block the approved collection flow or current QA.
+
+At the initial documentation snapshot, `docs/unity-editor-validation.md` still said full458 predates legacy and500 pixel validation is incomplete; Checkpoint.md still reported current legacy capture failure; README said collection wiring was in progress; Task3 development boxes were unchecked and current final QA/documentation reports absent. Root has explicitly taken these updates after QA. Historical/raw statements can remain dated history; current status must reflect467/467, actual two-size pixel inspection, the2 existing tooling Console errors and the limitations below. Task3 commit checkpoint must remain pending until a commit exists. Final user cycle approval and PR/CodeRabbit review are separate later gates.
+
+## Limits
+
+Real Riot network/credentials and native confirmation dialog clicks were not executed. This review did not run Unity independently; the root-produced current results were parsed and checked against actual code/tests/files/images. Controlled normal/pre-Show/post-Show cleanup does not establish every timeout, connection-loss or OS-failure path. No hidden runtime model/reasoning/usage or unobserved elapsed-work figure is inferred.
+
+## Final documentation consistency verdict
+
+**PASS after root's 2026-10-18 documentation update.** Re-read README, Unity validation guidance, original Task3 steps, refreshed Checkpoint, DevelopmentReport, FinalDocumentation and QAReport; inspected the copied raw QA request, implementer and final scoped code-review records. The prior documentation-handoff paragraph above describes the initial snapshot and is superseded by this check.
+
+Current documents consistently distinguish current467/467 including UI90 from historical458, terminal up_to_date from a newly executed compilation, geometry/cleanup from independently inspected940/500 pixels,1386 unchanged protected files, existing Console2 tooling errors from zero new cursor entries, P3 copy follow-up and unexecuted real network/native dialog/OS-failure paths. Task3 steps1–4 are checked and step5 correctly remains pending before an actual commit. Later Task4–6 remain unchecked. Current checkpoint correctly separates QA, commit/PR/CodeRabbit and final user approval; root may now update its transient QA-document-check status to this verdict.
+
+Checked41 local Markdown link targets across these seven current documents: zero broken targets. Dated raw code-review pending-evidence statements remain historical and are explicitly distinguished by current QAReport. No product/helper source change was made for the documentation update, so these documentation-only corrections do not justify repeating the completed Unity suite. Root must copy this updated QA report into the raw record and preserve pending commit/PR status until those actions actually occur.

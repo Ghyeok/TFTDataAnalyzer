@@ -44,9 +44,9 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         internal static PatchRowViewModel Row(CatalogIdentity identity, string name = "Before",
-            bool valid = true, DateTime? retrieved = null)
+            bool valid = true, DateTime? retrieved = null, bool legacy = false)
         {
-            var catalog = Catalog(identity, name, retrieved);
+            var catalog = Catalog(identity, name, retrieved, legacy);
             return new PatchRowViewModel(new CatalogIndexEntry(identity, new string('a', 64), "test/catalog.json"),
                 identity, "test/directory", valid ? catalog : null, retrieved ?? RetrievedUtc,
                 valid ? 0 : 1, 1, valid ? "" : "LocalIntegrityFailed");

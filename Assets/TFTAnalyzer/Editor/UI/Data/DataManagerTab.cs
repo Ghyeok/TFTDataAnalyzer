@@ -98,10 +98,11 @@ namespace TFTAnalyzer.Editor.UI.Data
         {
             if (_disposed || _queued) return;
             _queued = true;
-            EditorApplication.delayCall += Flush;
+            EditorApplication.update += Flush;
         }
         private void Flush()
         {
+            EditorApplication.update -= Flush;
             _queued = false;
             if (!_disposed) Render();
         }
@@ -221,7 +222,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             if (_disposed) return;
             _disposed = true;
             _vm.Changed -= QueueRender;
-            EditorApplication.delayCall -= Flush;
+            EditorApplication.update -= Flush;
             _queued = false;
             _setId.UnregisterValueChangedCallback(OnTextChanged);
             _patch.UnregisterValueChangedCallback(OnTextChanged);

@@ -20,6 +20,16 @@
 - Player builds are blocked until a local compliance setting confirms current Riot registration/review.
 - The Editor tool remains usable while player builds are blocked.
 
+## 2026-10-16 Plan Review: Verification and State Contracts
+
+사용자의 계획 재검토·검증 창 잔류 지적을 반영했다. 의도한 RED, 확인된 제품 결함, 도구 실행 오류와 수정 후 GREEN을 기록에서 구분한다. 이후 기능의 범위는 늘리지 않는다.
+
+- 각 Task 착수 전에 입력 초안, 검증된 요청, 실행 중 snapshot과 종료 결과의 책임을 정한다. UI 재생성·닫기는 정상 실행과 분리된 마지막 검증으로 미루지 않는다.
+- MCP/CLI·자동 테스트 모두 기존 창 ID·포커스를 기록하고, 새 창은 Show 전에 정확한 소유 객체를 추적한다. 성공·오류·취소·시간 초과에서 finally 정리 후 기존 창 보존·소유 창 잔류 0개를 증거로 남긴다. 기존 사용자 창의 위치·크기를 변경하거나 종류별로 일괄 종료하지 않는다.
+- 수동 캡처는 생성→렌더 대기→크기별 캡처→정리를 한 bounded 작업에서 끝낸다. 독립적인 열기/캡처 호출 사이에 창을 남겨두지 않는다. Inspector 등 보조 창도 같은 규칙을 적용한다.
+- 각 Task에서 기존 모듈과 연결한 짧은 fake 통합 검증을 끝낸다. 전체 fabricated E2E는 Task 6에 유지한다. 수정 중에는 관련 테스트를 실행하고, 최종 코드가 고정되면 전체 suite를 한 번 실행한다. 새 변경·실패·미해결 근거 없이 같은 전체 검증을 반복하지 않는다.
+- 체크포인트는 현재 단계·마지막 실제 결과·다음 한 행동을 갱신한다. 최초 실패와 이미 해결한 문제를 현재 장애로 남기지 않는다.
+
 ## Locked File Structure
 
 ```text
@@ -70,7 +80,7 @@ public void CreateGUI_ContainsAllPolicyBoundedTabs()
 
 - [x] **Step 2: Confirm failure and implement UXML shell**
 
-Use a toolbar for tab buttons, one content root per tab, and a persistent footer label named `historical-data-disclaimer`. No `Update()` polling; view-model events schedule UI updates through `EditorApplication.delayCall`.
+Use a toolbar for tab buttons, one content root per tab, and a persistent footer label named `historical-data-disclaimer`. No continuous `Update()` polling; coalesce main-thread view-model events through a one-shot `EditorApplication.update` callback. Remove the callback before rendering and on binding disposal. UI control updates do not depend on Inspector processing; geometry/repaint completion for screenshots is verified separately. Task 6's idle startup scheduler retains its separate `delayCall` contract.
 
 The initial selection shows only `data-tab`; clicking each toolbar button shows exactly its corresponding content. Preserve selection across UI reconstruction without duplicating roots, callbacks, or stylesheet references. Keep the historical disclaimer outside all tab roots and present it on the missing-asset screen too. Test real UI events, each missing asset independently, recovery after failure, and serialized selection restoration without moving existing assets. Reconstructing the UI alone is not evidence of a complete domain reload.
 
@@ -129,6 +139,8 @@ git commit -m "feat: add static data management workflow"
 
 ### Task 3: Implement the Bounded Collection Tab
 
+2026-10-16 실행·재검토: [경기 수집 탭 체크포인트](../Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md). 수집 UI와 검증 도구의 소유 창 정리까지 이번 범위다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/UI/Collection/CollectionViewModel.cs`
 - Create: `Assets/TFTAnalyzer/Editor/UI/Collection/CollectionProgressViewModel.cs`
@@ -138,30 +150,49 @@ git commit -m "feat: add static data management workflow"
 
 **Interfaces:**
 - Consumes: `IRiotApiKeyProvider`, `EnvironmentSeedPuuidProvider`, `MatchCollectionService`.
+- Receives the verified selected `(StaticCatalog, CatalogIdentity)` pair from the Data Manager row. Schema 1 intentionally has a null `Manifest.Identity`; never recover the selection by reading that nullable field or infer an unverified source profile. Reject a missing or mismatched full identity before confirmation. Preserve the verified identity separately in the running snapshot.
 - Produces: platform, expected patch, queue, tier bucket, capped maximum matches, `StartAsync`, and `Cancel`.
 
-- [ ] **Step 1: Write failing secret-visibility and cap tests**
+**State contract and rebuild cases:**
+
+| 상태 | 입력·실행 대상 | 재생성·닫기 검증 |
+|---|---|---|
+| 카탈로그 없음 / 입력 무효 | 현재 초안을 유지하고 시작 차단, 거부된 임의 문자열 비노출 | 재생성 후 보이는 값과 검증 상태 일치, 카탈로그 선택·입력 수정 후 정상 시작 |
+| 유효 입력 / 대기 | 전체 카탈로그와 유효 요청을 구분 | 재생성 후 입력 보존, 열기·탭 전환은 수집하지 않음 |
+| 확인 대기 / 실행 | 승인 대상 snapshot 고정, 입력·중복 시작 차단 | 재바인딩은 실행 변경·재시작 없음, 다른 카탈로그 선택은 다음 실행에만 적용 |
+| 취소 요청 | 실제 종료까지 busy, 저장 개수 보존 | 닫기는 취소·구독 해제, 늦은 진행 알림 무시 |
+| 성공 / 취소 / 오류 / 401·403·429 / 탐색 상한 | 최종 요약이 권위, 상태별 안전한 안내와 입력 해제 | 최종 상태 재생성, 소유 창·콜백 잔류 없음 |
+
+Task 종료 시 검증된 카탈로그 선택→보이는 조건→확인→fake 수집·익명 저장→취소/실패→창 정리의 짧은 통합 경로를 검증한다. 기존 429는 중단 후 수동 재시도 가능 UTC를 표시하며 자동 재개하지 않는다. 티어는 실제 등급을 검증한 필터가 아닌 기록용 라벨이다.
+
+- [x] **Step 1: Write failing secret-visibility and cap tests**
 
 Assert the model exposes only `ApiKeyConfigured`/`SeedConfigured` booleans, never values. Assert match limit accepts 1–1,000 and rejects 0 or 1,001.
 
-- [ ] **Step 2: Implement validated input and confirmation**
+Cover both schema 2 and verified official-only schema 1 selection through the window, confirmation and actual fake-transport collection. Schema 1 without a supplied verified identity, or a mismatched patch/source/version/set number, must not start. Include a final read-only smoke check against the shipped verified legacy catalog; never migrate or mutate it just to satisfy the UI.
+
+- [x] **Step 2: Implement validated input and confirmation**
 
 Before collection, show route, patch, queue, maximum matches, and the statement that only user-supplied seeds are queried. Do not show the seeds themselves.
 
-- [ ] **Step 3: Bind progress and cancellation**
+- [x] **Step 3: Bind progress and cancellation**
 
 Display requested, fetched, stored, duplicate, filtered, failed, rate-limit wait, and cancellation state. Disable all editable inputs during a run and re-enable them on every terminal state.
 
-- [ ] **Step 4: Test cancellation, 401, 429, and retry copy**
+- [x] **Step 4: Test cancellation, 401, 429, and retry copy**
 
 Use fake services and assert no exception or UI text contains fabricated secrets. Run full suite.
 
-- [ ] **Step 5: Commit checkpoint**
+2026-10-18: 최신 코드 전체 EditMode 467/467(그중 UI90), 컴파일 상태 up_to_date/실패 false/오류0. 실제 포함 schema1 카탈로그의 전체 식별자와 940px·500px 화면을 확인했다. 정상·표시 전/후 실패 작업 및 전체 테스트 뒤 기존 창/프레임 보존·포커스 복원·소유 창 잔류0을 확인했다. 실제 API·네이티브 확인창 클릭은 미실행이다. Console에는 검증 전 Pipeline 통신 오류2건이 남으며 최종 cursor 이후 새 경고·오류0이다. 상세 증거와 제한은 [개발 보고서](../Workflow/Cycles/2026-10-16-collection-tab/refined/DevelopmentReport.md)를 따른다.
+
+- [x] **Step 5: Commit checkpoint**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/UI Assets/TFTAnalyzer/Tests/EditMode/UI/CollectionViewModelTests.cs
 git commit -m "feat: add bounded match collection workflow"
 ```
+
+2026-10-18: 검증된 Task3 구현과 사용자 요청의 계획·검증 지침·문서를 한 커밋으로 기록했다. 실제 제목은 `feat: add bounded collection UI and scoped Editor validation`이며, 커밋 식별자는 현재 브랜치 Git 로그에서 확인한다. PR/CodeRabbit 검수·병합과 사용자 최종 승인은 별도다.
 
 ---
 
@@ -176,7 +207,7 @@ git commit -m "feat: add bounded match collection workflow"
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/UI/AnalysisViewModelTests.cs`
 
 **Interfaces:**
-- Consumes: `AggregateStore`, `MetricPolicy`, and active `StaticCatalog`.
+- Consumes: `AggregateStore`, `MetricPolicy`, and the verified active `(StaticCatalog, CatalogIdentity)` selection. Keep the full identity independent of a nullable legacy `Manifest.Identity`, matching Task 3's selection contract.
 - Produces filters for patch, region, queue, tier bucket, unit, trait, item, and augment.
 - Produces metric rows containing sample count, average placement, top-four, first-place, Wilson interval, and policy state.
 
@@ -195,7 +226,7 @@ The scan should reject positive prediction or combat-win-rate claims while allow
 
 - [ ] **Step 2: Implement filter intersection**
 
-Every selection narrows the immutable snapshot in memory; no filter triggers an API request. Display an explicit empty state with scope and collection period.
+Every selection narrows the immutable snapshot in memory; no filter triggers an API request. Display an explicit empty state with scope and the observed match period (`FirstPlayedAt` / `LastPlayedAt`); do not call it a retrieval period or invent retrieval timestamps.
 
 - [ ] **Step 3: Implement aggregate and pairwise tables**
 
@@ -203,7 +234,7 @@ Label pairwise data `상대 배치 우위율` and include the tooltip `같은 �
 
 - [ ] **Step 4: Add CSV export of approved presentation DTOs only**
 
-Export UTF-8 CSV from `MetricPresentation`; refuse raw observations. Include scope, sample count, retrieval period, metric name, numerator, denominator, estimate, lower, upper, and policy note.
+Export a local personal-research UTF-8 CSV from `MetricPresentation`; refuse raw observations and raw aggregate counters. Include scope, sample count, observed match period, metric name, numerator, denominator, estimate, lower, upper, and policy note. For suppressed metrics, keep the allowed sample/average/state fields and leave all ratio fields (including numerator/denominator/interval) blank, matching the empty `Ratios` contract. Do not reconstruct suppressed values. Task 4 adds no public publishing/export surface; Task 5 must preserve this local-CSV allowance independently of API-key availability or registration state.
 
 - [ ] **Step 5: Run tests and commit**
 
@@ -211,6 +242,8 @@ Export UTF-8 CSV from `MetricPresentation`; refuse raw observations. Include sco
 git add Assets/TFTAnalyzer/Editor/UI Assets/TFTAnalyzer/Tests/EditMode/UI/AnalysisViewModelTests.cs
 git commit -m "feat: present policy-safe historical TFT metrics"
 ```
+
+Before the checkpoint, verify fake aggregate→policy presentation→filter→local CSV, suppressed fields remain blank, no API request, and owned validation windows close. This small gate does not replace Task 6's complete E2E.
 
 ---
 
@@ -248,6 +281,8 @@ Settings are intentionally outside `Assets` and version control. Required fields
 - [ ] **Step 3: Implement build and export gates**
 
 Block Player build and public-style export while unregistered. Do not block Editor data exploration or local aggregate CSV export labeled for personal research.
+
+Task 5's gate must not reclassify Task 4's local personal-research CSV as a public export. Confirm these paths with fake registration states and verify the settings/About validation windows are cleaned up. A future public publishing surface requires its own explicit scope; no new one is added by this plan clarification.
 
 - [ ] **Step 4: Bind the About tab**
 

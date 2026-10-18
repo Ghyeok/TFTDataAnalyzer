@@ -44,9 +44,33 @@
                     </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>
-            <ui:VisualElement name="collection-tab" class="tft-tab tft-tab-hidden">
-                <ui:Label text="과거 경기 수집" class="tft-tab-title" />
-                <ui:Label text="과거 경기의 익명 집계에 사용할 수집 조건을 설정하는 화면입니다. 수집 상한·필터·취소 기능은 후속 단계에서 연결됩니다." />
+            <ui:VisualElement name="collection-tab" class="tft-tab tft-data-tab tft-tab-hidden">
+                <ui:ScrollView name="collection-scroll" class="tft-data-scroll" mode="Vertical">
+                    <ui:VisualElement class="tft-data-content">
+                        <ui:Label text="과거 경기 수집" class="tft-tab-title" />
+                        <ui:Label name="collection-catalog" class="tft-wrapped-text" />
+                        <ui:Label name="collection-credentials" class="tft-wrapped-text" />
+                        <ui:Button name="collection-configuration-check" text="환경 설정 확인" />
+                        <ui:Label text="API 키와 시드는 환경 설정에서만 읽으며 값은 화면에 표시하거나 저장하지 않습니다. 사용자 제공 시드만 조회하며 참가자로 확장하지 않습니다." class="tft-wrapped-text" />
+                        <ui:VisualElement name="collection-inputs" class="tft-data-section">
+                            <ui:DropdownField name="collection-platform" label="플랫폼" class="tft-data-field" />
+                            <ui:IntegerField name="collection-queue" label="큐 ID" class="tft-data-field" />
+                            <ui:DropdownField name="collection-tier" label="티어 기록 라벨" class="tft-data-field" />
+                            <ui:Label text="티어는 호출자가 지정하는 기록 라벨이며 실제 랭크를 검증하지 않습니다." class="tft-wrapped-text" />
+                            <ui:IntegerField name="collection-maximum" label="상세 시도 상한" class="tft-data-field" />
+                            <ui:Label text="1–1,000개의 고유 경기 상세 조회를 시도합니다. 저장 성공 수의 상한을 목표로 반복하지 않습니다. ID 탐색은 최대 10페이지입니다." class="tft-wrapped-text" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="tft-data-actions">
+                            <ui:Button name="collection-start" text="조건 확인 후 수집" />
+                            <ui:Button name="collection-cancel" text="수집 취소" />
+                        </ui:VisualElement>
+                        <ui:Label name="collection-status" class="tft-data-status tft-wrapped-text" />
+                        <ui:Label name="collection-counts" class="tft-wrapped-text" />
+                        <ui:Label name="collection-rate-limit" class="tft-wrapped-text" />
+                        <ui:Label name="collection-cancellation" class="tft-wrapped-text" />
+                        <ui:Label name="collection-scan-limit" class="tft-wrapped-text" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
             </ui:VisualElement>
             <ui:VisualElement name="analysis-tab" class="tft-tab tft-tab-hidden">
                 <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
