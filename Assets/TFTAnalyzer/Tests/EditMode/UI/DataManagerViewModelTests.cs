@@ -40,6 +40,60 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_service.Imports, Is.Empty);
         }
 
+        [Test]
+        public async Task ImportFailureDiagnosticsOmitMessagesAndClearWhenNextImportStarts()
+        {
+            const string privateMessage = "E2E-PRIVATE-KEY-and-response";
+            _service.Run = token => ThrowImportDiagnosticFailure(privateMessage);
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, true);
+
+            await _vm.ImportAsync(summary => true);
+
+            Assert.That(_vm.ErrorCode, Is.EqualTo("ImportFailed"));
+            Assert.That(_vm.IsBusy, Is.False);
+            Assert.That(_vm.IncludeCommunityDragon, Is.False);
+            Assert.That(ReadImportDiagnostic("LastImportFailureType"), Is.EqualTo(typeof(InvalidOperationException).FullName));
+            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Contain(nameof(ThrowImportDiagnosticFailure)).And.Not.Contain(privateMessage));
+            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Not.Contain(".cs:").And.Not.Contain("C:\\"));
+            Assert.That(_vm.StatusText, Does.Not.Contain(privateMessage));
+
+            _service.Run = token => Task.FromResult(DataManagerTestSupport.ImportResult());
+            await _vm.ImportAsync(summary =>
+            {
+                Assert.That(ReadImportDiagnostic("LastImportFailureType"), Is.Empty);
+                Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Is.Empty);
+                return true;
+            });
+            Assert.That(_vm.State, Is.EqualTo(DataManagerState.Succeeded));
+        }
+
+        [Test]
+        public async Task ImportFailureDiagnosticsAlsoCaptureOneShotSucceededSubscriberFailure()
+        {
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, true);
+            Action observer = () =>
+            {
+                if (_vm.State == DataManagerState.Succeeded) throw new InvalidOperationException("E2E-private-subscriber-message");
+            };
+            _vm.Changed += observer;
+            try { await _vm.ImportAsync(summary => true); }
+            finally { _vm.Changed -= observer; }
+
+            Assert.That(_service.Imports, Has.Count.EqualTo(1));
+            Assert.That(_vm.ErrorCode, Is.EqualTo("ImportFailed"));
+            Assert.That(_vm.IsBusy, Is.False);
+            Assert.That(_vm.IncludeCommunityDragon, Is.False);
+            Assert.That(ReadImportDiagnostic("LastImportFailureType"), Is.EqualTo(typeof(InvalidOperationException).FullName));
+            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Contain("DataManagerViewModel").And.Not.Contain("E2E-private-subscriber-message"));
+        }
+
+        private string ReadImportDiagnostic(string property) =>
+            typeof(DataManagerViewModel).GetProperty(property,
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(_vm) as string ?? "";
+
+        private static Task<StaticImportResult> ThrowImportDiagnosticFailure(string message) =>
+            throw new InvalidOperationException(message);
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task ImportRequiresConsentForTheCapturedIdentityAndResetsOptIn(bool approve)

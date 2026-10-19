@@ -158,7 +158,9 @@ public static class EndToEndScopedVisualValidation
                     ?.GetValue(scenario) as DataManagerViewModel;
                 File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-state.json"), JsonConvert.SerializeObject(new
                 {
-                    Stage = stage, DataState = data?.State.ToString(), DataErrorCode = data?.ErrorCode
+                    Stage = stage, DataState = data?.State.ToString(), DataErrorCode = data?.ErrorCode,
+                    ImportFailureType = ReadImportDiagnostic(data, "LastImportFailureType"),
+                    ImportFailureStack = ReadImportDiagnostic(data, "LastImportFailureStack")
                 }, Formatting.Indented));
             }
             finally
@@ -196,6 +198,10 @@ public static class EndToEndScopedVisualValidation
         File.WriteAllText(Path.Combine(Root, file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
     }
+
+    private static string ReadImportDiagnostic(DataManagerViewModel data, string property) =>
+        data == null ? "" : typeof(DataManagerViewModel).GetProperty(property,
+            BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(data) as string ?? "";
 
     private static object Capture(TftDataAnalyzerWindow window, int width, string area, ScrollView scroll)
     {

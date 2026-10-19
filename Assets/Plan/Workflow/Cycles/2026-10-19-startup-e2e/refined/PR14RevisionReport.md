@@ -1,5 +1,29 @@
 # PR14 검수 수정·미해결 검증 보고
 
+## 2026-10-20: 실패 원본 진단 보완
+
+현재도 **원인 미확정·전체 QA 검증 실패·병합 보류**다. 기준 b213d07 이후 진단 변경만 추가했다. 아래 2026-10-19 결과는 당시 이력이다.
+
+- 새 컴파일 후 한정 수동 실행과 전체 suite 직후의 수동 실행 모두 실패가 재현되지 않았다. 테스트가 남긴 상태라는 가설은 입증되지 않았고 반복 성공을 원인 해결로 해석하지 않는다.
+- VM의 기존 generic catch에서 포착한 최상위 예외 형식과 메서드 frame을 내부 읽기 전용 문자열로 보존한다. 다음 실제 import 시작 전에 초기화한다. 예외 객체/Message/Data/실제 인수/PDB 파일 경로는 보관하지 않으며 제품 디스크 쓰기·UI 노출·요청/정리 순서 변경이 없다. 형식화 실패도 기존 오류 처리를 막지 않는다.
+- 수동 하네스는 기존 실패 상태 JSON에 이 두 문자열을 추가한다. Begin/catch 내부/finally 알림의 모든 예외나 inner chain 전체를 수집하는 기능은 아니다. 실제 간헐 실패가 재발할 때의 JSON 내보내기는 아직 관찰하지 못했고, 내부 값은 강제한 두 unit fault로 검증했다.
+
+| 최종 증거 | 결과·Library/TftAnalyzerValidation 원본 |
+|---|---|
+| 진단 회귀 | pr14-diagnostic-red.json 2실패 → pr14-diagnostic-green.json 2통과. 실제 이름 있는 helper throw와 완료 subscriber 예외, 원래 ImportFailed/IsBusy=false/opt-in 해제·clear·비밀 메시지/파일 경로 미포함 |
+| 컴파일·전체 | pr14-diagnostics-final-compile-status.json completed/실패없음. pr14-diagnostics-final-suite.json 619개 중618통과/실패0/호스트 링크1제외,84.8초 |
+| 수동·PNG | pr14-diagnostics-final-visual.txt 및 e2e-visual-final.json 성공/6 PNG/소유 잔류0. root가 전부 직접 열어 identity/버전 안내/수집2건/분석 억제 사유/작은 창 스크롤·고지 확인. 이번에는 과거 문자 겹침을 관찰하지 못했으나 원인 해소를 주장하지 않음 |
+| 창·보호 | pr14-oct20-before-windows.json/pr14-diagnostics-final-windows.json: 기존 창9/native1/focus0 정확히 동일. pr14-diagnostics-final-protected.json: 보호1,386개 변경0/임시 E2E 자산0. 사용자 Volume 변경 보존 |
+| Console | pr14-diagnostics-final-console.json cursor277→307 새6건(seq278/279/280/281/288/289), 모두 Pipeline transport/header 오류. 현재 compilationFailed=false/groundTruth 오류·경고0. 전체 Console 오류0 주장은 아님 |
+| 독립 판정 | [개발 검수](../raw/ImportDiagnosticsReview.md) finding0, [별도 QA](../raw/ImportDiagnosticsQA.md) 진단 변경 한정 통과. [배정·공개 요청](../raw/ImportDiagnosticsCoordination.md). 원래 간헐 오류의 QA/병합 보류는 유지 |
+
+Astra/High 분석 호출은 사용량 제한으로 실행되지 않아 Sol/High 분석·개발 검수, Sol/Medium 별도 QA를 요청했다. 실제 runtime 모델·추론·토큰/비용 총계는 독립 확인 불가이며 추정하지 않는다. 추가 Antigravity/Hermes 호출·예약·CodeRabbit 재조회는 없었다.
+
+재개 시 이미 수집한 성공을 반복하지 말고 현재 작업 트리와 실행 handle을 확인한다. 재발 시 e2e-visual-failure-state.json의 ImportFailureType/ImportFailureStack으로 서비스/게시/알림/정리 중 발생 계층을 좁힌 뒤 최소 재현·수정·회귀·QA를 수행한다. 재컴파일/원인 수정 없이 성공 횟수만 늘리는 실행은 하지 않는다. 최신 PR head 게이트·승인 범위 병합·사용자 최종 승인은 계속 남아 있다.
+
+## 2026-10-19 수정 이력
+
+
 2026-10-19 KST. 상태: 검증 실패, 병합 보류. 기준 head `814c635`, 브랜치 `codex/startup-e2e`. 두 검수 수정은 구현했으나 수동 E2E의 간헐 실패 원인은 미확인이다. 이전 조건부 QA 통과는 이번 수정의 최종 승인으로 사용하지 않는다.
 
 ## 검수와 변경

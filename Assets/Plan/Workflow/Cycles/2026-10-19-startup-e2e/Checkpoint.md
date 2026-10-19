@@ -1,13 +1,13 @@
 # Task6 시작 버전 확인·전체 검증 체크포인트
 
-2026-10-19. 상태: PR14 검수 수정 중, 수동 E2E 간헐 실패로 QA 검증 실패·병합 보류. 사용자 최종 승인 전이다.
+2026-10-20. 상태: PR14 실패 진단 보완, 수동 E2E 간헐 실패로 QA 검증 실패·병합 보류. 사용자 최종 승인 전이다.
 
-## 최신 상태: PR14 수정과 미해결 검증
+## 최신 상태: PR14 진단 보완과 미해결 검증
 
-- [PR #14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14), 기준 head814c635, 브랜치 codex/startup-e2e. 사용자 승인에 따른 최신 결과 1회 조회는 CodeRabbit PENDING·미해결1개·다른 CI check 없음이었다. 병합하지 않았다.
-- 조기 SUCCESS 수락 차단과 이미 로드된 Rows로 시작 안내를 계산하는 두 검수 수정을 구현했다. Python4/4, 새 UI 회귀 RED→GREEN1/1, 최종 compile 정상 및 전체617개 중616통과/실패0/호스트 링크1제외다. 독립 코드검수 finding0이다.
-- 수동 E2E 마지막16.18.2 가져오기에서 간헐 ImportFailed가 두 차례 발생했다. 후속 성공6PNG와 창 정리는 확인했지만 실제 실패 예외·원인은 미확인이다. 임시 제품 진단과 decorator는 제거했다. 별도 QA는 검증 실패·병합 보류다. 이전 조건부 통과를 최신 승인으로 사용하지 않는다.
-- 기존 창9/native1/focus0 정확한 ID 동일, 보호1,386개 변경0/임시 자산0. cursor261→277 새 오류2건은 Pipeline transport/header 예외다. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 커밋에서 제외한다.
+- [PR #14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14), 수정 기준 headb213d07, 브랜치 codex/startup-e2e. 2026-10-19 당시814c635의 사용자 승인 1회 조회는 CodeRabbit PENDING·미해결1개·다른 CI check 없음이었다. b213d07 이후 head는 재조회하지 않았고 병합하지 않았다.
+- 조기 SUCCESS 수락 차단과 이미 로드된 Rows로 시작 안내를 계산하는 두 검수 수정을 구현했다. Python4/4, 새 UI 회귀 RED→GREEN1/1, 내부 진단 회귀2개도 RED→GREEN으로 확인했다. 최종 compile 정상 및 전체619개 중618통과/실패0/호스트 링크1제외다. 독립 코드검수 finding0이다.
+- 수동 E2E 마지막16.18.2 가져오기에서 간헐 ImportFailed가 두 차례 발생했다. 후속 성공6PNG와 창 정리는 확인했지만 실제 실패 예외·원인은 미확인이다. 임시 제품 디스크 진단과 decorator는 제거했다. generic catch의 형식·메서드 frame만 내부 문자열로 보존하며 하네스 실패 JSON에서 읽는다. 전체 suite 직후 수동 실행도 성공해 테스트 잔류 가설은 입증되지 않았다. 진단 변경만 별도 QA 통과다. 별도 QA는 검증 실패·병합 보류다. 이전 조건부 통과를 최신 승인으로 사용하지 않는다.
+- 기존 창9/native1/focus0 정확한 ID 동일, 보호1,386개 변경0/임시 자산0. cursor277→307 새 오류6건은 Pipeline transport/header 예외다. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 커밋에서 제외한다.
 - [검수 수정 보고](refined/PR14RevisionReport.md)에 RED/GREEN·수동 실패·최종 증거·독립 검수/QA를 모았다. 원본은 Library/TftAnalyzerValidation, 공개 기록은 raw/PR14Revision*.md다.
 - 다음 첫 행동: 실제 Git/PR head와 작업 트리를 확인하고 마지막 가져오기 실패의 원인을 조사한다. 최신 head 검수 재조회는 사용자 재개 때 한 번만 수행한다. push 후 대기 루프 없이 링크·검증·다음 행동을 알리고 종료한다. Hermes 예약은 중단 유지한다.
 - 원인에 맞는 수정·회귀·QA, 최신 head CodeRabbit·미해결·CI, 승인 범위 병합·사용자 최종 승인이 남아 전체 목표/사이클은 미완료다.
