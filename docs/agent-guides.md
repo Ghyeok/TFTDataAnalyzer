@@ -14,6 +14,7 @@
 | Unity EditorWindow 테스트·캡처·창 정리 | [검증 절차와 실패 사례](unity-editor-validation.md) |
 | 모델·추론 선택의 상세 기준 | [모델 선택 지침](agent-model-policy.md) |
 | Hermes 요청·자료·결과 전달 | [Hermes 협업 규칙](../HermesCollab/README.md) |
+| CodeRabbit 5분 점검·알림 범위 | [검수 모니터 지침](coderabbit-monitoring.md) |
 
 현재 진행 위치는 해당 작업 사이클의 `Checkpoint.md`, 당시 증거는 날짜가 있는 보고서와 `raw/`에서 확인한다. 현재 코드와 더 새로운 실행 결과가 체크포인트보다 앞서면 그 차이를 기록하고 갱신한다.
 

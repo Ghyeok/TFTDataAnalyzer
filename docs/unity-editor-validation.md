@@ -26,9 +26,11 @@
 ## 테스트와 캡처
 
 - 자동 테스트는 [OwnedEditorWindowScope](../Assets/TFTAnalyzer/Tests/EditMode/UI/OwnedEditorWindowScope.cs)를 사용한다. SetUp 실패에도 정리하고, binding·VM 정리가 실패해도 창 정리가 실행되도록 finally를 구성한다. 한 창의 종료 실패 때문에 나머지 소유 창의 정리를 건너뛰지 않는다.
-- 현재 DataManagerTab·CollectionTab은 일회성 `EditorApplication.update`로 UI 반영을 모은다. 콜백은 실행 전과 Dispose 때 해제한다. 테스트의 [WaitForRender](../Assets/TFTAnalyzer/Tests/EditMode/UI/EditorWindowTestSupport.cs)는 실제 update 경계를 기다리며, geometry·repaint 완료까지 보장하지 않는다. Task 6의 별도 startup `delayCall` 계약까지 일괄 변경하지 않는다.
+- 현재 DataManagerTab·CollectionTab·AnalysisTab은 일회성 `EditorApplication.update`로 UI 반영을 모은다. 콜백은 실행 전과 Dispose 때 해제한다. 테스트의 [WaitForRender](../Assets/TFTAnalyzer/Tests/EditMode/UI/EditorWindowTestSupport.cs)는 실제 update 경계를 기다리며, geometry·repaint 완료까지 보장하지 않는다. Task 6의 별도 startup `delayCall` 계약까지 일괄 변경하지 않는다.
 - 시간이 초과되면 단계·예약 콜백·실제 창 상태를 먼저 조사한다. 근거 없이 대기 시간만 늘리거나 Inspector focus/menu 전환을 반복하지 않는다. 전역 콜백 수동 실행이나 제품용 테스트 우회 함수를 추가해 통과시키지 않는다.
+- 2026-10-19에는 Windows 장치 경로 회귀 테스트에서 Mono의 `GetDirectoryName`이 같은 루트를 반환해 부모 경로 검사가 끝나지 않았다. 메인 스레드 반복문에는 CLI 취소·타임아웃이 종료 증거가 되지 않는다. 유사한 경계 입력은 먼저 같은 런타임의 별도 프로세스에서 횟수·출력을 제한해 조사한다. 반복문 진단에도 반드시 유한 상한을 두며, 응답이 없으면 전체 suite 재시도나 대기 시간 증가로 덮지 않는다. 사용자 종료 후 수정하고 새 Editor ID 기준으로 검증을 다시 시작한다.
 - 수동 확인은 [PowerShell 진입점](../AgentScripts/Invoke-TftAnalyzerVisualValidation.ps1)과 [C# 실행부](../AgentScripts/TftAnalyzerVisualValidation.cs)를 이용한다. 생성·크기 변경·캡처·정리를 한 번의 제한된 작업에서 수행한다. `Library`의 과거 분리 open/capture 스크립트는 재사용하지 않는다.
+- 분석 탭은 [별도 진입점](../AgentScripts/Invoke-TftAnalyzerAnalysisVisualValidation.ps1)과 [실행부](../AgentScripts/TftAnalyzerAnalysisVisualValidation.cs)를 사용한다. 쌍 heading만 보이면 행 캡처가 끝난 것이 아니므로 목표를 viewport 상단에 정렬한다. 다른 앱이 찍히면 성공 JSON을 폐기하고 새 소유 HWND 하나를 실행 전 PID별 집합과 대조한 뒤 그 프레임에만 가시성을 적용한다. caption·종류만으로 사용자 프레임을 조작하지 않는다. 최종 이미지 검수와 창 정리는 여전히 별도 확인이다.
 - 진입점의 `-ProbeFailure`는 표시 후 실패, `-ProbeInitializationFailure`는 표시 전 실패의 정리를 확인한다. 기본 실행의 성공 JSON은 캡처 내용의 시각 검수까지 대신하지 않는다. 내부 취소 기한·CLI 타임아웃·연결 끊김의 실제 검증 여부도 따로 기록한다.
 - 각 PNG를 열어 대상 창·크기·핵심 라벨·스크롤·고지가 맞는지 확인한다. `Focus()` 호출, 임의 시간 대기, PNG 파일 생성만으로 대상 픽셀을 확보했다고 판단하지 않는다.
 - 새 UI 연결은 입력 초안·유효 요청·실행 snapshot·화면 재생성·닫기/취소를 함께 검증한다. schema 1의 `Manifest.Identity`는 null일 수 있으므로 loader가 검증한 행의 전체 identity를 함께 전달한다. 기존 카탈로그를 변경해 테스트 조건에 맞추지 않는다.

@@ -72,9 +72,48 @@
                     </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>
-            <ui:VisualElement name="analysis-tab" class="tft-tab tft-tab-hidden">
-                <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
-                <ui:Label text="동일 카탈로그의 과거 경기 결과를 익명 집계로 살펴보는 화면입니다. 표본 수·신뢰구간·정책 필터를 반영한 분석 표시는 후속 단계에서 연결됩니다." />
+            <ui:VisualElement name="analysis-tab" class="tft-tab tft-data-tab tft-tab-hidden">
+                <ui:ScrollView name="analysis-scroll" class="tft-data-scroll" mode="Vertical">
+                    <ui:VisualElement class="tft-data-content">
+                        <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
+                        <ui:Label name="analysis-catalog" class="tft-wrapped-text" />
+                        <ui:Label text="로컬 새로고침은 익명 관측에서 집계를 재생성합니다. 필터 변경은 현재 결과만 좁히며 네트워크를 사용하지 않습니다." class="tft-wrapped-text" />
+                        <ui:VisualElement class="tft-data-actions">
+                            <ui:Button name="analysis-refresh" text="로컬 집계 새로고침" />
+                            <ui:Button name="analysis-cancel" text="새로고침 취소" />
+                        </ui:VisualElement>
+                        <ui:Label name="analysis-status" class="tft-data-status tft-wrapped-text" />
+                        <ui:Label name="analysis-period" class="tft-wrapped-text" />
+                        <ui:VisualElement name="analysis-filters" class="tft-data-section">
+                            <ui:DropdownField name="analysis-region" label="지역" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-queue" label="큐" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-tier" label="티어 기록 라벨" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-unit" label="기물" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-trait" label="활성 시너지" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-item" label="장착 아이템" class="tft-data-field" />
+                            <ui:DropdownField name="analysis-augment" label="증강" class="tft-data-field" />
+                            <ui:Label text="조건은 같은 조합 안에서 모두 일치해야 합니다. 상대 비교는 어느 한 조합이 모든 조건을 충족하면 표시합니다. 전체는 서로 다른 범위의 행을 합산하지 않습니다. 티어는 수집 당시의 기록 라벨입니다." class="tft-wrapped-text" />
+                        </ui:VisualElement>
+                        <ui:Label text="최종 관측 조합 · 표본은 참가자 관측 수" class="tft-tab-title" />
+                        <ui:VisualElement name="analysis-rows" />
+                        <ui:VisualElement class="tft-data-actions">
+                            <ui:Button name="analysis-rows-previous" text="이전" />
+                            <ui:Label name="analysis-rows-page" />
+                            <ui:Button name="analysis-rows-next" text="다음" />
+                        </ui:VisualElement>
+                        <ui:Label name="analysis-pairwise-heading" text="상대 배치 우위율" tooltip="같은 로비의 최종 순위 비교이며 실제 전투 승률이 아닙니다." class="tft-tab-title" />
+                        <ui:Label text="같은 로비의 최종 순위 비교이며 실제 전투 승률이 아닙니다. 표본은 비교 가능한 로비 수입니다. A가 B보다 높은 최종 순위를 기록한 비율을 표시합니다." class="tft-wrapped-text" />
+                        <ui:VisualElement name="analysis-pairs" />
+                        <ui:VisualElement class="tft-data-actions">
+                            <ui:Button name="analysis-pairs-previous" text="이전" />
+                            <ui:Label name="analysis-pairs-page" />
+                            <ui:Button name="analysis-pairs-next" text="다음" />
+                        </ui:VisualElement>
+                        <ui:Button name="analysis-export" text="필터 결과 전체를 개인 연구용 CSV로 저장" />
+                        <ui:Label name="analysis-export-status" class="tft-wrapped-text" />
+                        <ui:Label text="CSV에는 현재 필터에 맞는 모든 페이지의 허용된 지표만 포함합니다. 비율 차단 시 분자·분모·비율·신뢰구간을 비웁니다." class="tft-wrapped-text" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
             </ui:VisualElement>
             <ui:VisualElement name="about-tab" class="tft-tab tft-tab-hidden">
                 <ui:Label text="데이터 출처와 정책" class="tft-tab-title" />

@@ -198,6 +198,8 @@ git commit -m "feat: add bounded match collection workflow"
 
 ### Task 4: Implement Historical Analysis Views
 
+2026-10-18 착수: 사용자 “이어서 진행해줘”에 따라 기존 Task4 범위를 수행한다. [독립 기획 검토](../Workflow/Cycles/2026-10-18-historical-analysis/refined/PlanningReview.md)의 연결 계약을 적용한다. `AggregateStore`는 현재 저장 전용이고 조합 해시에 필터용 구성 정보가 없으므로, 명시적인 로컬 새로고침에서 익명 관측을 읽고 같은 snapshot으로 집계와 구성 설명을 만든다. 관측 읽기는 인덱스·미완성 꼬리 복구를 수행할 수 있으며 창 열기·필터 변경으로 실행하지 않는다. 전체 선택은 scope별 행을 나열하고 합산하지 않으며 쌍 필터는 한 endpoint 전체가 교집합을 만족해야 한다. 새 집계 스키마·실데이터 증강 분류·Task5/6 기능은 추가하지 않는다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/UI/Analysis/AnalysisViewModel.cs`
 - Create: `Assets/TFTAnalyzer/Editor/UI/Analysis/MetricRowViewModel.cs`
@@ -211,7 +213,7 @@ git commit -m "feat: add bounded match collection workflow"
 - Produces filters for patch, region, queue, tier bucket, unit, trait, item, and augment.
 - Produces metric rows containing sample count, average placement, top-four, first-place, Wilson interval, and policy state.
 
-- [ ] **Step 1: Write failing copy and suppression tests**
+- [x] **Step 1: Write failing copy and suppression tests**
 
 ```csharp
 [Test]
@@ -224,19 +226,19 @@ public void Rows_DoNotUsePredictionLanguage()
 
 The scan should reject positive prediction or combat-win-rate claims while allowing the explanatory negation `같은 로비의 최종 순위 비교이며 실제 전투 승률이 아닙니다.` Assert samples 99 show `표본 부족` and no percentage; 100 show rate plus confidence interval.
 
-- [ ] **Step 2: Implement filter intersection**
+- [x] **Step 2: Implement filter intersection**
 
 Every selection narrows the immutable snapshot in memory; no filter triggers an API request. Display an explicit empty state with scope and the observed match period (`FirstPlayedAt` / `LastPlayedAt`); do not call it a retrieval period or invent retrieval timestamps.
 
-- [ ] **Step 3: Implement aggregate and pairwise tables**
+- [x] **Step 3: Implement aggregate and pairwise tables**
 
 Label pairwise data `상대 배치 우위율` and include the tooltip `같은 로비의 최종 순위 비교이며 실제 전투 승률이 아닙니다.` Show numerator/denominator and 95% interval.
 
-- [ ] **Step 4: Add CSV export of approved presentation DTOs only**
+- [x] **Step 4: Add CSV export of approved presentation DTOs only**
 
 Export a local personal-research UTF-8 CSV from `MetricPresentation`; refuse raw observations and raw aggregate counters. Include scope, sample count, observed match period, metric name, numerator, denominator, estimate, lower, upper, and policy note. For suppressed metrics, keep the allowed sample/average/state fields and leave all ratio fields (including numerator/denominator/interval) blank, matching the empty `Ratios` contract. Do not reconstruct suppressed values. Task 4 adds no public publishing/export surface; Task 5 must preserve this local-CSV allowance independently of API-key availability or registration state.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/UI Assets/TFTAnalyzer/Tests/EditMode/UI/AnalysisViewModelTests.cs

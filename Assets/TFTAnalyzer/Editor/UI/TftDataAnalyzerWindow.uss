@@ -104,6 +104,24 @@
     min-width: 0;
 }
 
+.tft-analysis-row {
+    padding: 9px 6px;
+    margin-bottom: 6px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-button-border);
+}
+
+.tft-analysis-row > Label {
+    margin-bottom: 3px;
+}
+
+#analysis-rows-page,
+#analysis-pairs-page {
+    align-self: center;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
 .tft-tab-title {
     -unity-font-style: bold;
     margin-bottom: 8px;

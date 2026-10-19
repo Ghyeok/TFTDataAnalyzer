@@ -36,6 +36,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
 
         public Task<MatchCollectionSummary> CollectAsync(StaticCatalog catalog, MatchCollectionRequest request,
             IProgress<CollectionProgress> progress, CancellationToken token) =>
-            new MatchCollectionService(catalog, _store, _client, _seeds).CollectAsync(request, progress, token);
+            AnalyzerStoreOperations.Shared.RunAsync(() =>
+                new MatchCollectionService(catalog, _store, _client, _seeds).CollectAsync(request, progress, token), token);
     }
 }
