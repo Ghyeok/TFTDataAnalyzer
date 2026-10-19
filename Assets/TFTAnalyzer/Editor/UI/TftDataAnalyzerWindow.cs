@@ -6,6 +6,8 @@ using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Data;
 using TFTAnalyzer.Editor.UI.Collection;
 using TFTAnalyzer.Editor.UI.Analysis;
+using TFTAnalyzer.Editor.UI.About;
+using TFTAnalyzer.Editor.Compliance;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -26,6 +28,8 @@ namespace TFTAnalyzer.Editor.UI
         private CollectionTab _collectionBinding;
         private AnalysisViewModel _analysis;
         private AnalysisTab _analysisBinding;
+        private AboutViewModel _about;
+        private AboutTab _aboutBinding;
 
         [MenuItem("TFT Analyzer/Open Data Analyzer")]
         private static void Open()
@@ -47,6 +51,8 @@ namespace TFTAnalyzer.Editor.UI
             _collectionBinding = null;
             _analysisBinding?.Dispose();
             _analysisBinding = null;
+            _aboutBinding?.Dispose();
+            _aboutBinding = null;
             rootVisualElement.Clear();
             var treeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
             var stylesheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
@@ -95,6 +101,10 @@ namespace TFTAnalyzer.Editor.UI
             _analysisBinding = new AnalysisTab(tree.Q("analysis-tab"), _analysis,
                 () => EditorUtility.SaveFilePanel("개인 연구용 과거 관측 CSV 저장", "", "tft-historical-observations", "csv"),
                 (path, rows) => exporter.Save(path, rows));
+            if (_about == null)
+                _about = new AboutViewModel(new ComplianceSettingsStore(Path.GetDirectoryName(Application.dataPath)));
+            _aboutBinding = new AboutTab(tree.Q("about-tab"), _about,
+                () => SettingsService.OpenProjectSettings(ComplianceSettingsProvider.SettingsPath), Application.OpenURL);
             SelectTab(selectedTab);
         }
 
@@ -114,6 +124,9 @@ namespace TFTAnalyzer.Editor.UI
             _collectionBinding = null;
             _analysisBinding?.Dispose();
             _analysisBinding = null;
+            _aboutBinding?.Dispose();
+            _aboutBinding = null;
+            _about = null;
             _analysis?.Dispose();
             _analysis = null;
             _collection?.Dispose();
@@ -126,6 +139,7 @@ namespace TFTAnalyzer.Editor.UI
         private void SelectTab(string tabName)
         {
             selectedTab = System.Array.IndexOf(TabNames, tabName) >= 0 ? tabName : "data-tab";
+            if (selectedTab == "about-tab") _aboutBinding?.Refresh();
             foreach (var tab in TabNames)
             {
                 var selected = tab == selectedTab;

@@ -251,6 +251,8 @@ Before the checkpoint, verify fake aggregate→policy presentation→filter→lo
 
 ### Task 5: Add About, Policy Metadata, and Compliance Build Gate
 
+2026-10-19: 사용자 승인 후 정책 안내·사용자 확인 기록·Player 빌드 차단을 구현했다. 집중45건 중44통과/1건너뜀, 전체546건 중545통과/0실패/1건너뜀이다. 파일 symlink 권한 제한과 실제 Player 빌드 미실행을 구분하며, 정상·표시 전/후 예외에서 기존9창/1프레임 ID 보존·소유 잔류0, 보호1,386개 변경0을 확인했다. [Task5 승인 계획과 실행 기록](../Workflow/Cycles/2026-10-19-compliance-gate/Checkpoint.md)을 따른다. PR 검수와 사용자 최종 승인은 별도다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/UI/About/AboutViewModel.cs`
 - Create: `Assets/TFTAnalyzer/Editor/Compliance/PolicyCopy.cs`
@@ -265,7 +267,7 @@ Before the checkpoint, verify fake aggregate→policy presentation→filter→lo
 - Produces local settings under `Library/TftAnalyzerStore/compliance.json` with review date, policy URLs, product registration status, and acknowledgement timestamp.
 - Implements `IPreprocessBuildWithReport` and blocks Player builds when registration status is not `ApprovedOrAcknowledged`.
 
-- [ ] **Step 1: Write a failing unregistered-build test**
+- [x] **Step 1: Write a failing unregistered-build test**
 
 ```csharp
 [Test]
@@ -276,21 +278,23 @@ public void OnPreprocessBuild_BlocksWhenRegistrationIsNotAcknowledged()
 }
 ```
 
-- [ ] **Step 2: Implement local compliance settings**
+- [x] **Step 2: Implement local compliance settings**
 
 Settings are intentionally outside `Assets` and version control. Required fields are `policyReviewedOn`, the three Riot policy URLs from the spec, `registrationStatus`, and `acknowledgedAt`. Never infer approval from API-key presence.
 
-- [ ] **Step 3: Implement build and export gates**
+- [x] **Step 3: Implement build and export gates**
 
 Block Player build and public-style export while unregistered. Do not block Editor data exploration or local aggregate CSV export labeled for personal research.
 
 Task 5's gate must not reclassify Task 4's local personal-research CSV as a public export. Confirm these paths with fake registration states and verify the settings/About validation windows are cleaned up. A future public publishing surface requires its own explicit scope; no new one is added by this plan clarification.
 
-- [ ] **Step 4: Bind the About tab**
+- [x] **Step 4: Bind the About tab**
 
 Show data sources, policy-review date, registration state, required unofficial-project disclaimer source link, privacy summary, metric definitions, and excluded features.
 
 - [ ] **Step 5: Run tests and commit**
+
+실행 검증은 통과했다. 이 스냅샷의 커밋·PR 식별자는 현재 브랜치 Git 로그와 이후 PR 결과를 따른다.
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/Compliance Assets/TFTAnalyzer/Editor/UI/About Assets/TFTAnalyzer/Tests/EditMode/Compliance

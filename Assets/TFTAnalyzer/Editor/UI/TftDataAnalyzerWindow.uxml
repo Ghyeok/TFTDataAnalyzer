@@ -115,10 +115,7 @@
                     </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>
-            <ui:VisualElement name="about-tab" class="tft-tab tft-tab-hidden">
-                <ui:Label text="데이터 출처와 정책" class="tft-tab-title" />
-                <ui:Label text="데이터 출처와 이용 정책을 확인하는 화면입니다. 출처 상세 안내와 정책 확인 기능은 후속 단계에서 연결됩니다." />
-            </ui:VisualElement>
+            <ui:VisualElement name="about-tab" class="tft-tab tft-data-tab tft-tab-hidden" />
         </ui:VisualElement>
         <ui:Label name="historical-data-disclaimer" class="tft-disclaimer" text="과거 관측 결과이며 전투 예측이나 플레이 권고가 아닙니다." />
     </ui:VisualElement>
