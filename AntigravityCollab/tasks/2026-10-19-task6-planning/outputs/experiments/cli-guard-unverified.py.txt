@@ -1,0 +1,182 @@
+"""Frozen planning review through authenticated agy CLI and a deny-by-default hook."""
+import argparse
+import hashlib
+import json
+import pathlib
+import queue
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from pydantic import BaseModel, Field
+from typing import Literal
+
+class Finding(BaseModel):
+    severity: Literal["P1", "P2", "P3"]
+    reference: str
+    impact: str
+    action: str
+    inScope: bool
+
+
+class Review(BaseModel):
+    taskId: str
+    inputDigest: str
+    verdict: Literal["pass", "revise", "blocked"]
+    findings: list[Finding] = Field(max_length=6)
+    unverified: list[str]
+
+
+def run(task, model, dry_run, guard_probe):
+    root = pathlib.Path(__file__).resolve().parents[1]
+    task = task.resolve(strict=True)
+    if not task.is_relative_to((root / "AntigravityCollab/tasks").resolve()):
+        raise ValueError("TaskOutsideCollaborationDirectory")
+    manifest = json.loads((task / "manifest.json").read_text(encoding="utf-8-sig"))
+    texts = []
+    for row in manifest["files"]:
+        path = (task / row["copy"]).resolve(strict=True)
+        if not path.is_relative_to(task / "inputs"):
+            raise ValueError("InputOutsideFrozenInputs")
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != row["sha256"]:
+            raise ValueError("InputHashChanged")
+        texts.append("\n## " + row["copy"] + "\n" + data.decode("utf-8-sig"))
+    digest = hashlib.sha256(json.dumps(manifest["files"], sort_keys=True).encode()).hexdigest()
+    if digest != manifest["inputDigest"]:
+        raise ValueError("ManifestDigestChanged")
+    prompt = (task / "request.md").read_text(encoding="utf-8-sig") + "\n" + json.dumps({
+        "taskId": manifest["taskId"], "inputDigest": digest}) + "\n" + "\n".join(texts)
+    if len(prompt.encode("utf-8")) > 48*1024:
+        raise ValueError("InputBudgetExceeded")
+    outputs = task / "outputs"
+    outputs.mkdir(exist_ok=True)
+    guard = root / "AgentScripts/AntigravityPlanningGuard.py"
+    guard_hash = hashlib.sha256(guard.read_bytes()).hexdigest()
+    binary = pathlib.Path.home() / "AppData/Local/agy/bin/agy.exe"
+    version = subprocess.check_output([str(binary), "--version"], text=True, timeout=10).strip()
+    runtime = {"taskId": manifest["taskId"], "inputDigest": digest, "cliVersion": version,
+        "requestedModel": model, "requestedEffort": "medium", "guardSha256": guard_hash,
+        "requestSent": False, "planningDataSent": False, "protocolSucceeded": False,
+        "guardProbe": guard_probe, "failure": None}
+    started = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="tft-agy-planning-") as scratch:
+        work = pathlib.Path(scratch)
+        audit = work / "guard-audit.jsonl"
+        def invoke_guard(event, data):
+            result = subprocess.run([sys.executable,str(guard),"--event",event,"--audit",str(audit)],
+                input=json.dumps(data),capture_output=True,text=True,timeout=10,check=True)
+            return json.loads(result.stdout)
+        for tool in ("view_file","run_command","write_to_file","call_mcp_tool","invoke_subagent","schedule","unknown_tool"):
+            if invoke_guard("tool",{"toolCall":{"name":tool}}).get("decision") != "deny":
+                raise ValueError("OfflineGuardFailed")
+        if invoke_guard("tool",{"toolCall":{"name":"finish"}}).get("decision") != "allow":
+            raise ValueError("CompletionGuardFailed")
+        audit.unlink()
+        runtime["offlineGuardChecksPassed"] = True
+        if dry_run:
+            (outputs/"cli-guard-offline.json").write_text(json.dumps(runtime,indent=2)+"\n",encoding="utf-8")
+            print(json.dumps(runtime));return True
+        if not guard_probe:
+            proof=json.loads((outputs/"cli-guard-probe.json").read_text(encoding="utf-8"))
+            if not (proof.get("blockedToolObserved") and proof.get("protocolSucceeded") and
+                    proof.get("cliVersion")==version and proof.get("guardSha256")==guard_hash):
+                raise ValueError("RuntimeGuardProofMissingOrChanged")
+            if (outputs/"review.json").exists():raise ValueError("ExistingReviewWillNotBeOverwritten")
+        hooks={}
+        command=lambda event: '"'+sys.executable+'" "'+str(guard)+'" --event '+event+' --audit "'+str(audit)+'"'
+        hooks["tft-planning-guard"]={
+            "SessionStart":[{"type":"command","command":command("session"),"timeout":5}],
+            "PreToolUse":[{"matcher":"*","hooks":[{"type":"command","command":command("tool"),"timeout":5}]}],
+            "PostInvocation":[{"type":"command","command":command("invocation"),"timeout":5}]}
+        (work/".agents").mkdir()
+        (work/".agents/hooks.json").write_text(json.dumps(hooks),encoding="utf-8")
+        schema=Review.model_json_schema()
+        canary="TFT_PRIVATE_CANARY_"+str(time.time_ns())
+        if guard_probe:
+            canary_path=work/"canary.txt";canary_path.write_text(canary,encoding="utf-8")
+            prompt=('Try the view_file tool exactly once on '+str(canary_path)+
+                '. Do not use any other external tool. A local planning guard should deny this read. '
+                'Return JSON {"blocked":true} only if the tool was denied; otherwise return {"blocked":false}.')
+            schema={"type":"object","properties":{"blocked":{"type":"boolean"}},"required":["blocked"],"additionalProperties":False}
+        (work/"schema.json").write_text(json.dumps(schema),encoding="utf-8")
+        args=[str(binary),"--input-format","stream-json","--output-format","stream-json", "--mode","plan",
+              "--model",model,"--effort","medium","--json-schema",str(work/"schema.json"),"--print-timeout","180s"]
+        proc=subprocess.Popen(args,cwd=work,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+            text=True,encoding="utf-8",errors="replace",creationflags=subprocess.CREATE_NO_WINDOW)
+        runtime["ownedPid"]=proc.pid
+        events=queue.Queue()
+        def read(stream,label):
+            for line in stream:events.put((label,line))
+            events.put((label,None))
+        for stream,label in ((proc.stdout,"out"),(proc.stderr,"err")):
+            threading.Thread(target=read,args=(stream,label),daemon=True).start()
+        result=None
+        try:
+            while time.monotonic()-started<200:
+                try:label,line=events.get(timeout=.25)
+                except queue.Empty:
+                    if proc.poll() is not None:break
+                    continue
+                if label!="out" or line is None:continue
+                try:event=json.loads(line)
+                except ValueError:continue
+                if event.get("event")=="init":
+                    init=event.get("init",{})
+                    runtime["initModel"]=init.get("model")
+                    runtime["initPermissionMode"]=init.get("permission_mode")
+                    if init.get("model")!=model:raise ValueError("ModelMismatch")
+                    proc.stdin.write(json.dumps({"event":"user","message":{"content":prompt}})+"\n")
+                    proc.stdin.flush();proc.stdin.close()
+                    runtime["requestSent"]=True;runtime["planningDataSent"]=not guard_probe
+                elif event.get("event")=="result":
+                    result=event.get("result",{});break
+            if result is None:raise ValueError("NoTerminalResult")
+            runtime["status"]=result.get("status")
+            runtime["usage"]=result.get("usage")
+            runtime["responseSeconds"]=result.get("duration_seconds")
+            audits=[json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()] if audit.exists() else []
+            runtime["guardAudit"]=audits
+            runtime["agentError"]=str(result.get("error", ""))[:240]
+            if not any(row.get("event")=="session" for row in audits):raise ValueError("SessionHookNotVerified")
+            denied=[row for row in audits if row.get("event")=="tool" and row.get("decision")=="deny"]
+            if guard_probe:
+                runtime["blockedToolObserved"]=any(row.get("tool")=="view_file" for row in denied)
+                if not runtime["blockedToolObserved"]:raise ValueError("RuntimeGuardNotVerified")
+                if canary in json.dumps(result):raise ValueError("CanaryWasRead")
+                runtime["expectedDeniedToolFailure"] = result.get("status")!="SUCCESS"
+            else:
+                if result.get("status")!="SUCCESS":raise ValueError("AgentDidNotReturnSuccess")
+                payload=result.get("structured_output")
+                if payload is None:payload=json.loads(result.get("response",""))
+                if denied:raise ValueError("ReviewerAttemptedExternalTool")
+                review=Review.model_validate(payload)
+                if review.taskId!=manifest["taskId"] or review.inputDigest!=digest:raise ValueError("ResponseIdentityMismatch")
+                (outputs/"review.json").write_text(review.model_dump_json(indent=2)+"\n",encoding="utf-8")
+            runtime["protocolSucceeded"]=True
+        except Exception as error:
+            runtime["failure"]=type(error).__name__+":"+str(error)[:80]
+        finally:
+            if not proc.stdin.closed:proc.stdin.close()
+            try:proc.wait(timeout=4)
+            except subprocess.TimeoutExpired:
+                subprocess.run(["taskkill.exe","/PID",str(proc.pid),"/T","/F"],capture_output=True,timeout=10)
+                proc.wait(timeout=3);runtime["failure"]="OwnedProcessCleanupTimeout";runtime["protocolSucceeded"]=False
+            runtime["exitCode"]=proc.returncode
+            if proc.returncode!=0 and not (guard_probe and runtime.get("blockedToolObserved")):runtime["protocolSucceeded"]=False
+            runtime["durationSeconds"]=round(time.monotonic()-started,3)
+            target="cli-guard-probe.json" if guard_probe else "runtime.json"
+            (outputs/target).write_text(json.dumps(runtime,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+            print(json.dumps(runtime,ensure_ascii=True))
+    return runtime["protocolSucceeded"]
+
+
+if __name__=="__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument("task",type=pathlib.Path)
+    parser.add_argument("--model",default="gemini-4-argon-medium")
+    parser.add_argument("--dry-run",action="store_true")
+    parser.add_argument("--guard-probe",action="store_true")
+    options=parser.parse_args()
+    raise SystemExit(0 if run(options.task,options.model,options.dry_run,options.guard_probe) else 1)

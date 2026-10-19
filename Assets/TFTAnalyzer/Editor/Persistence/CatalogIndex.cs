@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using TFTAnalyzer.Domain;
 using UnityEditor;
 using UnityEngine;
@@ -34,6 +35,7 @@ namespace TFTAnalyzer.Editor.Persistence
         [SerializeField] private string sourceProfileId;
         [SerializeField] private string contentHash;
         [SerializeField] private string catalogAssetPath;
+        [SerializeField] private string importCompletedUtc;
 
         public string SetId => setId;
         public int SetNumber => setNumber;
@@ -42,6 +44,7 @@ namespace TFTAnalyzer.Editor.Persistence
         public string SourceProfileId => sourceProfileId;
         public string ContentHash => contentHash;
         public string CatalogAssetPath => catalogAssetPath;
+        public string ImportCompletedUtc => importCompletedUtc;
 
         public CatalogIndexEntry(CatalogIdentity identity, string hash, string assetPath)
         {
@@ -53,6 +56,9 @@ namespace TFTAnalyzer.Editor.Persistence
             contentHash = hash;
             catalogAssetPath = assetPath;
         }
+
+        public CatalogIndexEntry(CatalogIdentity identity, string hash, string assetPath, string importCompletedUtc)
+            : this(identity, hash, assetPath) { this.importCompletedUtc = importCompletedUtc; }
 
         public CatalogIdentity ResolveIdentity(LegacyCatalogResolver resolver)
         {
@@ -87,7 +93,7 @@ namespace TFTAnalyzer.Editor.Persistence
         }
 
         public void Upsert(CatalogIdentity identity, string contentHash, string catalogAssetPath,
-            bool verifiedLegacy = false)
+            bool verifiedLegacy = false, string importCompletedUtc = null)
         {
             entries.RemoveAll(entry =>
                 string.Equals(entry.SetId, identity.Patch.SetId, StringComparison.Ordinal) &&
@@ -97,7 +103,7 @@ namespace TFTAnalyzer.Editor.Persistence
                  (verifiedLegacy && identity.SourceProfile == CatalogSourceProfile.OfficialOnly &&
                   string.IsNullOrEmpty(entry.SourceProfileId) &&
                   string.Equals(entry.CatalogAssetPath, catalogAssetPath, StringComparison.Ordinal))));
-            entries.Add(new CatalogIndexEntry(identity, contentHash, catalogAssetPath));
+            entries.Add(new CatalogIndexEntry(identity, contentHash, catalogAssetPath, importCompletedUtc));
             entries = entries
                 .OrderBy(entry => entry.SetNumber)
                 .ThenBy(entry => entry.PatchId, StringComparer.Ordinal)
@@ -110,14 +116,22 @@ namespace TFTAnalyzer.Editor.Persistence
     public sealed class CatalogIndexWriter : ICatalogIndexWriter
     {
         private readonly StaticCatalogPaths _paths;
+        private readonly Func<DateTimeOffset> _utcNow;
 
         public CatalogIndexWriter(StaticCatalogPaths paths)
+            : this(paths, () => DateTimeOffset.UtcNow) { }
+
+        public CatalogIndexWriter(StaticCatalogPaths paths, Func<DateTimeOffset> utcNow)
         {
             _paths = paths ?? throw new ArgumentNullException(nameof(paths));
+            _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
         }
 
         public void Upsert(CatalogIdentity identity, string contentHash, string catalogAssetPath)
         {
+            if (!string.Equals(Path.GetFullPath(_paths.ProjectRoot).TrimEnd(Path.DirectorySeparatorChar),
+                    Path.GetFullPath(Path.GetDirectoryName(Application.dataPath)).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Catalog assets must belong to the current project.");
             var legacyPath = _paths.LegacyCatalogAssetPath(identity.Patch);
             var isLegacy = string.Equals(catalogAssetPath, legacyPath, StringComparison.Ordinal);
             if (!isLegacy && !string.Equals(catalogAssetPath,
@@ -139,28 +153,28 @@ namespace TFTAnalyzer.Editor.Persistence
                 throw new InvalidDataException($"Index hash does not match catalog: {catalogAssetPath}");
             }
 
-            var directory = _paths.AbsoluteAssetPath(StaticCatalogPaths.GeneratedAssetDirectory);
+            var directory = _paths.AbsoluteAssetPath(_paths.GeneratedRelativeDirectory);
             System.IO.Directory.CreateDirectory(directory);
             AssetDatabase.Refresh();
             var index = AssetDatabase.LoadAssetAtPath<CatalogIndex>(
-                StaticCatalogPaths.CatalogIndexAssetPath);
+                _paths.IndexAssetPath);
             if (index == null)
             {
                 index = ScriptableObject.CreateInstance<CatalogIndex>();
-                AssetDatabase.CreateAsset(index, StaticCatalogPaths.CatalogIndexAssetPath);
+                AssetDatabase.CreateAsset(index, _paths.IndexAssetPath);
             }
 
             SaveWithRollback(index, identity, contentHash, catalogAssetPath, isLegacy,
-                _paths.AbsoluteAssetPath(StaticCatalogPaths.CatalogIndexAssetPath), () =>
+                _paths.AbsoluteAssetPath(_paths.IndexAssetPath), () =>
                 {
                     EditorUtility.SetDirty(index);
-                    AssetDatabase.SaveAssets();
-                });
+                    AssetDatabase.SaveAssetIfDirty(index);
+                }, _utcNow().ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
         }
 
         public static void SaveWithRollback(CatalogIndex index, CatalogIdentity identity,
             string contentHash, string catalogAssetPath, bool verifiedLegacy,
-            string indexFilePath, Action save)
+            string indexFilePath, Action save, string importCompletedUtc = null)
         {
             if (index == null) throw new ArgumentNullException(nameof(index));
             if (save == null) throw new ArgumentNullException(nameof(save));
@@ -168,7 +182,7 @@ namespace TFTAnalyzer.Editor.Persistence
             var previousBytes = File.Exists(indexFilePath) ? File.ReadAllBytes(indexFilePath) : null;
             try
             {
-                index.Upsert(identity, contentHash, catalogAssetPath, verifiedLegacy);
+                index.Upsert(identity, contentHash, catalogAssetPath, verifiedLegacy, importCompletedUtc);
                 save();
             }
             catch (Exception error)

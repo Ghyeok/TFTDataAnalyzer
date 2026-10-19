@@ -110,11 +110,30 @@ namespace TFTAnalyzer.Tests.Persistence
         [Test]
         public void IndexWriterRejectsMissingCatalogTarget()
         {
+            var id = Guid.NewGuid().ToString("N");
+            var root = Path.GetDirectoryName(Application.dataPath);
+            var paths = new StaticCatalogPaths(root, "Assets/TftAnalyzerE2E_" + id + "/Generated",
+                "Library/TftAnalyzerValidation/e2e_" + id + "/cache");
+            var assetRoot = Path.Combine(root, "Assets", "TftAnalyzerE2E_" + id);
+            var cacheRoot = Path.Combine(root, "Library", "TftAnalyzerValidation", "e2e_" + id);
+            var identity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.1"),
+                CatalogSourceProfile.OfficialOnly);
+            Assert.That(Directory.Exists(assetRoot), Is.False);
+            Assert.That(Directory.Exists(cacheRoot), Is.False);
+            Assert.Throws<InvalidDataException>(() => new CatalogIndexWriter(paths).Upsert(
+                identity, "hash", paths.CatalogAssetPath(identity)));
+            Assert.That(Directory.Exists(assetRoot), Is.False);
+            Assert.That(Directory.Exists(cacheRoot), Is.False);
+        }
+
+        [Test]
+        public void IndexWriterRejectsAProjectOutsideTheCurrentUnityProject()
+        {
             var root = Path.Combine(Path.GetTempPath(), "missing-catalog-" + Guid.NewGuid().ToString("N"));
             var paths = new StaticCatalogPaths(root);
             var identity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.1"),
                 CatalogSourceProfile.OfficialOnly);
-            Assert.Throws<InvalidDataException>(() => new CatalogIndexWriter(paths).Upsert(
+            Assert.Throws<InvalidOperationException>(() => new CatalogIndexWriter(paths).Upsert(
                 identity, "hash", paths.CatalogAssetPath(identity)));
         }
 

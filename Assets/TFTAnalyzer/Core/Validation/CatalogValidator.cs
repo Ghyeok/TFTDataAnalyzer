@@ -1,12 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Validation
 {
     public sealed class CatalogValidator
     {
+        private readonly string _generatedIconPrefix;
+
+        public CatalogValidator(string generatedAssetDirectory = "Assets/TFTAnalyzer/Data/Generated")
+        {
+            if (generatedAssetDirectory == null || !Regex.IsMatch(generatedAssetDirectory,
+                    @"\AAssets(?:/[A-Za-z0-9_-]+)+\z"))
+                throw new ArgumentException("A normalized generated asset directory is required.", nameof(generatedAssetDirectory));
+            _generatedIconPrefix = generatedAssetDirectory + "/Icons/";
+        }
+
         public ValidationReport Validate(StaticCatalog catalog)
         {
             if (catalog == null)
@@ -124,7 +135,7 @@ namespace TFTAnalyzer.Validation
             }
         }
 
-        private static void ValidateIcon(
+        private void ValidateIcon(
             string stableId,
             string iconPath,
             ICollection<ValidationIssue> issues)
@@ -141,9 +152,8 @@ namespace TFTAnalyzer.Validation
 
             var isWeb = Uri.TryCreate(iconPath, UriKind.Absolute, out var uri) &&
                         (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
-            var isGeneratedAsset = iconPath.StartsWith(
-                "Assets/TFTAnalyzer/Data/Generated/Icons/",
-                StringComparison.Ordinal) && iconPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+            var isGeneratedAsset = iconPath.StartsWith(_generatedIconPrefix, StringComparison.Ordinal) &&
+                Regex.IsMatch(iconPath.Substring(_generatedIconPrefix.Length), @"\A[A-Za-z0-9_-]+\.png\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if (!isWeb && !isGeneratedAsset)
             {
                 Error(issues, "invalid_icon_metadata", stableId,

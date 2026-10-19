@@ -10,65 +10,57 @@ namespace TFTAnalyzer.Editor.Persistence
         public const string CatalogIndexAssetPath = GeneratedAssetDirectory + "/CatalogIndex.asset";
 
         public string ProjectRoot { get; }
-        public string StagingDirectory => Path.Combine(ProjectRoot, "Library", "TftAnalyzerCache", "staging");
-        public string RawRootDirectory => Path.Combine(ProjectRoot, "Library", "TftAnalyzerCache", "raw");
-        public string IconsDirectory => Path.Combine(
-            ProjectRoot,
-            "Assets",
-            "TFTAnalyzer",
-            "Data",
-            "Generated",
-            "Icons");
+        public string GeneratedRelativeDirectory { get; }
+        public string CacheRelativeDirectory { get; }
+        public string IndexAssetPath => GeneratedRelativeDirectory + "/CatalogIndex.asset";
+
+        public StaticCatalogPaths(string projectRoot, string generatedRelativeDirectory, string cacheRelativeDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(projectRoot) || projectRoot.StartsWith(@"\\?\", StringComparison.Ordinal) ||
+                projectRoot.StartsWith(@"\\.\", StringComparison.Ordinal))
+                throw new ArgumentException("Project root is invalid.", nameof(projectRoot));
+            ProjectRoot = Path.GetFullPath(projectRoot);
+            GeneratedRelativeDirectory = ValidateRelative(generatedRelativeDirectory, "Assets");
+            CacheRelativeDirectory = ValidateRelative(cacheRelativeDirectory, "Library");
+            SafePath(GeneratedRelativeDirectory);
+            SafePath(CacheRelativeDirectory);
+        }
+        public string StagingDirectory => SafePath(CacheRelativeDirectory + "/staging");
+        public string RawRootDirectory => SafePath(CacheRelativeDirectory + "/raw");
+        public string IconsDirectory => SafePath(GeneratedRelativeDirectory + "/Icons");
 
         public StaticCatalogPaths(string projectRoot)
-        {
-            if (string.IsNullOrWhiteSpace(projectRoot))
-            {
-                throw new ArgumentException("Project root cannot be blank.", nameof(projectRoot));
-            }
-
-            ProjectRoot = Path.GetFullPath(projectRoot);
-        }
+            : this(projectRoot, GeneratedAssetDirectory, "Library/TftAnalyzerCache") { }
 
         public string CanonicalFinalDirectory(CatalogIdentity identity)
         {
             ValidateIdentity(identity);
-            return Path.Combine(
-                ProjectRoot,
-                "Assets",
-                "TFTAnalyzer",
-                "Data",
-                "Generated",
-                identity.Patch.SetId,
-                identity.Patch.PatchId,
-                identity.Patch.SourceGameVersion,
-                identity.ProfileId);
+            return AbsoluteAssetPath(CatalogAssetPath(identity).Substring(0,
+                CatalogAssetPath(identity).Length - "/catalog.json".Length));
         }
 
         public string LegacyFinalDirectory(PatchKey patch)
         {
             ValidatePatch(patch);
-            return Path.Combine(ProjectRoot, "Assets", "TFTAnalyzer", "Data", "Generated",
-                patch.SetId, patch.PatchId);
+            return SafePath($"{GeneratedRelativeDirectory}/{patch.SetId}/{patch.PatchId}");
         }
 
         public string RawDirectory(CatalogIdentity identity)
         {
             ValidateIdentity(identity);
-            return Path.Combine(RawRootDirectory, identity.Patch.SetId, identity.Patch.PatchId,
-                identity.Patch.SourceGameVersion, identity.ProfileId);
+            return SafePath($"{CacheRelativeDirectory}/raw/{identity.Patch.SetId}/{identity.Patch.PatchId}/{identity.Patch.SourceGameVersion}/{identity.ProfileId}");
         }
 
         public string CatalogAssetPath(CatalogIdentity identity)
         {
             ValidateIdentity(identity);
-            return $"{GeneratedAssetDirectory}/{identity.Patch.SetId}/{identity.Patch.PatchId}/{identity.Patch.SourceGameVersion}/{identity.ProfileId}/catalog.json";
+            return $"{GeneratedRelativeDirectory}/{identity.Patch.SetId}/{identity.Patch.PatchId}/{identity.Patch.SourceGameVersion}/{identity.ProfileId}/catalog.json";
         }
 
         public string LegacyCatalogAssetPath(PatchKey patch)
         {
             ValidatePatch(patch);
-            return $"{GeneratedAssetDirectory}/{patch.SetId}/{patch.PatchId}/catalog.json";
+            return $"{GeneratedRelativeDirectory}/{patch.SetId}/{patch.PatchId}/catalog.json";
         }
 
         public string CreateStagingDirectory()
@@ -80,7 +72,42 @@ namespace TFTAnalyzer.Editor.Persistence
 
         public string AbsoluteAssetPath(string assetPath)
         {
-            return Path.Combine(ProjectRoot, assetPath.Replace('/', Path.DirectorySeparatorChar));
+            var relative = ValidateRelative(assetPath, "Assets");
+            if (!string.Equals(relative, GeneratedRelativeDirectory, StringComparison.Ordinal) &&
+                !relative.StartsWith(GeneratedRelativeDirectory + "/", StringComparison.Ordinal))
+                throw new ArgumentException("Asset path is outside the generated root.");
+            return SafePath(relative);
+        }
+
+        internal void EnsureStagingPath(string path) => EnsureWithin(path, StagingDirectory);
+        internal void EnsureGeneratedPath(string path) => EnsureWithin(path, SafePath(GeneratedRelativeDirectory));
+
+        private static void EnsureWithin(string path, string root)
+        {
+            var full = Path.GetFullPath(path);
+            if (!full.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Catalog path is outside its owned root.");
+            AnalyzerStorePaths.RejectReparsePoints(full);
+        }
+
+        private string SafePath(string relative)
+        {
+            var path = Path.GetFullPath(Path.Combine(ProjectRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
+            if (!path.StartsWith(ProjectRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Catalog path escapes the project.");
+            AnalyzerStorePaths.RejectReparsePoints(path);
+            return path;
+        }
+
+        private static string ValidateRelative(string path, string area)
+        {
+            if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path)) throw new ArgumentException("Relative project path is required.");
+            var normalized = path.Replace('\\', '/');
+            var segments = normalized.Split('/');
+            if (segments.Length < 2 || !string.Equals(segments[0], area, StringComparison.Ordinal))
+                throw new ArgumentException("Project path is outside its allowed area.");
+            foreach (var segment in segments) ValidateSegment(segment, nameof(path));
+            return normalized;
         }
 
         private static void ValidatePatch(PatchKey patch)

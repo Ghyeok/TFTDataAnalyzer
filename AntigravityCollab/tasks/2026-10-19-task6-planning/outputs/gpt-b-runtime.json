@@ -1,0 +1,13 @@
+{
+  "agent": "/root/task6_gpt_planning_b_refresh",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "usageSnapshot": {
+    "input_tokens": 211857,
+    "cached_input_tokens": 188544,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2297,
+    "reasoning_output_tokens": 701,
+    "total_tokens": 214154
+  }
+}

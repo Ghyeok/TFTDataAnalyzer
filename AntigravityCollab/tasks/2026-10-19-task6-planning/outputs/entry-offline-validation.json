@@ -1,0 +1,20 @@
+{
+  "entry": "AgentScripts/Invoke-AntigravityPlanningReview.py",
+  "verification": "Local runner control flow with fabricated CLI events; no agy process or AI request",
+  "schemaRedMalformedCases": 4,
+  "greenTestMethods": 3,
+  "malformedCasesRejected": 4,
+  "externalHardlinkControlPathsRejected": [
+    "request.md",
+    "manifest.json",
+    "outputs/review.json",
+    "outputs/runtime.json"
+  ],
+  "terminalReviewPublishedOnlyAfterExitZero": true,
+  "temporaryDirectoryPermissionFailure": "Initial tempfile test could not write or clean five owned empty directories; first expanded-permission execution was rejected before execution because approval review hit usage limits. Later approval review succeeded and exact empty-directory-only cleanup removed all five. Current tests use owned workspace directories and clean them normally.",
+  "remainingOwnedDirectoryNames": [],
+  "actualPaidReviewOutputs": {
+    "review.json": "b9a6ca5460e01ec116119b34bf3a230e425ce5decda29ef2db2f6efb640117ec",
+    "runtime.json": "28d64ff65ef607f75b21283489b9ba3b7c46e68a0e944020482617c122787f34"
+  }
+}

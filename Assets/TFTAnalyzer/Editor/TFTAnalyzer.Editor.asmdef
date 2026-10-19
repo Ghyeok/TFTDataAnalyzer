@@ -3,7 +3,8 @@
   "rootNamespace": "TFTAnalyzer.Editor",
   "references": [
     "TFTAnalyzer.Core",
-    "Unity.Newtonsoft.Json"
+    "Unity.Newtonsoft.Json",
+    "UnityEditor.TestRunner"
   ],
   "includePlatforms": [
     "Editor"

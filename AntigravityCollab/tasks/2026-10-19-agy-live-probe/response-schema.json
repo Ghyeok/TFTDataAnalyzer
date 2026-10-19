@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "taskId": { "type": "string", "enum": ["2026-10-19-agy-live-probe"] },
+    "ack": { "type": "string", "enum": ["TFT_AGY_OK"] }
+  },
+  "required": ["taskId", "ack"],
+  "additionalProperties": false
+}

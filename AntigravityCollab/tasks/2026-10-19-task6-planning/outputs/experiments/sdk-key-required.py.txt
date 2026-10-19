@@ -1,0 +1,143 @@
+"""Review a frozen AntigravityCollab task with finish-only SDK capabilities."""
+import argparse
+import asyncio
+import hashlib
+import importlib.metadata
+import json
+import pathlib
+import tempfile
+import time
+import traceback
+
+from google.antigravity import Agent, CapabilitiesConfig, LocalAgentConfig, hooks, types
+from google.antigravity.connections import connection
+from google.antigravity.hooks import policy
+from pydantic import BaseModel, Field
+from typing import Literal
+
+
+class Finding(BaseModel):
+    severity: Literal["P1", "P2", "P3"]
+    reference: str
+    impact: str
+    action: str
+    inScope: bool
+
+
+class Review(BaseModel):
+    taskId: str
+    inputDigest: str
+    verdict: Literal["pass", "revise", "blocked"]
+    findings: list[Finding] = Field(max_length=6)
+    unverified: list[str]
+
+
+async def run(task: pathlib.Path, model: str, dry_run: bool):
+    started = time.monotonic()
+    root = pathlib.Path(__file__).resolve().parents[1]
+    allowed = (root / "AntigravityCollab/tasks").resolve()
+    task = task.resolve(strict=True)
+    if not task.is_relative_to(allowed) or task == allowed:
+        raise ValueError("TaskOutsideCollaborationDirectory")
+    manifest = json.loads((task / "manifest.json").read_text(encoding="utf-8-sig"))
+    chunks = []
+    for entry in manifest["files"]:
+        path = (task / entry["copy"]).resolve(strict=True)
+        if not path.is_relative_to(task / "inputs"):
+            raise ValueError("InputOutsideFrozenInputs")
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != entry["sha256"]:
+            raise ValueError("InputHashChanged")
+        chunks.append("\n## " + entry["copy"] + "\n" + data.decode("utf-8-sig"))
+    digest = hashlib.sha256(json.dumps(manifest["files"], sort_keys=True).encode()).hexdigest()
+    if digest != manifest["inputDigest"]:
+        raise ValueError("ManifestDigestChanged")
+    request = (task / "request.md").read_text(encoding="utf-8-sig")
+    prompt = request + "\nTask identity:\n" + json.dumps({
+        "taskId": manifest["taskId"], "inputDigest": digest}) + "\n" + "\n".join(chunks)
+    if len(prompt.encode("utf-8")) > 48 * 1024:
+        raise ValueError("InputBudgetExceeded")
+    outputs = task / "outputs"
+    outputs.mkdir(exist_ok=True)
+    if not dry_run and (outputs / "review.json").exists():
+        raise ValueError("ExistingReviewWillNotBeOverwritten")
+    policies = [policy.deny("*"), policy.allow("finish")]
+    capability = CapabilitiesConfig(enabled_tools=[types.BuiltinTools.FINISH], enable_subagents=False)
+    active_tools = sorted(tool.value for tool in connection.resolve_active_tools(capability))
+    if active_tools != ["finish"]:
+        raise ValueError("EffectiveToolSetMismatch")
+    guard = policy.enforce(policies)
+    denied = []
+    for name in [tool.value for tool in types.BuiltinTools if tool != types.BuiltinTools.FINISH] + ["unknown_tool", "mcp/write"]:
+        decision = await guard.run(hooks.HookContext(), types.ToolCall(name=name))
+        if decision.allow:
+            raise ValueError("DenyPolicyFailed")
+        denied.append(name)
+    if not (await guard.run(hooks.HookContext(), types.ToolCall(name="finish"))).allow:
+        raise ValueError("CompletionPolicyFailed")
+    tool_events = []
+
+    @hooks.pre_tool_call_decide
+    async def audit_tool(call: types.ToolCall) -> types.HookResult:
+        name = call.name.value if isinstance(call.name, types.BuiltinTools) else str(call.name)
+        tool_events.append(name)
+        return types.HookResult(allow=name == "finish", message="Planning review permits completion only.")
+
+    runtime = {"taskId": manifest["taskId"], "inputDigest": digest,
+               "sdkVersion": importlib.metadata.version("google-antigravity"),
+               "requestedModel": model, "serverReportedModel": None,
+               "effectiveSdkTools": active_tools, "policyDeniedChecks": denied,
+               "subagentsEnabled": False, "promptBytes": len(prompt.encode("utf-8")),
+               "requestSent": False, "protocolSucceeded": False, "failure": None}
+    try:
+        if not dry_run:
+            with tempfile.TemporaryDirectory(prefix="tft-planning-a-sdk-") as temporary:
+                config = LocalAgentConfig(
+                    model=model, capabilities=capability, policies=policies, hooks=[audit_tool],
+                    workspaces=[temporary], save_dir=temporary, tools=[], mcp_servers=[],
+                    subagents=[], skills_paths=[], response_schema=Review,
+                    system_instructions="Review only supplied planning evidence. You have no file, shell, web or delegation capability. Return the requested Korean review; do not invent execution evidence.",
+                    retry_config=types.RetryConfig(
+                        api_retry=types.ModelAPIRetryConfig(max_retries=0),
+                        model_output_retry=types.ModelOutputRetryConfig(max_retries=0)),
+                    budget_config=types.BudgetConfig(max_model_calls=2, max_tool_calls=1,
+                        max_input_tokens=16000, max_output_tokens=2500, max_total_tokens=20000))
+                async with asyncio.timeout(150):
+                    async with Agent(config) as agent:
+                        runtime["requestSent"] = True
+                        response = await agent.chat(prompt)
+                        payload = await response.structured_output()
+                        if payload is None:
+                            payload = json.loads(await response.text())
+                        review = Review.model_validate(payload)
+                        if review.taskId != manifest["taskId"] or review.inputDigest != digest:
+                            raise ValueError("ResponseIdentityMismatch")
+                        if any(name != "finish" for name in tool_events):
+                            raise ValueError("UnexpectedToolAttempt")
+                        if response.usage_metadata:
+                            runtime["usage"] = response.usage_metadata.model_dump(mode="json")
+                        (outputs / "review.json").write_text(
+                            review.model_dump_json(indent=2) + "\n", encoding="utf-8")
+                        runtime["protocolSucceeded"] = True
+        else:
+            runtime["offlineGuardChecksPassed"] = True
+    except Exception as error:
+        runtime["failure"] = type(error).__name__
+        runtime["failureFrames"] = [{"file": frame.filename, "line": frame.lineno, "function": frame.name}
+                                    for frame in traceback.extract_tb(error.__traceback__)[-4:]]
+    finally:
+        runtime["toolEvents"] = tool_events
+        runtime["durationSeconds"] = round(time.monotonic() - started, 3)
+        target = outputs / ("guard-check.json" if dry_run else "runtime.json")
+        target.write_text(json.dumps(runtime, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(runtime, ensure_ascii=False))
+    return runtime["failure"] is None and (dry_run or runtime["protocolSucceeded"])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("task", type=pathlib.Path)
+    parser.add_argument("--model", default="gemini-4-argon-medium")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    raise SystemExit(0 if asyncio.run(run(args.task, args.model, args.dry_run)) else 1)

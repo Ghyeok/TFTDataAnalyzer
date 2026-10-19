@@ -11,9 +11,15 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 | 1. 정적 데이터 파이프라인 | 공식 데이터 수집, 선택형 보완 소스, 정규화·검증·패치 비교, 불변 카탈로그 저장 | 구현됨 |
 | 1-1. 카탈로그 식별자 강화 | 세트·패치·원본 버전·출처 프로필 분리, 기존 데이터 호환, 무결성 검증 | 구현됨 |
 | 2. 익명 경기 통계 | Match API 수집, 메모리 내 익명화, 중복 제거, 집계와 신뢰구간 | 상한 있는 수집·익명화·저장·집계·정책 필터 구현, 실제 API 검증 별도 |
-| 3. 통합 Editor UI | 데이터 관리·경기 수집·분석·정책 안내 화면 | 데이터 관리·경기 수집·분석·로컬 CSV 구현, 정책 안내·빌드 gate·시작 시 확인은 후속 작업 |
+| 3. 통합 Editor UI | 데이터 관리·경기 수집·분석·정책 안내 화면 | 네 탭·로컬 CSV·정책 안내·빌드 gate·24시간 시작 확인 구현, 최종 QA·PR 검수 진행 중 |
 
-통합 창에서 로컬 카탈로그 검증·선택, 명시적 버전 확인, 확인창을 거치는 가져오기·취소, 두 카탈로그의 변경 비교와 상한 있는 경기 수집을 사용할 수 있습니다. 분석 탭은 저장된 익명 관측을 명시적으로 새로고침한 뒤 조건별 집계·상대 배치 우위율과 정책이 허용한 신뢰구간을 표시하고, 현재 필터 결과를 개인 연구용 CSV로 저장합니다. 실제 네트워크 import·Match API 호출과 네이티브 확인창 클릭은 미실행입니다. 최신 구현·검증과 재개 위치는 [분석 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md), 이전 이력은 [경기 수집 탭](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)과 [데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-19 사용자 요청으로 일시중단했습니다([운영 지침](docs/coderabbit-monitoring.md)).
+통합 창에서 로컬 카탈로그 검증·선택, 명시적 버전 확인, 확인창을 거치는 가져오기·취소, 두 카탈로그의 변경 비교와 상한 있는 경기 수집을 사용할 수 있습니다. 분석 탭은 저장된 익명 관측을 명시적으로 새로고침한 뒤 조건별 집계·상대 배치 우위율과 정책이 허용한 신뢰구간을 표시하고, 현재 필터 결과를 개인 연구용 CSV로 저장합니다. 정책 안내와 Project Settings에서 로컬 확인 상태를 관리하며 미확인 Player 빌드를 차단합니다. 개인 연구용 Editor·로컬 CSV 사용은 이 빌드 차단과 구분합니다.
+
+Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한 번 시도하며 새 카탈로그를 자동으로 가져오지 않습니다. 마지막 성공 가져오기와 원본 버전이 다르면 기존 데이터 탭에 수동 가져오기 안내가 나타납니다. 원본 게임 버전을 TFT 패치 번호로 추정하지 않습니다. 시작 확인 상태의 두 필드는 `Library/TftAnalyzerStore/version-check.json`, 가져오기 완료 UTC는 인덱스에 저장하며 기존 카탈로그는 변경하지 않습니다.
+
+2026-10-19 최종 기본 EditMode는616개 중615통과·실패0·호스트 링크 권한으로1개 제외이며, 공개 버전 목록 확인1개도 별도로 통과했습니다. 전송만 가짜인 실제 가져오기→AssetDatabase→수집→익명 저장→집계→분석 흐름과940/500px 화면을 검증했습니다. 실제 네트워크 카탈로그 import·Match API 호출·네이티브 확인창 직접 클릭은 별도 미실행입니다. 신뢰 분류를 주입한 합성 비율 표시를 기본 실데이터 분류 공급 증거로 쓰지 않습니다.
+
+최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-19 사용자 요청으로 일시중단했습니다([운영 지침](docs/coderabbit-monitoring.md)).
 
 ## 핵심 설계
 

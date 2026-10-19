@@ -305,6 +305,8 @@ git commit -m "feat: add policy disclosure and build compliance gate"
 
 ### Task 6: Add Startup Version Check and End-to-End Editor Tests
 
+> 2026-10-19 기획 검수 반영([Antigravity 기획 검수안](../../../AntigravityCollab/2026-10-19-project-plan-review.md)): Task 6 착수 시 다음 세 가지 세부 계약을 고정한다. (1) 비교 기준이 되는 "마지막 가져온 버전"의 결정 우선순위(로컬 검증된 카탈로그/인덱스 기준 대 상태 파일)를 명시한다. (2) 수동적 알림(Passive notification)은 모달 대화상자나 새 EditorWindow 생성을 금지하고 비차단 로그/열린 창 상태로 제한해 창 잔류를 방지한다. (3) `Library/TftAnalyzerStore` 아래의 24시간 상태 파일도 `AnalyzerStorePaths.RejectReparsePoints`를 적용하며, 파일 손상·접근 실패 시 Editor 시작이나 domain reload를 차단하지 않고 안전하게 실패 처리한다.
+
 **Files:**
 - Create: `Assets/TFTAnalyzer/Editor/Ingestion/StaticVersionCheckScheduler.cs`
 - Create: `Assets/TFTAnalyzer/Tests/EditMode/UI/TftDataAnalyzerEndToEndTests.cs`
@@ -314,23 +316,23 @@ git commit -m "feat: add policy disclosure and build compliance gate"
 - Produces a once-per-24-hours non-blocking Data Dragon version check.
 - Persists only last-check UTC and last-seen version under `Library/TftAnalyzerStore`.
 
-- [ ] **Step 1: Write failing scheduler tests**
+- [x] **Step 1: Write failing scheduler tests**
 
 Assert two Editor loads within 24 hours perform one version request, the check never downloads catalogs or icons, and network failure does not block domain reload.
 
-- [ ] **Step 2: Implement `[InitializeOnLoad]` scheduling**
+- [x] **Step 2: Implement `[InitializeOnLoad]` scheduling**
 
 Schedule after the Editor is idle using `EditorApplication.delayCall`; skip batch mode and play mode; use a cancellation token tied to assembly reload. Display a passive notification only when the latest source version differs from the last imported version.
 
-- [ ] **Step 3: Add an end-to-end fabricated workflow test**
+- [x] **Step 3: Add an end-to-end fabricated workflow test**
 
 With fake transports: check version → approve import → validate/publish a fabricated Set 18 catalog → collect two fabricated matches → persist anonymous observations → aggregate → show analysis rows. Assert no network, no secrets on disk, and the relative-placement label is correct.
 
-- [ ] **Step 4: Add forbidden-surface reflection and text scans**
+- [x] **Step 4: Add forbidden-surface reflection and text scans**
 
 Fail if project assemblies expose types or menu items containing `Spectator`, `LiveGame`, `Overlay`, `CombatSimulator`, or `WinPrediction`; scan UI text for prohibited Korean/English prediction wording while allowing the documented negation disclaimer.
 
-- [ ] **Step 5: Run full verification**
+- [x] **Step 5: Run full verification**
 
 Recompile, run the entire EditMode assembly, and inspect Unity Console errors. Expected: zero compile errors, zero failed tests, explicit network tests skipped by default.
 
@@ -344,3 +346,5 @@ git commit -m "test: verify TFT analyzer workflow and policy boundary"
 ## Phase 3 Completion Gate
 
 Run the full EditMode suite, manually open `TFT Analyzer/Open Data Analyzer`, and execute the fabricated end-to-end workflow. Confirm the tool never displays identities or secrets, all ratio metrics show sample count and interval, CommunityDragon remains opt-in, startup checks do not mutate data, and Player builds are blocked until compliance status is acknowledged.
+
+2026-10-19 최종 Task6 실행은 [현재 사이클 보고](../Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md)와 [Phase1/2/3 대응표](../Workflow/Cycles/2026-10-19-startup-e2e/refined/CompletionGateAudit.md)에 연결했다. 테스트·수동 확인과 PR/사용자 최종 승인은 구분한다.

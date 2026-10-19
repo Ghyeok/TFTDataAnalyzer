@@ -1,0 +1,57 @@
+{
+  "taskId": "2026-10-19-task6-planning",
+  "inputDigest": "c7704c8a4437428da3f63a36fcc2bef69b58302d47c6616c77eb0bb2fc7e1a83",
+  "sdkVersion": "0.1.22",
+  "requestedModel": "gemini-4-argon-medium",
+  "serverReportedModel": null,
+  "effectiveSdkTools": [
+    "finish"
+  ],
+  "policyDeniedChecks": [
+    "list_directory",
+    "search_directory",
+    "find_file",
+    "view_file",
+    "create_file",
+    "edit_file",
+    "run_command",
+    "ask_question",
+    "invoke_subagent",
+    "run_workflow",
+    "generate_image",
+    "search_web",
+    "read_url_content",
+    "schedule",
+    "unknown_tool",
+    "mcp/write"
+  ],
+  "subagentsEnabled": false,
+  "promptBytes": 24794,
+  "requestSent": false,
+  "protocolSucceeded": false,
+  "failure": "AntigravityValidationError",
+  "failureFrames": [
+    {
+      "file": "C:\\Python314\\Lib\\contextlib.py",
+      "line": 214,
+      "function": "__aenter__"
+    },
+    {
+      "file": "C:\\Users\\gulww\\AppData\\Roaming\\Python\\Python314\\site-packages\\google\\antigravity\\conversation\\conversation.py",
+      "line": 86,
+      "function": "create"
+    },
+    {
+      "file": "C:\\Users\\gulww\\AppData\\Roaming\\Python\\Python314\\site-packages\\google\\antigravity\\connections\\local\\local_connection.py",
+      "line": 1555,
+      "function": "__aenter__"
+    },
+    {
+      "file": "C:\\Users\\gulww\\AppData\\Roaming\\Python\\Python314\\site-packages\\google\\antigravity\\connections\\local\\local_connection.py",
+      "line": 1462,
+      "function": "_validate_connection"
+    }
+  ],
+  "toolEvents": [],
+  "durationSeconds": 0.083
+}

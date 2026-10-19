@@ -50,8 +50,9 @@ namespace TFTAnalyzer.Tests.Persistence
         public void PublishRejectsTamperedExistingCatalogEvenWhenManifestHashMatchesStagedHash()
         {
             var root = Path.Combine(Path.GetTempPath(), "TftPublishTests", Guid.NewGuid().ToString("N"));
-            var finalDirectory = Path.Combine(root, "final");
-            var stageRoot = Path.Combine(root, "stage");
+            var paths = new StaticCatalogPaths(root);
+            var finalDirectory = paths.AbsoluteAssetPath(paths.GeneratedRelativeDirectory + "/final");
+            var stageRoot = paths.CreateStagingDirectory();
             var stageDirectory = Path.Combine(stageRoot, "patch");
             try
             {

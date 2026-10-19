@@ -1,0 +1,49 @@
+{
+  "findings": [
+    {
+      "action": "E2E 2경기(n<100 억제 검증용)와 n>=100 수동 합성 스냅샷(비율·Wilson 95% 표시 검증용)에서 증강 ID 포함 여부 및 차단 사유(표본 미달 vs 증강 분류 미제공 fail-closed)를 명시적으로 분리 정의하고, 완료 조건 대응표에 합성 검증 통과가 실데이터 비율 가시성을 보장하지 않음을 명기한다.",
+      "impact": "AnalysisService가 증강 분류 메타데이터 공급자 없이 기본 MetricPolicy(Unknown fail-closed)를 사용하므로, 가짜 경기나 합성 스냅샷에 증강 ID가 포함되면 n<100 억제나 비율 표시가 아닌 정책 차단으로 동작해 테스트가 잘못된 사유로 통과하거나 실패할 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (§3 가짜 전송으로 전체 흐름 연결), inputs/completion-gates.md (Phase2/Phase3), inputs/project-context.md",
+      "severity": "P1"
+    },
+    {
+      "action": "24시간 미만으로 HTTP를 생략할 때도 저장된 lastSeenVersion과 최신 성공 가져오기(ImportCompletedUtc 기준)의 원본 버전을 로컬 비교해 안내 라벨을 복원하고, 사용자가 수동 가져오기를 완료하면 추가 HTTP 없이 즉시 비교 결과를 갱신·해제하도록 계약에 명시한다.",
+      "impact": "24시간 이내 도메인 재로드·에디터 재시작 시 HTTP 요청 없이 종료만 하면 데이터 탭의 수동 가져오기 안내가 유실되거나, 반대로 사용자가 수동 가져오기를 완료한 뒤에도 다음 24시간 주기 전까지 이전 버전 불일치 안내가 화면에 남을 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (§1 버전 확인과 24시간 상태, §2 Unity 시작 연결과 수동 안내, 통합한 연결 계약 1·2)",
+      "severity": "P2"
+    },
+    {
+      "action": "부분 구현 재개 전 작업 트리 diff, 미추적 임시 자산(Assets/TftAnalyzerE2E_* 등), DefaultVolumeProfile.asset 및 기존 Generated 카탈로그 해시를 먼저 대조하는 사전 점검 단계를 실행 계획과 완료 조건 대응표의 첫 게이트로 명시한다.",
+      "impact": "이전 구현자가 helper 취소·정리 및 표면 검사 마무리 중 사용량 제한으로 중단되어 작업 트리가 불완전한 상태이므로, 사전 상태 검증 없이 컴파일·테스트를 재개하면 미정리 임시 자산이나 콜백이 사용자 자산 및 창 보존 계약을 침해할 위험이 있다.",
+      "inScope": true,
+      "reference": "inputs/checkpoint.md, inputs/implementation-plan.md (§4 금지 표면 검사와 최종 검증, 통합한 연결 계약 3·4)",
+      "severity": "P2"
+    },
+    {
+      "action": "실데이터에서 증강 포함 지표 표시와 표본 100건 이상 달성을 위한 신뢰 가능한 증강 분류 메타데이터 공급자 연결 및 조합 지문(유닛/성급/아이템/특성/증강) 병합·축소 집계는 Task6 범위를 벗어나므로 차기 고도화 과제로 분리 기록한다.",
+      "impact": "정확히 일치하는 튜플만 묶는 현재 지문 구조와 증강 fail-closed 정책 때문에 실제 수집 데이터에서는 n>=100 달성 및 증강 지표 열람이 사실상 어렵지만, 이를 해결하려고 현재 Task6에서 정책을 완화하거나 범위를 확대해서는 안 된다.",
+      "inScope": false,
+      "reference": "inputs/project-context.md, inputs/completion-gates.md (Phase2 99/100 억제, Legend 차단)",
+      "severity": "P2"
+    },
+    {
+      "action": "수집 중 HTTP 429 발생 시 수동 재시도 UTC 안내를 넘어선 자동 대기·재개 및 증분 복구 기능은 현재 승인 범위 밖의 향후 개선 사항으로 유지한다.",
+      "impact": "대량 실데이터 수집 시 429 중단으로 인해 단일 실행에서 충분한 표본을 모으기 어렵지만, Task6의 시작 버전 확인 및 가짜 전송 E2E 검증 범위에는 포함되지 않는다.",
+      "inScope": false,
+      "reference": "inputs/project-context.md, inputs/implementation-plan.md (§3 가짜 전송으로 전체 흐름 연결)",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "c7704c8a4437428da3f63a36fcc2bef69b58302d47c6616c77eb0bb2fc7e1a83",
+  "taskId": "2026-10-19-task6-planning",
+  "unverified": [
+    "작업 트리의 실제 부분 구현 코드 diff 및 GREEN 컴파일·EditMode 테스트 통과 여부",
+    "completion-gates.md의 15개 완료 조건 전체에 대한 실제 실행 증거 및 수동 캡처 PNG",
+    "실제 경기 데이터에서 정확 조합 지문(unit/star/item/active-trait/augment)이 n>=100에 도달할 실제 확률 및 분포",
+    "외부 Riot 앱 등록 승인 여부 및 실제 개인 Riot API/seed 기반 수집 동작",
+    "CLI 런타임의 실제 파일·명령·외부 접근 차단 강제 여부(요청 계약에 따라 도구 호출을 시도하지 않음)"
+  ],
+  "verdict": "revise"
+}

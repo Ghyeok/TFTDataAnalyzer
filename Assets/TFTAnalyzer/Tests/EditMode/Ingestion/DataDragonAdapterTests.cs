@@ -10,12 +10,36 @@ using NUnit.Framework;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Ingestion;
 using TFTAnalyzer.Editor.Ingestion.DataDragon;
+using TFTAnalyzer.Editor.Persistence;
+using TFTAnalyzer.Validation;
 using UnityEngine;
 
 namespace TFTAnalyzer.Tests.Ingestion
 {
     public sealed class DataDragonAdapterTests
     {
+        [Test]
+        public async Task FixtureParsesWithoutBlankHiddenItemAndIsolatedStagedIconsRequireTheConfiguredRoot()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "TftIconValidation_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var catalog = new DataDragonAdapter(new FakeTransport()).Parse(FixtureSnapshot(), Set18);
+                var before = new CatalogValidator().Validate(catalog);
+                Assert.That(catalog.Items.Any(item => item.StableId == "TFT_Item_Hidden"), Is.False);
+                Assert.That(before.Issues.Where(issue => issue.Severity == ValidationSeverity.Error), Is.Empty);
+                var paths = new StaticCatalogPaths(root, "Assets/TftAnalyzerE2E_fixture/Generated", "Library/fixture/cache");
+                var staging = paths.CreateStagingDirectory();
+                var staged = await new CatalogAssetWriter(paths).StageIconsAsync(catalog, new PngTransport(), staging, default);
+                var wrongRoot = new CatalogValidator().Validate(staged);
+                Assert.That(wrongRoot.Issues.Where(issue => issue.Severity == ValidationSeverity.Error).Select(issue => issue.Code).Distinct(),
+                    Is.EqualTo(new[] { "invalid_icon_metadata" }));
+                var configured = new CatalogValidator(paths.GeneratedRelativeDirectory).Validate(staged);
+                Assert.That(configured.Issues.Where(issue => issue.Severity == ValidationSeverity.Error), Is.Empty);
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        }
+
         private static readonly PatchKey Set18 =
             new PatchKey("TFTSet18", 18, "18.2", "16.18.1");
 
@@ -135,6 +159,16 @@ namespace TFTAnalyzer.Tests.Ingestion
             {
                 RequestedUrls.Add(url);
                 return Task.FromResult(Response(url, "{\"data\":{}}"));
+            }
+        }
+
+        private sealed class PngTransport : IHttpTransport
+        {
+            public Task<HttpResponseData> GetAsync(string url, CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=");
+                return Task.FromResult(new HttpResponseData(url, 200, png, "", "image/png", DateTime.UnixEpoch));
             }
         }
     }
