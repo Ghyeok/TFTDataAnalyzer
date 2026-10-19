@@ -40,11 +40,14 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_service.Imports, Is.Empty);
         }
 
-        [Test]
-        public async Task ImportFailureDiagnosticsOmitMessagesAndClearWhenNextImportStarts()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task ImportFailureDiagnosticsOmitMessagesAndClearWhenNextImportStarts(bool asynchronousFailure)
         {
             const string privateMessage = "E2E-PRIVATE-KEY-and-response";
-            _service.Run = token => ThrowImportDiagnosticFailure(privateMessage);
+            _service.Run = token => asynchronousFailure
+                ? ThrowImportDiagnosticFailureAsync(privateMessage)
+                : ThrowImportDiagnosticFailure(privateMessage);
             _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, true);
 
             await _vm.ImportAsync(summary => true);
@@ -53,8 +56,13 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_vm.IsBusy, Is.False);
             Assert.That(_vm.IncludeCommunityDragon, Is.False);
             Assert.That(ReadImportDiagnostic("LastImportFailureType"), Is.EqualTo(typeof(InvalidOperationException).FullName));
-            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Contain(nameof(ThrowImportDiagnosticFailure)).And.Not.Contain(privateMessage));
-            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Not.Contain(".cs:").And.Not.Contain("C:\\"));
+            var throwingMethod = asynchronousFailure
+                ? nameof(ThrowImportDiagnosticFailureAfterYieldAsync)
+                : nameof(ThrowImportDiagnosticFailure);
+            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Contain(throwingMethod)
+                .And.Contain(typeof(DataManagerViewModelTests).FullName).And.Not.Contain(privateMessage));
+            Assert.That(ReadImportDiagnostic("LastImportFailureStack"), Does.Not.Contain(".cs")
+                .And.Not.Contain("C:\\").And.Not.Contain("C:/"));
             Assert.That(_vm.StatusText, Does.Not.Contain(privateMessage));
 
             _service.Run = token => Task.FromResult(DataManagerTestSupport.ImportResult());
@@ -93,6 +101,19 @@ namespace TFTAnalyzer.Tests.UI
 
         private static Task<StaticImportResult> ThrowImportDiagnosticFailure(string message) =>
             throw new InvalidOperationException(message);
+
+        private static async Task<StaticImportResult> ThrowImportDiagnosticFailureAsync(string message)
+        {
+            await Task.Yield();
+            try { return await ThrowImportDiagnosticFailureAfterYieldAsync(message); }
+            catch { throw; }
+        }
+
+        private static async Task<StaticImportResult> ThrowImportDiagnosticFailureAfterYieldAsync(string message)
+        {
+            await Task.Yield();
+            throw new InvalidOperationException(message);
+        }
 
         [TestCase(false)]
         [TestCase(true)]

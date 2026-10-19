@@ -136,7 +136,13 @@ namespace TFTAnalyzer.Editor.UI.Data
             {
                 LastImportFailureType = error.GetType().FullName;
                 // Method frames only: retain the throwing location without messages, data, or file paths.
-                try { LastImportFailureStack = new System.Diagnostics.StackTrace(error, false).ToString(); }
+                try
+                {
+                    var frames = new System.Diagnostics.StackTrace(error, false).GetFrames();
+                    LastImportFailureStack = frames == null ? "" : string.Join(Environment.NewLine,
+                        frames.Select(frame => frame.GetMethod()).Where(method => method != null)
+                            .Select(method => $"{method.DeclaringType?.FullName}.{method.Name}"));
+                }
                 catch (Exception) { LastImportFailureStack = ""; }
                 if (!_disposed) SetStatus(DataManagerState.Failed,
                     started ? "가져오지 못했습니다. 입력과 연결 상태를 확인한 뒤 다시 시도해 주세요." : "세트·패치·원본 버전과 저장 위치를 확인해 주세요.",

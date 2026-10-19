@@ -1,6 +1,27 @@
 # PR14 검수 수정·미해결 검증 보고
 
-## 2026-10-20: 실패 원본 진단 보완
+## 최신: 비동기 진단의 경로 노출 수정
+
+2026-10-20. 수정 기준 bd2079f. 이번 **진단 경로 노출 수정만 검수·QA 통과**이며, 원래 간헐 ImportFailed의 원인은 미확정이라 전체 QA·병합 보류는 유지한다. 아래 이전 보고의 파일 경로 제외 판단은 이 실행으로 정정한다.
+
+- 새 controlled failure probe는 기존 하네스의 증거 Root/캡처 callback만 바꾸고 고유 소유 자산 루트에 파일 충돌 하나를 주입했다. 실제 publisher·VM·JSON export·정리·실패 판정은 그대로 실행했다. 별도 PNG를 생성하거나 정상 Passed를 통과로 바꾸지 않았다.
+- 실제 비동기 게시 오류에서 StackTrace(error,false).ToString에 PDB 절대 경로가 남는 결함을 확인했다. 이제 GetFrames/GetMethod의 선언 타입·메서드 이름만 조합한다. 원본 stack 문자열·메시지·Data·파일 경로를 새 진단에 저장하지 않는다. 기존 clear·ErrorCode·정리 계약은 유지한다.
+- 수정 전 async await/throw/rethrow 회귀1실패→수정 후3/3. 같은 actual publisher 파일 충돌에서도 IOException/게시 메서드 보존·경로와 .cs 미포함·실패 JSON export를 확인했다. 원래 간헐 오류의 재현/원인 해결을 뜻하지 않는다.
+
+| 최종 증거 | Library/TftAnalyzerValidation 원본·결과 |
+|---|---|
+| 유효 RED/GREEN | pr14-async-trace-red-current.json3개 중2P/1F → pr14-async-trace-green.json3P/0F. compile 중 구 assembly2개를 실행한 red.json은 제외 |
+| 컴파일·전체 | pr14-async-trace-green-compile-status.json completed/오류없음. pr14-sanitized-trace-final-suite.json620개 중619통과/실패0/호스트 symlink1제외,81.73초 |
+| 실제 pipeline 실패·export | pr14-owned-import-fault-probe/before-fix/ 및 after-fix-summary.json, e2e-visual-failure-state.json. 원본 IOException/Publish 발생 메서드가 metadata로 남고 절대 경로/.cs가 없음. strict visual Passed=false 그대로인 negative 시험 |
+| 정리·보존 | 해당 probe fallback-cleanup.json Verified=true/owned0. pr14-probe-before-windows.json/pr14-sanitized-trace-final-windows.json 창9/native1/focus0 정확히 동일. pr14-sanitized-trace-final-protected.json 보호1,386개 변경0/임시 E2E 자산0 |
+| Console | pr14-sanitized-trace-final-console.json cursor307→337 새2건(seq336/337), 모두 Pipeline transport/header 오류. compilationFailed=false, 현재 groundTruth 오류2/경고0. 전체 오류0 주장이 아님 |
+| UI | 이번 변경은 generic catch 진단과 회귀뿐이며 정상 UI 재캡처는 미실행. 직전 bd2079f의 정상6 PNG/화면 검증과 구분 |
+| 독립 판정 | [개발 검수](../raw/TraceSanitizationReview.md) finding0·[별도 QA](../raw/TraceSanitizationQA.md) 경로 노출 수정 한정 통과. [공개 요청·도구 오류·출처](../raw/TraceSanitizationCoordination.md) |
+
+변경 이유는 실제 export가 반증한 기존 privacy 계약을 바로잡는 것이다. 임시 probe의 내부 API 컴파일 오류와 CRLF/LF hash 표기 차이는 제품 실패와 구분했다. 컴파일 완료 전에 구 테스트를 실행한 시행착오도 [검증 지침](../../../../../../docs/unity-editor-validation.md)에 반영했다. 새 Antigravity/Hermes 호출·예약·최신 PR 재조회는 없었다. 원래 간헐 실패는 새 증거가 있을 때 발생 계층을 좁히며 반복 성공으로 종결하지 않는다.
+
+
+## 이전: 2026-10-20 실패 원본 진단 보완
 
 현재도 **원인 미확정·전체 QA 검증 실패·병합 보류**다. 기준 b213d07 이후 진단 변경만 추가했다. 아래 2026-10-19 결과는 당시 이력이다.
 

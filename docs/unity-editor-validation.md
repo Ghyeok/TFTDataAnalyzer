@@ -17,6 +17,12 @@
 
 이전 실패 실행에서 생긴 빈 프레임 4개는 당시 정확한 ID와 활성 창 연결 없음을 확인한 뒤 닫았다. 기존 사용자 창 9개와 주 프레임은 보존했다. 그때의 instance ID를 다음 실행의 정리 대상으로 재사용하지 않는다.
 
+## 2026-10-20 추가 확인
+
+- `recompile_status`가 `compiling`이면 테스트를 요청하지 않는다. completed/up_to_date 및 failed=false/compilationFailed=false를 확인한 뒤 시작한다. 새 parameterized case를 추가했으면 실제 Total과 이름에 반영됐는지도 확인한다. 이번에는 compile 완료 전 구 assembly2개 실행을 제외하고 현재3개의 RED를 별도로 확보했다.
+- Unity Mono의 비동기 예외는 `new StackTrace(error, false).ToString()`에도 이전 PDB 파일 경로가 남을 수 있었다. 메서드 이름만 필요한 진단은 `GetFrames()`/`GetMethod()`의 타입·메서드 metadata만 출력한다. sync unit만으로 경로 제외를 단정하지 않고 await/throw/rethrow 및 실제 pipeline 실패 export로 확인한다.
+- 제어된 실패를 성공한 일반 UI 검증으로 바꾸지 않는다. 이번 owned file collision probe는 정상 Passed=false를 유지하면서 IOException·실패 JSON·정리 조건을 별도 확인했다. 원래 간헐 오류와 혼동하지 않는다.
+
 ## 실행 전
 
 1. 현재 작업 트리와 보호 파일을 확인한다. Unity 명령은 순차 실행하고, 테스트가 실행 중일 때 `Assets` 파일을 수정하지 않는다. 실제 키·seed·원본 경기 응답을 읽거나 기록할 필요가 없는 검증은 가짜 제공자를 주입한다.
