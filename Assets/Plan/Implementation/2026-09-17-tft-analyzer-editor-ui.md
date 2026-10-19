@@ -292,9 +292,9 @@ Task 5's gate must not reclassify Task 4's local personal-research CSV as a publ
 
 Show data sources, policy-review date, registration state, required unofficial-project disclaimer source link, privacy summary, metric definitions, and excluded features.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
-실행 검증은 통과했다. 이 스냅샷의 커밋·PR 식별자는 현재 브랜치 Git 로그와 이후 PR 결과를 따른다.
+실행 검증을 통과한 제품과 문서는 9d2861e에 기록하고 PR13을 생성했다. 후속 요청 기록 문서를 수정 중이며 최신 head의 CodeRabbit 재검수·병합·최종 사용자 승인은 별도다.
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/Compliance Assets/TFTAnalyzer/Editor/UI/About Assets/TFTAnalyzer/Tests/EditMode/Compliance

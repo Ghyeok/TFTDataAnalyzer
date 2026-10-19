@@ -21,3 +21,7 @@
 역할: root가 통합·유일한 Unity 실행·문서화를 담당했다. 구현 Sol High, 파일 보존/차단 검수 Astra High, 제한된 증거 대조 QA Sol Medium을 요청했고 각 로컬 세션 메타데이터에서 `gpt-6.1-sol/high`, `gpt-6-astra/high`, `gpt-6.1-sol/medium`을 확인했다. 구현 2,580,850 / 검수 760,300 / QA 368,059토큰은 각각 캐시 입력을 포함한 합계다. 문서 작업 직전 root 누적 차분은 7,290,191토큰(캐시 입력 7,177,088 포함)이며 이후 호출은 제외한 시점 집계다. root 런타임 모델·추론은 이번 실행에서 독립 확인하지 않았다. 집계는 청구/구독 한도 차감량을 뜻하지 않는다. 정확한 활성 시간은 별도 집계하지 않았다.
 
 실제 공개 요청은 [구현 요청](../raw/DevelopmentRequest.md), [검수·QA 요청](../raw/ReviewRequests.md), 결과는 [구현 응답](../raw/Implementer.md), [코드 검수](../raw/CodeReview.md), [QA 보고](QAReport.md)에 보존했다. 원본 실행 JSON·PNG·사용량 스냅샷은 Git 제외 `Library/TftAnalyzerValidation/compliance-*`에 있으며 삭제될 수 있다. 사용자용 사용법은 [최종 문서](FinalDocumentation.md)를 따른다. Hermes 호출·예약 재개는 하지 않았다.
+
+## PR13 후속 문서 수정
+
+2026-10-19 재개에서 9d2861e의 CodeRabbit 상태는 SUCCESS지만 [요청 원문 기록 의견](https://github.com/Ghyeok/TFTDataAnalyzer/pull/13#discussion_r4310312181)이 미해결인 것을 확인했다. 세션 도구 인수의 message가 암호문인 것을 검증 없이 공개 요청으로 기록한 실수를 바로잡았다. 기존 필드는 보존하고 대화에 표시된 실제 검수·추가 검수·QA 요청을 message_plaintext로 함께 기록했다. 문서3개만 변경하며 JSON 구문·기존 값 보존·공개 요청3건·관련 링크를 검사한다. Unity 테스트와 에이전트 검수를 반복 실행하지 않았다. 원래 제품 검증과 수정 head의 CodeRabbit 결과는 구분한다.
