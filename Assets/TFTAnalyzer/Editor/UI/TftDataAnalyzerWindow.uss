@@ -104,6 +104,12 @@
     min-width: 0;
 }
 
+.tft-compliance-confirmation .unity-toggle__label {
+    white-space: normal;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
 .tft-analysis-row {
     padding: 9px 6px;
     margin-bottom: 6px;
