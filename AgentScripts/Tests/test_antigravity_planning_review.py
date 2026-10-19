@@ -35,13 +35,12 @@ class FakeProcess:
     pid = 100000000
     returncode = 0
 
-    def __init__(self, payload):
+    def __init__(self, payload, init_first=True):
         self.stdin = io.StringIO()
         self.stderr = io.StringIO()
-        self.stdout = io.StringIO("\n".join(json.dumps(event) for event in [
-            {"event": "init", "init": {"model": "gemini-4-argon-medium"}},
-            {"event": "result", "result": {"status": "SUCCESS", "structured_output": payload}}
-        ]) + "\n")
+        events = [{"event": "init", "init": {"model": "gemini-4-argon-medium"}}] if init_first else []
+        events.append({"event": "result", "result": {"status": "SUCCESS", "structured_output": payload}})
+        self.stdout = io.StringIO("\n".join(json.dumps(event) for event in events) + "\n")
 
     def poll(self):
         return self.returncode
@@ -51,7 +50,7 @@ class FakeProcess:
 
 
 class StructuredReviewTests(unittest.TestCase):
-    def run_review(self, payload, prepare=None):
+    def run_review(self, payload, prepare=None, init_first=True):
         allowed = (ROOT / "AntigravityCollab/tasks").resolve()
         with owned_directory(allowed) as folder:
             task = pathlib.Path(folder).resolve()
@@ -64,7 +63,7 @@ class StructuredReviewTests(unittest.TestCase):
                 prepare(task)
             with mock.patch("sys.argv", [str(ENTRY), str(task), "--scoped-text-review"]), \
                     mock.patch("subprocess.check_output", return_value="1.4.2"), \
-                    mock.patch("subprocess.Popen", return_value=FakeProcess(payload)), \
+                    mock.patch("subprocess.Popen", return_value=FakeProcess(payload, init_first)), \
                     mock.patch("tempfile.TemporaryDirectory", side_effect=lambda prefix: owned_directory(ROOT / "Library/TftAnalyzerValidation", prefix)), \
                     contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaises(SystemExit) as stopped:
@@ -85,6 +84,14 @@ class StructuredReviewTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(runtime["protocolSucceeded"])
         self.assertEqual(review, payload)
+
+    def test_success_before_init_and_request_is_rejected(self):
+        code, runtime, review = self.run_review(self.valid_payload(), init_first=False)
+        self.assertEqual(code, 1)
+        self.assertFalse(runtime["requestSent"])
+        self.assertFalse(runtime["protocolSucceeded"])
+        self.assertEqual(runtime["failure"], "ValueError:ResultBeforeRequest")
+        self.assertIsNone(review)
 
     def test_incomplete_or_wrongly_typed_review_is_rejected(self):
         invalid = [

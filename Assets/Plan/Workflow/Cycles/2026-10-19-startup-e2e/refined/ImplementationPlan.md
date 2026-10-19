@@ -1,5 +1,8 @@
 # Task 6 시작 버전 확인·전체 흐름 검증 실행 계획
 
+현재 상태(2026-10-19 PR14 재검수): **수동 E2E 간헐 실패의 원인 미확인으로 QA 검증 실패·병합 보류**. 두 검수 수정과 최종617개/616통과/실패0/제외1은 [최신 수정 보고](PR14RevisionReport.md)를 따른다. 아래 이전 실행의 조건부 통과·수치는 당시 이력이며 최신 승인으로 적용하지 않는다.
+
+
 2026-10-19. 기존 [Phase 3 Task 6](../../../../Implementation/2026-09-17-tft-analyzer-editor-ui.md)의 실행 계약을 독립 기획 2건에 따라 구체화했다. PR13 최신6281238의 검수 통과·병합(ab63a3c)을 확인했으며 구현을 시작한다. 사용자 전체 작업 계획 완료 요청 범위에 속하며 Task6 밖의 기능은 추가하지 않는다.
 
 ## 목적과 범위
@@ -71,7 +74,7 @@ File: `Tests/EditMode/Compliance/ForbiddenFeatureSurfaceTests.cs`.
 - [x] 기존 UI/Data·창의 최소 연결: 선택과 다른 마지막 성공 기록, 원본 버전 차이만 수동 가져오기 안내, 새 창/요청 없음, 구독 해제.
 - [x] `Tests/EditMode/UI/TftDataAnalyzerEndToEndTests.cs`: 실제 버전→가져오기 승인/취소→검증/게시/인덱스 재로드→수집 승인/취소→경기 두 개→익명 저장→집계→UI. 원본 식별자/가짜 키 미저장, opt-in 해제, 동일 import/집계 재생성의 바이트 불변 확인.
 - [x] `Tests/EditMode/Compliance/ForbiddenFeatureSurfaceTests.cs`: 실제 제품 타입·메뉴·UI의 금지 표면, 승인된 부정 고지와 별도 긍정 문장의 반례.
-- [x] 집중 RED/GREEN·전체 EditMode·새 Console 오류·보호 해시·창/프레임/포커스·실제 PNG와 수동 가짜 E2E. 파일 symlink 등 환경별 건너뜀을 분리한다.
+- [ ] 집중 RED/GREEN·전체 EditMode·새 Console 오류·보호 해시·창/프레임/포커스·실제 PNG와 수동 가짜 E2E. PR14 재검수에서 간헐 실패가 발견되어 재개방했다. 파일 symlink 등 환경별 건너뜀을 분리한다.
 - [x] Phase1/2/3 최종 대응표: 전체 identity/원본 버전 구분·공식 값 우선/opt-in·검증/게시/복구·idempotence, 익명화/중복/상한/범위·기간/분모·99/100/Wilson/Legend 차단·CSV, 정책/빌드 콜백과 startup 두 필드/24시간. 각 조건의 최종 head 테스트/수동 증거를 명시한다.
 - [x] 선택적 공개 버전 네트워크 smoke는 기존 명시적 테스트에 취소 기한을 둔 뒤 한 번 실행하고 기본 가짜 테스트와 구분한다. 실제 Riot API/개인 seed 요청은 추가 승인 없이 실행하지 않는다.
 - [ ] 독립 코드 검수·별도 QA·문서 검증 후 함께 커밋·PR 요청, 최신 head 검수·미해결·CI 확인 후 승인 범위에 따라 병합한다. PR push 뒤 대기 루프는 만들지 않는다.

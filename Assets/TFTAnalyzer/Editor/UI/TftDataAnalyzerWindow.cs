@@ -136,7 +136,7 @@ namespace TFTAnalyzer.Editor.UI
         {
             var label = rootVisualElement.Q<Label>("startup-version-notice");
             if (label == null) return;
-            label.text = _versionCheck?.Notice ?? "";
+            label.text = _versionCheck?.NoticeFor(LastImportedSourceVersion.Select(_dataManager.Rows)) ?? "";
             label.EnableInClassList("tft-tab-hidden", string.IsNullOrEmpty(label.text));
         }
 

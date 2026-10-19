@@ -33,11 +33,14 @@ namespace TFTAnalyzer.Editor.Ingestion
             {
                 string imported;
                 try { imported = _importedVersion(); } catch { return ""; }
-                return IsVersion(imported) && IsVersion(LatestVersion) && imported != LatestVersion
-                    ? $"새 원본 게임 버전 {LatestVersion}이 있습니다. 마지막 가져오기 원본 버전은 {imported}입니다. 원하면 카탈로그 가져오기를 직접 실행해 주세요."
-                    : "";
+                return NoticeFor(imported);
             }
         }
+        internal string NoticeFor(string imported) =>
+            IsVersion(imported) && IsVersion(LatestVersion) && imported != LatestVersion
+                ? $"새 원본 게임 버전 {LatestVersion}이 있습니다. 마지막 가져오기 원본 버전은 {imported}입니다. 원하면 카탈로그 가져오기를 직접 실행해 주세요."
+                : "";
+
         internal StaticVersionCheckScheduler(IHttpTransport transport, Func<DateTimeOffset> utcNow,
             string projectRoot, Func<string> importedVersion, TimeSpan? timeout = null)
         {

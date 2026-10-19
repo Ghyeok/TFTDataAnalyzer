@@ -143,6 +143,8 @@ with tempfile.TemporaryDirectory(prefix="tft-agy-review-") as folder:
                     report["toolAttempts"].append(step.get("tool_name"))
                     raise ValueError("ToolAttemptDuringTextOnlyReview")
             elif event.get("event") == "result":
+                if not report["requestSent"]:
+                    raise ValueError("ResultBeforeRequest")
                 result = event.get("result", {})
                 break
         if result is None:

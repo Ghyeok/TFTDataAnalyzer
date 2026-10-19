@@ -28,6 +28,76 @@ namespace TFTAnalyzer.Tests.UI
     public sealed class TftDataAnalyzerEndToEndTests
     {
         [UnityTest]
+        public IEnumerator WindowNoticeUsesLoadedRowsWithoutReloadingImportedVersion()
+        {
+            var name = "TftWindowLoadedNotice_" + Guid.NewGuid().ToString("N");
+            var root = Path.Combine(Path.GetTempPath(), name);
+            var now = new DateTimeOffset(2026, 10, 19, 1, 0, 0, TimeSpan.Zero);
+            var transport = new TFTAnalyzer.Tests.Ingestion.StaticVersionCheckSchedulerTests.RecordingTransport();
+            var service = new DataManagerFakeService
+                { Rows = new[] { DataManagerTestSupport.Row(DataManagerTestSupport.Identity()) } };
+            var importedVersionCalls = 0;
+            try
+            {
+                using (var windows = new OwnedEditorWindowScope())
+                using (var data = new DataManagerViewModel(service))
+                using (var collection = new CollectionViewModel(new CollectionFakeService()))
+                using (var analysis = new AnalysisViewModel(new AnalysisFixture.Service()))
+                using (var scheduler = new StaticVersionCheckScheduler(transport, () => now, root,
+                    () => { importedVersionCalls++; return "16.18.1"; }))
+                {
+                    var check = scheduler.CheckAsync(default);
+                    var deadline = EditorApplication.timeSinceStartup + 5;
+                    while (!check.IsCompleted)
+                    {
+                        Assert.That(EditorApplication.timeSinceStartup, Is.LessThan(deadline));
+                        yield return null;
+                    }
+                    check.GetAwaiter().GetResult();
+                    var window = windows.Create<TftDataAnalyzerWindow>(value => value.Configure(data,
+                        collection, analysis, new AboutViewModel(new ComplianceSettingsStore(root)),
+                        summary => true, summary => false, scheduler));
+                    window.CreateGUI();
+                    Assert.That(window.rootVisualElement.Q<Label>("startup-version-notice").text,
+                        Does.Contain("16.18.2").And.Contain("16.18.1"));
+                    Assert.That(importedVersionCalls, Is.Zero,
+                        "Window creation must compare the already loaded Rows without reloading catalogs.");
+
+                    Assert.That(data.TrySetInput(DataManagerTestSupport.Identity().Patch, false), Is.True);
+                    Assert.That(window.rootVisualElement.Q<Label>("startup-version-notice").text,
+                        Does.Contain("16.18.2").And.Contain("16.18.1"));
+                    Assert.That(importedVersionCalls, Is.Zero, "Data Changed must reuse the loaded Rows.");
+                    window.CreateGUI();
+                    Assert.That(window.rootVisualElement.Q<Label>("startup-version-notice").text,
+                        Does.Contain("16.18.2").And.Contain("16.18.1"));
+                    Assert.That(importedVersionCalls, Is.Zero, "GUI reconstruction must reuse the loaded Rows.");
+
+                    service.Rows = new[] { DataManagerTestSupport.Row(DataManagerTestSupport.Identity("16.18.2")) };
+                    var import = data.ImportAsync(summary => true);
+                    deadline = EditorApplication.timeSinceStartup + 5;
+                    while (!import.IsCompleted)
+                    {
+                        Assert.That(EditorApplication.timeSinceStartup, Is.LessThan(deadline));
+                        yield return null;
+                    }
+                    import.GetAwaiter().GetResult();
+                    Assert.That(data.State, Is.EqualTo(DataManagerState.Succeeded));
+                    var notice = window.rootVisualElement.Q<Label>("startup-version-notice");
+                    Assert.That(notice.text, Is.Empty, "The refreshed Rows now match the latest source version.");
+                    Assert.That(notice.ClassListContains("tft-tab-hidden"), Is.True);
+                    Assert.That(importedVersionCalls, Is.Zero, "Import notifications must use the refreshed Rows.");
+                    Assert.That(transport.Urls, Has.Count.EqualTo(1));
+                }
+            }
+            finally
+            {
+                Assert.That(Path.GetFullPath(root), Is.EqualTo(Path.Combine(Path.GetFullPath(Path.GetTempPath()), name)));
+                AnalyzerStorePaths.RejectReparsePoints(root);
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator NewWindowRestoresCachedNoticeWithFreshModelsAndNoAdditionalHttp()
         {
             var name = "TftWindowNotice_" + Guid.NewGuid().ToString("N");

@@ -1,16 +1,16 @@
 # Task6 시작 버전 확인·전체 검증 체크포인트
 
-2026-10-19. 상태: Task6 구현·독립 코드 검수·별도 QA 조건부 통과, 문서·커밋/PR 준비. 사용자 최종 승인 전이다.
+2026-10-19. 상태: PR14 검수 수정 중, 수동 E2E 간헐 실패로 QA 검증 실패·병합 보류. 사용자 최종 승인 전이다.
 
-## 최신 상태: QA 종결·PR 준비
+## 최신 상태: PR14 수정과 미해결 검증
 
-- 기획 A=실제 Antigravity/B=GPT의 같은 입력 검수를 적용하고 기존 Task6 범위의 계획·검증 계약을 보완했다. 원문·실제 모델 구성/사용량·접근 제한 한계는 협업 결과에 보존했다.
-- 독립 코드 검수 P2 세 건 및 주입 아이콘 검증 충돌을 종결했다. 별도 QA의 실제 새 창 재생성 검증 누락도 새 회귀1/1로 보완했고 최종 QA는 조건부 통과·blocker0이다. [개발 보고](refined/DevelopmentReport.md), [QA](refined/QAReport.md), [전체 대응표](refined/CompletionGateAudit.md)를 따른다.
-- 최종 task6-final3-suite.json616개/615통과/실패0/호스트 symlink1제외, task6-window-compile-status.json completed/실패없음, 공개 버전 명시1/1. actual fake E2E·합성 분석12 PNG는 root가 모두 직접 확인했다. 일부 문자 겹침·강제 CLI 격리·실데이터 검증 한계는 남긴다.
-- 기존 창9/native1/focus0 동일, 보호1,386개 변경0/E2E 자산 폴더0. 초기 오프라인 폴더5개도 정확한 경계/링크 거부/empty-only 삭제로 잔류0이다. 마지막 cursor227→241 새 오류0이며 앞선 Pipeline 통신 오류2건은 이력에 유지한다.
-- 브랜치 codex/startup-e2e, 기준 ab63a3c. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 staging/커밋에서 제외한다. 제품·문서 정리 후 scoped commit과 main 대상 PR을 준비한다. 실제 커밋/head/PR URL은 발행 결과와 Git에서 확인한다.
-- 다음 첫 행동: 발행 전이면 범위·문서·링크·차이를 확인해 커밋/PR. 이미 발행됐으면 최신 head의 CodeRabbit·미해결 항목·CI를 한 번 확인한다. push 뒤 대기 루프 없이 PR 링크·검증·다음 행동을 알리고 종료한다. Hermes5분 모니터는 중단 유지, 호출0이다.
-- PR 검수·승인 범위 병합·사용자 최종 승인 전 전체 목표/사이클은 완료가 아니다.
+- [PR #14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14), 기준 head814c635, 브랜치 codex/startup-e2e. 사용자 승인에 따른 최신 결과 1회 조회는 CodeRabbit PENDING·미해결1개·다른 CI check 없음이었다. 병합하지 않았다.
+- 조기 SUCCESS 수락 차단과 이미 로드된 Rows로 시작 안내를 계산하는 두 검수 수정을 구현했다. Python4/4, 새 UI 회귀 RED→GREEN1/1, 최종 compile 정상 및 전체617개 중616통과/실패0/호스트 링크1제외다. 독립 코드검수 finding0이다.
+- 수동 E2E 마지막16.18.2 가져오기에서 간헐 ImportFailed가 두 차례 발생했다. 후속 성공6PNG와 창 정리는 확인했지만 실제 실패 예외·원인은 미확인이다. 임시 제품 진단과 decorator는 제거했다. 별도 QA는 검증 실패·병합 보류다. 이전 조건부 통과를 최신 승인으로 사용하지 않는다.
+- 기존 창9/native1/focus0 정확한 ID 동일, 보호1,386개 변경0/임시 자산0. cursor261→277 새 오류2건은 Pipeline transport/header 예외다. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 커밋에서 제외한다.
+- [검수 수정 보고](refined/PR14RevisionReport.md)에 RED/GREEN·수동 실패·최종 증거·독립 검수/QA를 모았다. 원본은 Library/TftAnalyzerValidation, 공개 기록은 raw/PR14Revision*.md다.
+- 다음 첫 행동: 실제 Git/PR head와 작업 트리를 확인하고 마지막 가져오기 실패의 원인을 조사한다. 최신 head 검수 재조회는 사용자 재개 때 한 번만 수행한다. push 후 대기 루프 없이 링크·검증·다음 행동을 알리고 종료한다. Hermes 예약은 중단 유지한다.
+- 원인에 맞는 수정·회귀·QA, 최신 head CodeRabbit·미해결·CI, 승인 범위 병합·사용자 최종 승인이 남아 전체 목표/사이클은 미완료다.
 
 ## 앞선 실행 이력
 
