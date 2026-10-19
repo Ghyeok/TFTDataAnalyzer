@@ -1,6 +1,21 @@
 # PR14 검수 수정·미해결 검증 보고
 
-## 최신: 비동기 진단의 경로 노출 수정
+## 최신: 진단 파일 쓰기 실패 시 최종 보고 보존
+
+2026-10-20. 수정 기준1106911. 사용자 승인 1회 조회 결과 해당 head의 CodeRabbit review/CI check는 없었고, 이전 b213d07 검수의 미해결1개가 현재 코드에 남아 있었다. MERGEABLE/CLEAN을 통과로 해석하지 않았다. [검수 항목](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14#discussion_r4315405822)을 실제 실패로 확인해 수정했다.
+
+진단 상세 파일과 상태 반사/직렬화/쓰기를 각각 독립 try/catch로 보호한다. 한 파일의 기록 실패가 다른 진단·원래 failure 값·최종 보고서·finally 정리를 막지 않는다. 기존5개 상태 필드와 정상 Passed 판정·기한·창 소유권은 유지한다.
+
+- 실제 RED: 상세 진단 쓰기를 막으면 실행 오류로 최종 JSON이 생성되지 않았다. GREEN에서는 같은 조건에서도 원래 실패와 IOException 상태/발생 메서드·최종 JSON·창 정리가 보존됐다.
+- 상태 진단 쓰기만 별도로 막은 두 번째 시험에서도 상세 기록·최종 보고·정리가 보존됐다. 두 probe는 의도된 실패로 strict Passed=false·captures0을 유지한다. 원래 간헐 오류의 재현은 아니다.
+- 기존 창9/native1/focus0, 보호1,386개 변경0/임시 E2E 자산0. cursor337→341 새4건은 Pipeline transport/header 오류이며 현재 Console 오류6/경고0·compilationFailed=false다.
+- 제품/테스트 Assets 소스가 그대로여서 전체620개/619통과/실패0/호스트 링크1제외는 직전 실행 증거이며 재실행하지 않았다. 변경된 run_script C#의 실제 컴파일·두 실패 경로를 검증했다.
+- 독립 코드 검수 finding0 및 별도 QA는 이번 진단 기록 실패 격리 수정 한정 통과다. [공개 요청·RED/GREEN·검수·QA](../raw/DiagnosticWriteRevision.md)를 보존한다. 원래 간헐 실패의 전체 QA·병합 보류는 계속된다.
+
+원본은 Library/TftAnalyzerValidation/pr14-diagnostic-write-failure-probe/, pr14-state-write-failure-probe/, pr14-write-guard-final-*.json이다. 새 head push 뒤 재조회·대기 루프는 만들지 않으며 다음 실제 재개 시 최신 head 검수/미해결/CI를 구분한다.
+
+
+## 이전: 비동기 진단의 경로 노출 수정
 
 2026-10-20. 수정 기준 bd2079f. 이번 **진단 경로 노출 수정만 검수·QA 통과**이며, 원래 간헐 ImportFailed의 원인은 미확정이라 전체 QA·병합 보류는 유지한다. 아래 이전 보고의 파일 경로 제외 판단은 이 실행으로 정정한다.
 

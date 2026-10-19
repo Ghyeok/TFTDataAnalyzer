@@ -153,15 +153,24 @@ public static class EndToEndScopedVisualValidation
             {
                 var cause = exception is TargetInvocationException && exception.InnerException != null ? exception.InnerException : exception;
                 failure = "VisualValidationFailed:" + cause.GetType().Name;
-                File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-detail.txt"), cause.GetType().FullName + Environment.NewLine + cause.StackTrace);
-                var data = scenario?.GetType().GetField("_data", BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?.GetValue(scenario) as DataManagerViewModel;
-                File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-state.json"), JsonConvert.SerializeObject(new
+                // Diagnostics are independent best efforts; preserve the original failure and final report.
+                try
                 {
-                    Stage = stage, DataState = data?.State.ToString(), DataErrorCode = data?.ErrorCode,
-                    ImportFailureType = ReadImportDiagnostic(data, "LastImportFailureType"),
-                    ImportFailureStack = ReadImportDiagnostic(data, "LastImportFailureStack")
-                }, Formatting.Indented));
+                    File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-detail.txt"), cause.GetType().FullName + Environment.NewLine + cause.StackTrace);
+                }
+                catch (Exception) { }
+                try
+                {
+                    var data = scenario?.GetType().GetField("_data", BindingFlags.Instance | BindingFlags.NonPublic)
+                        ?.GetValue(scenario) as DataManagerViewModel;
+                    File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-state.json"), JsonConvert.SerializeObject(new
+                    {
+                        Stage = stage, DataState = data?.State.ToString(), DataErrorCode = data?.ErrorCode,
+                        ImportFailureType = ReadImportDiagnostic(data, "LastImportFailureType"),
+                        ImportFailureStack = ReadImportDiagnostic(data, "LastImportFailureStack")
+                    }, Formatting.Indented));
+                }
+                catch (Exception) { }
             }
             finally
             {

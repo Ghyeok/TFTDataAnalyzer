@@ -1,13 +1,14 @@
 # Task6 시작 버전 확인·전체 검증 체크포인트
 
-2026-10-20. 상태: PR14 비동기 진단 경로 제거, 수동 E2E 간헐 실패로 QA 검증 실패·병합 보류. 사용자 최종 승인 전이다.
+2026-10-20. 상태: PR14 진단 기록 실패 격리, 수동 E2E 간헐 실패로 QA 검증 실패·병합 보류. 사용자 최종 승인 전이다.
 
-## 최신 상태: PR14 진단 경로 제거와 미해결 검증
+## 최신 상태: PR14 진단 기록 실패 격리와 미해결 검증
 
-- [PR #14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14), 수정 기준 headbd2079f, 브랜치 codex/startup-e2e. 2026-10-19 당시814c635의 사용자 승인 1회 조회는 CodeRabbit PENDING·미해결1개·다른 CI check 없음이었다. b213d07 이후 head는 재조회하지 않았고 병합하지 않았다.
+- [PR #14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14), 수정 기준1106911, 브랜치 codex/startup-e2e. 사용자 승인으로1106911을 1회 조회했다. 해당 head의 CodeRabbit review/CI check는 없었고 이전 b213d07 미해결1개(진단 쓰기 실패가 최종 보고를 막음)가 남아 있었다. 실제 RED→최소 수정→GREEN·독립 검수·QA를 확인했다. 최신 결과 통과나 병합으로 확대하지 않는다.
 - 조기 SUCCESS 수락 차단과 이미 로드된 Rows로 시작 안내를 계산하는 두 검수 수정을 구현했다. Python4/4, 새 UI 회귀 RED→GREEN1/1, 내부 진단의 async await/rethrow 회귀로 절대 경로 잔류를 확인한 뒤 metadata-only 출력으로 수정했고3/3을 확인했다. 최종 compile 정상 및 전체620개 중619통과/실패0/호스트 링크1제외다. 독립 코드검수 finding0이다.
 - 수동 E2E 마지막16.18.2 가져오기에서 간헐 ImportFailed가 두 차례 발생했다. 후속 성공6PNG와 창 정리는 확인했지만 실제 실패 예외·원인은 미확인이다. 임시 제품 디스크 진단과 decorator는 제거했다. generic catch의 형식·메서드 metadata만 내부 문자열로 보존하며 하네스 실패 JSON에서 읽는다. 제어된 actual publisher IOException probe로 export·경로 제외·정리를 확인했다. 이는 원래 간헐 실패의 원인이 아니다. 전체 suite 직후 수동 실행도 성공해 테스트 잔류 가설은 입증되지 않았다. 진단 경로 노출 수정만 별도 QA 통과다. 전체 QA는 검증 실패·병합 보류다. 이전 조건부 통과를 최신 승인으로 사용하지 않는다.
-- 기존 창9/native1/focus0 정확한 ID 동일, 보호1,386개 변경0/임시 자산0. cursor307→337 새 오류2건은 Pipeline transport/header 예외다. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 커밋에서 제외한다.
+- 기존 창9/native1/focus0 정확한 ID 동일, 보호1,386개 변경0/임시 자산0. cursor337→341 새 오류4건은 Pipeline transport/header 예외다. 사용자 Assets/DefaultVolumeProfile.asset 변경은 보존하고 커밋에서 제외한다.
+- 진단 상세/상태 쓰기를 각각 보호해 한 저장 실패가 원래 failure·다른 진단·최종 보고를 막지 않게 했다. 실제 두 negative probe는 Passed=false를 그대로 유지하면서 보고·창 정리를 확인했다. 제품/테스트 Assets 소스가 그대로라 전체 suite/정상 PNG를 반복하지 않았다. [공개 검수·QA](raw/DiagnosticWriteRevision.md).
 - [검수 수정 보고](refined/PR14RevisionReport.md)에 RED/GREEN·수동 실패·최종 증거·독립 검수/QA를 모았다. 원본은 Library/TftAnalyzerValidation, 공개 기록은 raw/PR14Revision*.md다.
 - 다음 첫 행동: 실제 Git/PR head와 작업 트리를 확인하고 마지막 가져오기 실패의 원인을 조사한다. 최신 head 검수 재조회는 사용자 재개 때 한 번만 수행한다. push 후 대기 루프 없이 링크·검증·다음 행동을 알리고 종료한다. Hermes 예약은 중단 유지한다.
 - 원인에 맞는 수정·회귀·QA, 최신 head CodeRabbit·미해결·CI, 승인 범위 병합·사용자 최종 승인이 남아 전체 목표/사이클은 미완료다.
