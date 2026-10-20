@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using NUnit.Framework;
 using TFTAnalyzer.Editor.UI;
+using TFTAnalyzer.Editor.UI.Data;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -56,6 +57,35 @@ namespace TFTAnalyzer.Tests.UI
             AssertOnlyVisibleTab("data-tab");
             AssertPersistentDisclaimer();
             Assert.That(_window.rootVisualElement.Q("ui-load-error"), Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator BrowserFollowsTheSameActiveCatalogAndSurvivesGuiReconstructionWithoutHttp()
+        {
+            var first = DataManagerTestSupport.Identity(); var second = DataManagerTestSupport.Identity("16.18.2");
+            var service = new DataManagerFakeService { Rows = new[] {
+                DataManagerTestSupport.Row(first), DataManagerTestSupport.Row(second, "After") } };
+            var data = new DataManagerViewModel(service);
+            var window = _windows.Create<TftDataAnalyzerWindow>(value =>
+            {
+                CollectionUITestSupport.SetWindowModel(value, "_dataManager", data);
+                CollectionUITestSupport.UseOfflineCollection(value);
+            });
+            window.CreateGUI(); data.SelectActiveCatalog(first);
+            yield return EditorWindowTestSupport.WaitForRender();
+            var oldSearch = window.rootVisualElement.Q<TextField>("browser-search"); oldSearch.value = "before";
+            yield return EditorWindowTestSupport.WaitForRender();
+            window.rootVisualElement.Q<ListView>("browser-results").SetSelection(0);
+            yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(window.rootVisualElement.Q<Label>("browser-detail-text").text, Does.Contain("Before"));
+            window.CreateGUI(); oldSearch.value = "obsolete";
+            Assert.That(window.rootVisualElement.Q<TextField>("browser-search").value, Is.EqualTo("before"));
+            Assert.That(window.rootVisualElement.Q<Label>("browser-detail-text").text, Does.Contain("Before"));
+            data.SelectActiveCatalog(second); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(window.rootVisualElement.Q<Label>("browser-catalog").text, Does.Contain("16.18.2"));
+            Assert.That(window.rootVisualElement.Q<Label>("collection-catalog").text, Does.Contain("16.18.2"));
+            Assert.That(window.rootVisualElement.Q<Label>("browser-detail-text").text, Is.Empty);
+            Assert.That(service.VersionCalls, Is.Zero); Assert.That(service.Imports, Is.Empty);
         }
 
         [UnityTest]

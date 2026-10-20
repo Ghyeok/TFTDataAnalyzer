@@ -1,5 +1,11 @@
 # Unity EditorWindow 검증 절차와 실패 사례
 
+## 카탈로그 탐색 검증 도구
+
+2026-10-20 추가: AgentScripts/Invoke-TftAnalyzerCatalogVisualValidation.ps1는 기존 분석 검증 도구의 소유 창/native frame 패턴을 재사용한다. PublishedCatalogLoader로 검증된 로컬 카탈로그만 읽고 수집/분석/가져오기는 실행하지 않는다. 정상940/500px 검색/상세4PNG를 직접 확인한다. ProbeInitializationFailure와 ProbeFailure는 표시 전/후 예외를 검증한다.
+
+각 호출의finally와CleanupLastOwned는 정확한ID/고유이름, 기존창/ContainerWindow/포커스로 잔류0을 확인한다. 가시성 변경은 실행 전 PID별 HWND 집합에서 새 프레임이 정확히1개일 때만 한다. 2026-10-20 초기 실행의 정상/두예외 Passed, 창9/native1/포커스 보존·추가/누락0을 확인했다. 원문은Library/TftAnalyzerValidation/catalog-visual-*.json과catalog-window-*.png다. 이 이력을 후속 수정의 실행 증거로 적용하지 않는다.
+
 갱신일: 2026-10-18
 
 이 프로젝트에서 MCP·CLI·EditMode 테스트로 EditorWindow를 열거나 UI를 캡처할 때 적용한다. 목적은 검증 뒤 사용자 창과 작업 환경을 보존하고, 재현 가능한 증거로 결과를 판단하는 것이다. 기본 규칙은 [AGENTS.md](../AGENTS.md)의 Unity 검증 창 정리를 따른다.

@@ -16,9 +16,11 @@
 - [KI-001](../../../docs/known-issues.md)은 미해결 기록 후 개발 계속이다. 실제 Riot API 사용 검증·증강 신뢰 분류 공급·최소 표본 달성은 구현된 기본 경로와 분리해 다룬다.
 - 수집 전 준비 상태 안내는 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했다. 제품1/테스트2파일의 변경이며 실제 API·새 자동 수집은 추가하지 않았다. [승인 계획](../Workflow/Cycles/2026-10-20-collection-readiness/refined/ImplementationPlan.md)과 [결과·한계](../Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)를 따르며 PR15 최신 head 검수·main 병합·사용자 최종 승인을 완료했다.
 
-다음 권고 과업은 [검토된 증강 분류 공급 경로](../Workflow/Cycles/2026-10-20-augment-policy-provider/Checkpoint.md)는 기획 A/B 검토·사용자 승인 후 구현·코드검수·QA를 통과했다. 초기 head bfb5231의 전체680개/679P/0F/1호스트제약 제외를 확인했고 [PR #16](https://github.com/Ghyeok/TFTDataAnalyzer/pull/16)의 검수 보완을 반영했다. 제품 코드 변경 없이 강화한 서비스 테스트7/7을 재확인했으며, 새 수정 head의 검수·병합·최종 승인은 대기한다. 실제 분류 자료 등록 전 비율 차단은 유지된다.
+[검토된 증강 분류 공급 경로](../Workflow/Cycles/2026-10-20-augment-policy-provider/Checkpoint.md)는 기획 A/B 검토·사용자 승인 후 구현·코드검수·QA를 통과했다. 초기 head bfb5231의 전체680개/679P/0F/1호스트제약 제외를 확인했고 [PR #16](https://github.com/Ghyeok/TFTDataAnalyzer/pull/16)의 검수 보완을 반영했다. 제품 코드 변경 없이 강화한 서비스 테스트7/7을 실행했다. 사용자 재개 후 최신 cc62282의 CodeRabbit SUCCESS·inline thread0·별도 CI0을 확인했고 새 outside-diff 의견1건은 현재 저장·취소 계약에 대조해 미반영으로 판단했다. 최초 자동 승인 검토의 명시적 병합 승인 부족은 사용자 “병합 승인 거절 근거를 찾고 해결한 뒤 다시 병합해줘” 요청으로 해소했다. PR16은 main57891e0에 squash 병합됐고 원격 MERGED·커밋을 확인했다. 사용자 최종 결과 승인은 별도이며 실제 분류 자료 등록 전 비율 차단은 유지된다. 다음 범위는 자료 확보·검토·등록의 기획이다.
 
 ## Global Constraints
+
+현재 활성 목표의 [잔여 점검](../Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md)에서 빠진 정적 레코드 탐색을 확인했다. [기획 A/B](../Workflow/Cycles/2026-10-20-service-completion/refined/PlanningReview.md) 보완과 사용자 [계획 승인](../Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md) 후 구현·독립 검수·QA를 통과했다. 관련UI169/169, 동결 전체701개 중700통과·실패0·호스트 링크1제외, 실제4PNG·창/프레임/보호파일 보존을 확인했다. 최신 외부 PR검수·병합은 별도이며 사용자 목표에 따라5분간격확인·조건충족시병합한다. Hermes예약은재등록하지않는다. 실제분류자료·API·표본검토 등 전체목표의 남은일은 계속 진행한다.
 
 - This project never simulates TFT combat and never reports future win probability.
 - Match API payloads containing PUUIDs or raw Match IDs never touch disk or logs.

@@ -1,0 +1,24 @@
+{
+  "taskId": "2026-10-20-catalog-browser-planning",
+  "baseCommit": "57891e062863d0fc0eabfbc842775ea1ef79d516",
+  "inputDigest": "8a135386746710ce39e5c94409972dd66d540492d5ecd18f1b2463af9a5ad814",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md",
+      "sha256": "4b70e45c589eaf77c79459cbeb1d880bb1eb9030a77124762af369a29aaa9d66"
+    },
+    {
+      "copy": "inputs/completion-audit.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md",
+      "sha256": "e4480d6d70742f2d766e9b427a07ab35c77f1dc67fab2008436d410f87b8bb0f"
+    },
+    {
+      "copy": "inputs/review-contract.md",
+      "source": "Current user goal and source-inspected project contracts",
+      "sha256": "920af67235e4dc2effc7e42e895d75cab91d2a09c57cc44212f58168a912c31a"
+    }
+  ],
+  "promptVersion": "catalog-browser-planning-1",
+  "inputBytes": 17712
+}

@@ -39,6 +39,8 @@ namespace TFTAnalyzer.Editor.UI
         [SerializeField] private string selectedTab = "data-tab";
         private DataManagerViewModel _dataManager;
         private DataManagerTab _dataBinding;
+        private CatalogBrowserViewModel _browser;
+        private CatalogBrowserTab _browserBinding;
         private CollectionViewModel _collection;
         private CollectionTab _collectionBinding;
         private AnalysisViewModel _analysis;
@@ -63,6 +65,8 @@ namespace TFTAnalyzer.Editor.UI
 
         internal void RebuildUI(string uxmlPath, string ussPath)
         {
+            _browserBinding?.Dispose();
+            _browserBinding = null;
             _dataBinding?.Dispose();
             _dataBinding = null;
             _collectionBinding?.Dispose();
@@ -103,6 +107,10 @@ namespace TFTAnalyzer.Editor.UI
             }
             _dataBinding = new DataManagerTab(tree.Q("data-tab"), _dataManager,
                 _confirmImport ?? (summary => EditorUtility.DisplayDialog("카탈로그 가져오기", summary, "가져오기", "취소")));
+            if (_browser == null) _browser = new CatalogBrowserViewModel();
+            var browserProjectRoot = Path.GetDirectoryName(Application.dataPath);
+            _browserBinding = new CatalogBrowserTab(tree.Q("catalog-browser"), _browser,
+                assetPath => CatalogBrowserTab.LoadLocalIcon(browserProjectRoot, assetPath));
             if (_collection == null)
                 _collection = new CollectionViewModel(new CollectionService(new ObservationStore(
                     new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath)))));
@@ -147,10 +155,15 @@ namespace TFTAnalyzer.Editor.UI
                 value.Identity.Equals(_dataManager.ActiveIdentity));
             _collection?.SetCatalog(row?.Catalog, row?.Identity);
             _analysis?.SetCatalog(row?.Catalog, row?.Identity);
+            _browser?.SetCatalog(row?.Catalog, row?.Identity);
         }
 
         private void OnDisable()
         {
+            _browserBinding?.Dispose();
+            _browserBinding = null;
+            _browser?.Dispose();
+            _browser = null;
             if (_versionCheck != null) _versionCheck.Changed -= RenderVersionNotice;
             _dataBinding?.Dispose();
             _dataBinding = null;
