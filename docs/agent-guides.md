@@ -9,11 +9,13 @@
 | 필요한 내용 | 읽을 문서 |
 |---|---|
 | 제품 범위·사용법·현황 | [README](../README.md) |
+| 미해결 결함과 진행 허용 범위 | [알려진 문제](known-issues.md) |
 | 개발 단계·독립 검수·QA·기록 | [개발 워크플로](../Assets/Plan/Workflow/README.md) |
 | 단계별 구현 계획 찾기 | [구현 계획 개요](../Assets/Plan/Implementation/TFTDataAnalyzerImplementationPlan.md) |
 | 기획 A(Antigravity)·기획 B(GPT), 기획 검수안·자동 호출 제안 | [Antigravity 기획 검수 폴더](../AntigravityCollab/README.md), [2026-10-19 기획 검수안](../AntigravityCollab/2026-10-19-project-plan-review.md), [자동 호출 제안](../AntigravityCollab/2026-10-19-automatic-planning-review-proposal.md) |
 | Unity EditorWindow 테스트·캡처·창 정리 | [검증 절차와 실패 사례](unity-editor-validation.md) |
 | 모델·추론 선택의 상세 기준 | [모델 선택 지침](agent-model-policy.md) |
+| 서브에이전트 생성·재사용 운영 점검 | [2026-10-20 운영 점검](agent-execution-audit-2026-10-20.md) |
 | Hermes 요청·자료·결과 전달 | [Hermes 협업 규칙](../HermesCollab/README.md) |
 | CodeRabbit 5분 점검·알림 범위 | [검수 모니터 지침](coderabbit-monitoring.md) |
 

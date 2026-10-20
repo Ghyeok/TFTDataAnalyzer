@@ -156,7 +156,12 @@ public static class EndToEndScopedVisualValidation
                 // Diagnostics are independent best efforts; preserve the original failure and final report.
                 try
                 {
-                    File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-detail.txt"), cause.GetType().FullName + Environment.NewLine + cause.StackTrace);
+                    var frames = new System.Diagnostics.StackTrace(cause, false).GetFrames();
+                    var methods = frames == null ? "" : string.Join(Environment.NewLine,
+                        frames.Select(frame => frame.GetMethod()).Where(method => method != null)
+                            .Select(method => $"{method.DeclaringType?.FullName}.{method.Name}"));
+                    File.WriteAllText(Path.Combine(Root, "e2e-visual-failure-detail.txt"),
+                        cause.GetType().FullName + Environment.NewLine + methods);
                 }
                 catch (Exception) { }
                 try

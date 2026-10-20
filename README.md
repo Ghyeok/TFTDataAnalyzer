@@ -19,7 +19,7 @@ Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한
 
 2026-10-20 PR14 비동기 진단 수정의 최종 기본 EditMode는620개 중619통과·실패0·호스트 링크 권한으로1개 제외이며, 공개 버전 목록 확인1개도 별도로 통과했습니다. 전송만 가짜인 실제 가져오기→AssetDatabase→수집→익명 저장→집계→분석 흐름과940/500px 화면을 검증했습니다. 실제 네트워크 카탈로그 import·Match API 호출·네이티브 확인창 직접 클릭은 별도 미실행입니다. 신뢰 분류를 주입한 합성 비율 표시를 기본 실데이터 분류 공급 증거로 쓰지 않습니다.
 
-수동 가짜 E2E의 마지막 가져오기에서 간헐 실패가 두 차례 발생해 원인을 조사 중이며, 후속 성공으로 해결을 주장하지 않습니다. QA·병합은 보류 중입니다([최신 수정 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/PR14RevisionReport.md)).
+수동 가짜 E2E의 마지막 가져오기에서 두 차례 발생한 간헐 실패는 [KI-001](docs/known-issues.md)로 남겼습니다. 2026-10-20 사용자 지시에 따라 이 문제의 원인 규명을 다음 개발의 선행 조건에서 제외하고 작업을 계속합니다. 후속 진단3회 정상으로 해결을 주장하지 않으며, 종합 QA·최신 PR 검수·병합·최종 승인은 별도로 관리합니다([최신 수정 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/PR14RevisionReport.md)).
 
 최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-19 사용자 요청으로 일시중단했습니다([운영 지침](docs/coderabbit-monitoring.md)).
 

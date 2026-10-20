@@ -1,5 +1,15 @@
 # PR14 검수 수정·미해결 검증 보고
 
+## 2026-10-20 최신 개발 재개와 바깥 진단 경로 제외
+
+사용자가 실패 기록을 남기고 개발을 계속하도록 지시했다. 원래 간헐 가져오기는 [KI-001](../../../../../../docs/known-issues.md)로 미해결 보존하며 다음 개발을 막지 않는다. 해결·종합 QA·병합 완료를 의미하지 않는다.
+
+head8f0ac09의 CodeRabbit SUCCESS와 별개로 바깥 진단의 원시 StackTrace 지적1개가 남아 있었다. AgentScripts의 해당 저장을 타입/메서드 metadata로 최소 수정했고 비동기 실제 실행 RED→GREEN에서 예외/메서드 보존·절대 경로/.cs:/Message 제외·원래 실패/최종 보고/정리 보존을 확인했다. [요청·근거·독립 검수/QA](../raw/OuterTraceRevision.md)를 따른다. 기존 제품 전체620suite는 새 실행이 아니며 Assets 소스가 같아 반복하지 않았다.
+
+독립 검수 finding0·한정 QA 수용과 최종 보호/문서 검사를 확인했다. 함께 커밋/push한다. push 후 새 head 재검수·병합·최종 사용자 승인은 별도다.
+
+## 앞선 수정 이력
+
 ## 최신: 진단 파일 쓰기 실패 시 최종 보고 보존
 
 2026-10-20. 수정 기준1106911. 사용자 승인 1회 조회 결과 해당 head의 CodeRabbit review/CI check는 없었고, 이전 b213d07 검수의 미해결1개가 현재 코드에 남아 있었다. MERGEABLE/CLEAN을 통과로 해석하지 않았다. [검수 항목](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14#discussion_r4315405822)을 실제 실패로 확인해 수정했다.
