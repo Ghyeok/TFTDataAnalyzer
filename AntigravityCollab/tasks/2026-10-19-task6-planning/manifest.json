@@ -1,0 +1,29 @@
+{
+  "taskId": "2026-10-19-task6-planning",
+  "baseCommit": "ab63a3c1a4c1add290f293e9c54cb48261050a0b",
+  "inputDigest": "c7704c8a4437428da3f63a36fcc2bef69b58302d47c6616c77eb0bb2fc7e1a83",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/ImplementationPlan.md",
+      "sha256": "d59ee71a0cfebb897fd4a339d40a28dfaee726d5f73723a5e2f6b16cab087fa5"
+    },
+    {
+      "copy": "inputs/completion-gates.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/CompletionGateAudit.md",
+      "sha256": "5a21c7c38495d257e5df9fff893c56870906213f4430cb457265288c99bdc0c1"
+    },
+    {
+      "copy": "inputs/checkpoint.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md",
+      "sha256": "171e0d0b0fb06ba491cc84713a268a1d809a2a4974362b897fc2f76bac9fe37d"
+    },
+    {
+      "copy": "inputs/project-context.md",
+      "source": "Codex current source inspection and user decisions",
+      "sha256": "dd966f896fe1346fcc54980fe8f2215fa985a7f4db5673c65f85d8e0c2636c2e"
+    }
+  ],
+  "promptVersion": "planning-ab-1",
+  "inputBytes": 22496
+}

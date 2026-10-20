@@ -8,6 +8,27 @@ namespace TFTAnalyzer.Tests.Validation
 {
     public sealed class CatalogValidatorTests
     {
+        [TestCase("Assets/TftAnalyzerE2E_fixture/Generated/Icons/hash.png", true)]
+        [TestCase("Assets/TFTAnalyzer/Data/Generated/Icons/hash.png", false)]
+        [TestCase("Assets/Other/Generated/Icons/hash.png", false)]
+        [TestCase("Assets/TftAnalyzerE2E_fixture/Generated/Icons/../hash.png", false)]
+        [TestCase("Assets/TftAnalyzerE2E_fixture/Generated/Icons/nested/hash.png", false)]
+        [TestCase("Assets/TftAnalyzerE2E_fixture/Generated/Icons/hash.png?other", false)]
+        public void ValidateOnlyTrustsTheConfiguredGeneratedIconDirectory(string icon, bool accepted)
+        {
+            var catalog = new StaticCatalog(Manifest(), new[] { new UnitRecord("TEST18_Unit_A",
+                new LocalizedText("시험", "Test"), 1, null, icon, null) }, null, null, null);
+            var report = new CatalogValidator("Assets/TftAnalyzerE2E_fixture/Generated").Validate(catalog);
+            Assert.That(report.CanPublish, Is.EqualTo(accepted));
+            Assert.That(report.Issues.Any(issue => issue.Code == "invalid_icon_metadata"), Is.EqualTo(!accepted));
+        }
+
+        [TestCase("Assets/../Generated")]
+        [TestCase("Assets/Other/Generated/")]
+        [TestCase("Library/Generated")]
+        public void ValidatorRejectsAnUnsafeConfiguredRoot(string root) =>
+            Assert.Throws<ArgumentException>(() => new CatalogValidator(root));
+
         [Test]
         public void Validate_BlocksDuplicateIdsAndMissingTraits()
         {

@@ -17,13 +17,19 @@ namespace TFTAnalyzer.Editor.UI.Data
         private readonly DataDragonAdapter _dataDragon;
         private readonly IHttpTransport _transport;
         private readonly Func<CatalogIndex> _indexProvider;
+        private readonly Func<DateTimeOffset> _utcNow;
 
         public DataManagerService(StaticCatalogPaths paths, IHttpTransport transport, Func<CatalogIndex> indexProvider)
+            : this(paths, transport, indexProvider, () => DateTimeOffset.UtcNow) { }
+
+        public DataManagerService(StaticCatalogPaths paths, IHttpTransport transport, Func<CatalogIndex> indexProvider,
+            Func<DateTimeOffset> utcNow)
         {
             _paths = paths ?? throw new ArgumentNullException(nameof(paths));
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _indexProvider = indexProvider ?? throw new ArgumentNullException(nameof(indexProvider));
             _dataDragon = new DataDragonAdapter(transport);
+            _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
         }
 
         public IReadOnlyList<PatchRowViewModel> LoadLocalCatalogs() =>
@@ -44,7 +50,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             var source = new NetworkStaticCatalogSource(_dataDragon, new CommunityDragonAdapter(),
                 new CatalogMerger(), _transport);
             return new StaticCatalogPipeline(source, _transport, _paths, new CatalogAssetWriter(_paths),
-                new CatalogValidator(), new CatalogIndexWriter(_paths), AssetDatabase.Refresh).RunAsync(request, token);
+                new CatalogValidator(_paths.GeneratedRelativeDirectory), new CatalogIndexWriter(_paths, _utcNow), AssetDatabase.Refresh).RunAsync(request, token);
         }
     }
 }

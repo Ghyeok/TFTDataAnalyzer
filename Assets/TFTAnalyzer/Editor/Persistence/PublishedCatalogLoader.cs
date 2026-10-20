@@ -50,7 +50,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 if (!string.Equals(hash, entry.ContentHash, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException();
                 var catalog = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(directory, "catalog.json")));
-                var validation = new CatalogValidator().Validate(catalog);
+                var validation = new CatalogValidator(_paths.GeneratedRelativeDirectory).Validate(catalog);
                 var metadata = JObject.Parse(File.ReadAllText(Path.Combine(directory, "manifest.json")));
                 var time = metadata.GetValue("createdUtc", StringComparison.OrdinalIgnoreCase);
                 if (time == null || (time.Type != JTokenType.Date && time.Type != JTokenType.String))

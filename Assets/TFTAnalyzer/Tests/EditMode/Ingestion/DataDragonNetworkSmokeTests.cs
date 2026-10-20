@@ -15,7 +15,8 @@ namespace TFTAnalyzer.Tests.Ingestion
         {
             var adapter = new DataDragonAdapter(new UnityWebRequestTransport());
 
-            var versions = await adapter.FetchVersionsAsync(CancellationToken.None);
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var versions = await adapter.FetchVersionsAsync(deadline.Token);
 
             Assert.That(versions, Is.Not.Empty);
             Assert.That(versions.Any(value => Version.TryParse(value, out _)), Is.True);

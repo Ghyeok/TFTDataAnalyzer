@@ -1,0 +1,21 @@
+{
+  "ExistingUserPid": 22088,
+  "ExistingUserSessionRunning": true,
+  "OwnedProcesses": [
+    {
+      "OwnedPid": 14740,
+      "StillRunning": false,
+      "ChildPids": []
+    },
+    {
+      "OwnedPid": 38284,
+      "StillRunning": false,
+      "ChildPids": []
+    },
+    {
+      "OwnedPid": 24120,
+      "StillRunning": false,
+      "ChildPids": []
+    }
+  ]
+}

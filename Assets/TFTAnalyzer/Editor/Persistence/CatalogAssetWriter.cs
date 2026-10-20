@@ -100,7 +100,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     File.WriteAllBytes(path, response.Body);
                 }
 
-                var assetPath = $"{StaticCatalogPaths.GeneratedAssetDirectory}/Icons/{hash}.png";
+                var assetPath = $"{_paths.GeneratedRelativeDirectory}/Icons/{hash}.png";
                 cache[source] = assetPath;
                 return assetPath;
             }
@@ -167,6 +167,7 @@ namespace TFTAnalyzer.Editor.Persistence
             ValidationReport validation,
             string stagingRoot)
         {
+            _paths.EnsureStagingPath(stagingRoot);
             var patchDirectory = Path.Combine(stagingRoot, "patch");
             Directory.CreateDirectory(patchDirectory);
             var catalogJson = CanonicalCatalogSerializer.Serialize(
@@ -220,6 +221,8 @@ namespace TFTAnalyzer.Editor.Persistence
 
         public bool Publish(StagedCatalog staged, string finalDirectory, bool compatibleLegacy = false)
         {
+            _paths.EnsureGeneratedPath(finalDirectory);
+            _paths.EnsureStagingPath(staged.StagingRoot);
             if (Directory.Exists(finalDirectory))
             {
                 var existingHash = VerifyPublishedHash(finalDirectory, staged.Identity, compatibleLegacy);
@@ -243,6 +246,7 @@ namespace TFTAnalyzer.Editor.Persistence
         {
             if (!string.IsNullOrWhiteSpace(stagingRoot) && Directory.Exists(stagingRoot))
             {
+                _paths.EnsureStagingPath(stagingRoot);
                 Directory.Delete(stagingRoot, true);
             }
         }

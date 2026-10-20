@@ -27,6 +27,7 @@
                             <ui:Button name="cancel-button" text="작업 취소" />
                         </ui:VisualElement>
                         <ui:Label name="data-status" class="tft-data-status tft-wrapped-text" />
+                        <ui:Label name="startup-version-notice" class="tft-wrapped-text tft-tab-hidden" />
                         <ui:Foldout text="사용 가능한 원본 버전" value="false">
                             <ui:Label name="available-versions" class="tft-wrapped-text" />
                         </ui:Foldout>

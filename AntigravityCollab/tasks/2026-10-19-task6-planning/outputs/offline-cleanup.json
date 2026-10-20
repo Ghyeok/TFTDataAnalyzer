@@ -1,0 +1,13 @@
+{
+  "method": "Exact verified in-project paths, reject reparse points, Directory.Delete(path,false) permits empty directories only",
+  "ownedDirectoryNames": [
+    "offline-review-_oko62vs",
+    "offline-review-0605y8cs",
+    "offline-review-3lygv_cl",
+    "offline-review-9o8yh3kr",
+    "offline-review-gf4wi1v3"
+  ],
+  "remaining": [],
+  "verified": true,
+  "approvalReviewRecovered": true
+}
