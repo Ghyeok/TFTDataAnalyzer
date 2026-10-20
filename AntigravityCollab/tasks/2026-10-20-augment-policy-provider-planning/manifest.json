@@ -1,0 +1,24 @@
+{
+  "taskId": "2026-10-20-augment-policy-provider-planning",
+  "baseCommit": "534cfa50ffbc55500585e874412b11c2246c2fe7",
+  "inputDigest": "534a92e24dc592c10994fff294b435ec00fa5ae5d3f4748a4890dad576ff002e",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-augment-policy-provider/refined/ImplementationPlan.md",
+      "sha256": "0811d23dedcef46767c4c68022fa37ec0fb9e4260ba6b24df859ab36b92552e4"
+    },
+    {
+      "copy": "inputs/implementation-review.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-augment-policy-provider/refined/ImplementationReview.md",
+      "sha256": "14058f11db77ebc535f7c670040ffdea2d1ca6bb809eca314acbdeb13aca8f90"
+    },
+    {
+      "copy": "inputs/review-contract.md",
+      "source": "Current user request and project planning contracts",
+      "sha256": "58b98806172997138450ca69d013d0e4338807c61b168a213a00cdec44bd0fd0"
+    }
+  ],
+  "promptVersion": "planning-ab-3",
+  "inputBytes": 9600
+}

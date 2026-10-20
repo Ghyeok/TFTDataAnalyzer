@@ -109,7 +109,8 @@ namespace TFTAnalyzer.Editor.UI
             if (_analysis == null)
             {
                 var paths = new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath));
-                _analysis = new AnalysisViewModel(new AnalysisService(new ObservationStore(paths), new AggregateStore(paths)));
+                _analysis = new AnalysisViewModel(new AnalysisService(new ObservationStore(paths), new AggregateStore(paths),
+                    provider: new ReviewedAugmentPolicyProvider(paths.ProjectRoot)));
             }
             _dataManager.Changed -= SyncCollectionCatalog;
             _dataManager.Changed += SyncCollectionCatalog;
