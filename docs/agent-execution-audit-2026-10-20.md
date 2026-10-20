@@ -8,7 +8,7 @@
 - 이 대화의 spawn_agent 호출 41회와 task_name 반환 41건을 확인했다. 이는 누적 생성 기록이며 동시 실행 수가 아니다. 화면의 40개 표시와의 차이는 원인을 확인하지 못했다.
 - 그중 task_name이 pr로 시작하는 호출은 10회다. 이름 기준 분류이며 해당 작업이 전부 불필요했다는 판정은 아니다.
 - followup_task 재사용 호출도 66회 있었다. 재사용이 전혀 없었던 것은 아니다.
-- 현재 list_agents 응답에는 완료된 자식 3개만 반환됐다. 실행 중인 자식은 없으며 전체 과거 표시 목록을 대표한다고 보장하지 않는다.
+- 점검 당시 list_agents 응답에는 완료된 자식 3개만 반환됐다. 실행 중인 자식은 없으며 전체 과거 표시 목록을 대표한다고 보장하지 않는다.
 - 생성 수만으로 실제 토큰·요금을 계산하지 않았다. 완료 목록을 지웠거나 종료 API로 정리했다고 주장하지 않는다.
 
 ## 계획과 달라진 운영
@@ -19,18 +19,20 @@
 
 ## PR 이름의 생성 기록
 
-| 역할 이름 | 원본 기록 줄 |
+원본 대화 기록은 개인 PC에만 있는 **로컬 전용 자료**이며 저장소에 공개하지 않는다. 아래 표는 점검 당시 확인한 역할 이름과 원본 행 번호의 요약이다. 다른 사용자가 원본을 열어 검증할 수 있는 링크로 제공하지 않는다.
+
+| 역할 이름 | 로컬 전용 원본 위치 |
 |---|---|
-| pr12_store_review | [호출 5304](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:5304) |
-| pr12_store_qa | [호출 5455](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:5455) |
-| pr14_notice_revision | [호출 9088](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:9088) |
-| pr14_revision_review | [호출 9173](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:9173) |
-| pr14_revision_qa | [호출 9593](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:9593) |
-| pr14_import_diagnosis | [호출 9792](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:9792) |
-| pr14_import_fallback | [호출 9866](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:9866) |
-| pr14_diagnostics_qa | [호출 10076](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:10076) |
-| pr14_trace_sanitize | [호출 10311](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:10311) |
-| pr14_original_failure_audit | [호출 10782](C:/Users/gulww/.codex/sessions/2026/10/16/rollout-2026-10-16T16-54-08-01a143b4-3e59-7a90-92e3-75592b297a53.jsonl:10782) |
+| pr12_store_review | 로컬 전용 원본 5304행 |
+| pr12_store_qa | 로컬 전용 원본 5455행 |
+| pr14_notice_revision | 로컬 전용 원본 9088행 |
+| pr14_revision_review | 로컬 전용 원본 9173행 |
+| pr14_revision_qa | 로컬 전용 원본 9593행 |
+| pr14_import_diagnosis | 로컬 전용 원본 9792행 |
+| pr14_import_fallback | 로컬 전용 원본 9866행 |
+| pr14_diagnostics_qa | 로컬 전용 원본 10076행 |
+| pr14_trace_sanitize | 로컬 전용 원본 10311행 |
+| pr14_original_failure_audit | 로컬 전용 원본 10782행 |
 
 ## 바로 적용한 운영 기준
 
