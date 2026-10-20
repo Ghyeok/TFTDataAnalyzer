@@ -1,0 +1,24 @@
+{
+  "taskId": "2026-10-20-collection-readiness-planning",
+  "baseCommit": "fa0df4df96bb1cc670c543f293fb4c39c5801959",
+  "inputDigest": "7e2856abf6bb6bca298e270bf401b9e06394d085110d772d4cf5fd7bb5a9f6e1",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/ImplementationPlan.md",
+      "sha256": "24a2c847244f46c4bb4d88179beb4a54222032fa36d6dfff95cd346cadb9a928"
+    },
+    {
+      "copy": "inputs/implementation-review.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/ImplementationReview.md",
+      "sha256": "385f633e7b14096ffb7f1dd846451e9c306be042764146a143d175e0ac8e68c2"
+    },
+    {
+      "copy": "inputs/review-contract.md",
+      "source": "Current user request and AGENTS.md/workflow scoped summary",
+      "sha256": "3ffb6a4603920229837d2efca9cbb58c939a017b7fed41f0b536b909b930582b"
+    }
+  ],
+  "promptVersion": "planning-ab-2",
+  "inputBytes": 7253
+}

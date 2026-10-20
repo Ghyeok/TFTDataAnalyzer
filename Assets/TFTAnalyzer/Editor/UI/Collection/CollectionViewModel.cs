@@ -113,6 +113,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 _inputValid = true;
             }
             catch (ArgumentException) { _inputValid = false; }
+            UpdateIdleGuidance();
         }
 
         public void RefreshConfiguration()
@@ -120,7 +121,25 @@ namespace TFTAnalyzer.Editor.UI.Collection
             if (_disposed || IsBusy) return;
             try { ApiKeyConfigured = _service.ApiKeyConfigured; } catch { ApiKeyConfigured = false; }
             try { SeedConfigured = _service.SeedConfigured; } catch { SeedConfigured = false; }
+            UpdateIdleGuidance();
             Notify();
+        }
+
+        private void UpdateIdleGuidance()
+        {
+            if (_disposed || IsBusy || State != CollectionState.Idle) return;
+            if (_selectedCatalog == null || _selectedIdentity == null)
+                StatusText = "데이터 관리 탭에서 검증된 카탈로그를 선택해 주세요.";
+            else if (!_inputValid)
+                StatusText = "지역·큐·티어 기록 라벨·상한(1–1,000)을 확인해 주세요.";
+            else if (!ApiKeyConfigured && !SeedConfigured)
+                StatusText = "API 키와 수집 대상 설정이 필요합니다. 환경 설정 후 '환경 설정 확인'을 눌러 주세요.";
+            else if (!ApiKeyConfigured)
+                StatusText = "API 키 설정이 필요합니다. 환경 설정 후 '환경 설정 확인'을 눌러 주세요.";
+            else if (!SeedConfigured)
+                StatusText = "수집 대상 설정이 필요합니다. 환경 설정 후 '환경 설정 확인'을 눌러 주세요.";
+            else
+                StatusText = "입력 조건이 갖춰졌습니다. '조건 확인 후 수집'을 눌러 주세요.";
         }
 
         public async Task StartAsync(Func<string, bool> confirm)

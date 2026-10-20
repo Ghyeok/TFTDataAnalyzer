@@ -1,8 +1,17 @@
 # Task6 시작 버전 확인·전체 검증 체크포인트
 
-2026-10-20. 상태: 사용자 지시로 KI-001 미해결 기록 후 개발 계속. PR14 로컬 전용 근거 문서 링크 수정 중. 사용자 최종 승인 전이다.
+2026-10-20. 상태: PR14 main 병합 완료. KI-001 미해결 기록 유지, 전체 사이클 최종 사용자 승인 전이다.
 
-## 최신 상태: 실패 기록 보존 후 개발 계속
+## 최신 상태: PR14 병합 완료
+
+- 사용자 재개 요청으로 최신 df3c8d870e0e7c64c57da239a396e91f0c79fa10의 CodeRabbit SUCCESS·description=Review completed, 미해결0·pagination 완료를 확인했다. 해당 head의 별도 review 객체는 없었으며 commit status로 완료를 확인했다. 별도 CI check는 없다. 원본은 Library/TftAnalyzerValidation/pr14-df3c8d8-resume-review.json 및 pr14-df3c8d8-status-detail.json이다.
+- 기존 승인 범위에 따라 [PR14](https://github.com/Ghyeok/TFTDataAnalyzer/pull/14)를 main에 squash 병합했다. 병합 커밋은 fa0df4df96bb1cc670c543f293fb4c39c5801959, 시각은2026-10-20 15:09:49 KST다. match-head-commit으로 검수한 head만 병합했고 이후 MERGED·base main·mergeCommit을 확인했다. pr14-merge-result.json에 보존했다.
+- 최신 Assets/TFTAnalyzer 트리는 전체 suite620/619P/0F/호스트 링크1제외를 실행한1106911과 같다. 검증 도구의 파일 해시는 비동기 경로 제외 GREEN probe의 정본 해시와 같다. origin/main의 제품·도구도 검증 브랜치와 같다. 테스트를 이번에 다시 실행한 것으로 기록하지 않는다. pr14-df3c8d8-merge-gate.json을 따른다.
+- 보호1,386개 변경0·E2E 임시 자산0, 사용자 Assets/DefaultVolumeProfile.asset 변경을 보존했다. 로컬 브랜치 전환·stash·브랜치 삭제는 하지 않았다. 이 병합 기록은 로컬 체크포인트 갱신이며 닫힌 PR에 새 문서 커밋을 push하지 않았다.
+- [KI-001](../../../../../docs/known-issues.md)은 원인 미해결로 유지한다. 사용자 결정대로 다음 개발의 선행 차단 조건에서 제외했으며 원인 해결·실제 Riot API 검증 완료로 확대하지 않는다. Hermes 예약은 중단 유지, 추가 에이전트/감시 루프는 실행하지 않았다.
+- 다음은 전체 완료 조건·현재 증거와 사용자 최종 승인 확인이다. 병합만으로 전체 목표나 사이클을 완료 처리하지 않는다. 승인 계획 밖의 신뢰 분류 공급·집계 입도 개선·실제 개인 API 사용은 별도 범위다.
+
+## 앞선 개발 재개·검수 수정 이력
 
 - 2026-10-20 사용자 “pr 검수 완료됐어”에 따라 head1aef02a를1회 확인했다. CodeRabbit SUCCESS/latest-head COMMENTED·별도 CI 없음·pagination 완료이나 미해결 문서 지적1개(PRRT_kwDOVK_2hM6uNt6u)가 있었다. 운영 점검 문서가 비공개 로컬 대화 기록을 링크해 다른 사용자가 열 수 없다는 내용이다. 원본은 공유하지 않고10개 링크를 로컬 전용 행 번호로 바꿨으며 역할/행 번호와 당시 집계 수치는 유지했다. 문서 내용·링크·형식만 검사하고 Unity·새 테스트·추가 에이전트는 사용하지 않는다. 현재 수정은 docs의 해당 문서와 이 체크포인트 두 파일이다. 새 커밋 push 후 반복 재조회하지 않으며 최신 head 검수·미해결·CI와 기존 병합 조건을 구분한다. 원본 Library/TftAnalyzerValidation/pr14-1aef02a-final-review.json.
 

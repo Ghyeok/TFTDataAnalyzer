@@ -29,6 +29,126 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        [TestCase(false, false, "API 키와 수집 대상")]
+        [TestCase(false, true, "API 키 설정")]
+        [TestCase(true, false, "수집 대상 설정")]
+        [TestCase(true, true, "입력 조건이 갖춰졌습니다")]
+        public void ReadinessGuidanceMatchesConfigurationWithoutCollecting(bool key, bool seeds, string guidance)
+        {
+            _service.KeyAvailable = key;
+            _service.SeedsAvailable = seeds;
+            var changes = 0;
+            _vm.Changed += () => changes++;
+
+            _vm.RefreshConfiguration();
+
+            Assert.That(_vm.StatusText, Does.Contain(guidance));
+            Assert.That(_vm.StatusText, Does.Not.Contain("카탈로그를 선택"));
+            Assert.That(_vm.CanStart, Is.EqualTo(key && seeds));
+            Assert.That(_vm.State, Is.EqualTo(CollectionState.Idle));
+            Assert.That(_vm.ErrorCode, Is.Empty);
+            Assert.That(changes, Is.EqualTo(1), "Refreshing guidance must reuse the existing notification.");
+            Assert.That(_service.Requests, Is.Empty);
+            AssertPublicTextIsSafe();
+        }
+
+        [Test]
+        public void ReadinessGuidancePrioritizesCatalogThenInputAndRecoversAfterCorrections()
+        {
+            _service.KeyAvailable = _service.SeedsAvailable = false;
+            _vm.RefreshConfiguration();
+            _vm.SetCatalog(null);
+            Assert.That(_vm.TrySetInput("KR", 1100, "ALL", 1001), Is.False);
+            Assert.That(_vm.StatusText, Does.Contain("카탈로그를 선택"));
+
+            _vm.SetCatalog(DataManagerTestSupport.Catalog(DataManagerTestSupport.Identity()));
+            Assert.That(_vm.StatusText, Does.Contain("상한"));
+            Assert.That(_vm.CanStart, Is.False);
+            Assert.That(_vm.TrySetInput("KR", 1100, "ALL", 11), Is.True);
+            Assert.That(_vm.StatusText, Does.Contain("API 키와 수집 대상"));
+
+            _service.KeyAvailable = _service.SeedsAvailable = true;
+            _vm.RefreshConfiguration();
+            Assert.That(_vm.StatusText, Does.Contain("입력 조건이 갖춰졌습니다"));
+            Assert.That(_vm.CanStart, Is.True);
+            Assert.That(_service.Requests, Is.Empty);
+            AssertPublicTextIsSafe();
+        }
+
+        [Test]
+        public void ReadinessGuidanceHandlesConfigurationFailureWithoutExposingItsMessage()
+        {
+            _service.ConfigurationError = new InvalidOperationException(FabricatedKey + FabricatedSeed);
+            _vm.RefreshConfiguration();
+            Assert.That(_vm.StatusText, Does.Contain("API 키와 수집 대상"));
+            Assert.That(_vm.CanStart, Is.False);
+            AssertPublicTextIsSafe();
+
+            _service.ConfigurationError = null;
+            _vm.RefreshConfiguration();
+            Assert.That(_vm.StatusText, Does.Contain("입력 조건이 갖춰졌습니다"));
+            Assert.That(_vm.CanStart, Is.True);
+            Assert.That(_service.Requests, Is.Empty);
+        }
+
+        [TestCase(CollectionState.Succeeded)]
+        [TestCase(CollectionState.Failed)]
+        [TestCase(CollectionState.Cancelled)]
+        public async Task ReadinessEditsPreserveSettledStatusAndDoNotRestartCollection(CollectionState expected)
+        {
+            _service.Run = token => Task.FromResult(CollectionFakeService.Summary(3, 2, 1,
+                cancelled: expected == CollectionState.Cancelled,
+                statusCode: expected == CollectionState.Failed ? 401 : 0));
+            var confirmations = 0;
+            await _vm.StartAsync(summary => { confirmations++; return true; });
+            Assert.That(_vm.State, Is.EqualTo(expected));
+            var status = _vm.StatusText;
+            var code = _vm.ErrorCode;
+            var progress = _vm.Progress;
+            var requests = _service.Requests.Count;
+
+            _service.KeyAvailable = _service.SeedsAvailable = false;
+            _vm.RefreshConfiguration();
+            _vm.TrySetInput("KR", 1100, "ALL", 1001);
+            _vm.SetCatalog(DataManagerTestSupport.Catalog(DataManagerTestSupport.Identity("16.18.2")));
+
+            Assert.That(_vm.State, Is.EqualTo(expected));
+            Assert.That(_vm.StatusText, Is.EqualTo(status));
+            Assert.That(_vm.ErrorCode, Is.EqualTo(code));
+            Assert.That(_vm.Progress, Is.SameAs(progress));
+            Assert.That(_service.Requests.Count, Is.EqualTo(requests));
+            Assert.That(confirmations, Is.EqualTo(1));
+            AssertPublicTextIsSafe();
+        }
+
+        [Test]
+        public async Task ReadinessEditsPreserveRunningStatusUntilTheOwnedRequestSettles()
+        {
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var confirmations = 0;
+            var running = _vm.StartAsync(summary => { confirmations++; return true; });
+            try
+            {
+                Assert.That(_vm.State, Is.EqualTo(CollectionState.Running));
+                var status = _vm.StatusText;
+                _service.KeyAvailable = _service.SeedsAvailable = false;
+                _vm.RefreshConfiguration();
+                _vm.SetCatalog(null);
+                Assert.That(_vm.TrySetInput("KR", 1100, "ALL", 1001), Is.False);
+                Assert.That(_vm.StatusText, Is.EqualTo(status));
+                Assert.That(_vm.State, Is.EqualTo(CollectionState.Running));
+                Assert.That(_vm.IsBusy, Is.True);
+                Assert.That(_service.Requests, Has.Count.EqualTo(1));
+                Assert.That(confirmations, Is.EqualTo(1));
+            }
+            finally
+            {
+                pending.TrySetResult(CollectionFakeService.Summary(1, 1, 1));
+                await running;
+            }
+        }
+
         [Test]
         public void ConfigurationExposesAvailabilityWithoutCredentialOrSeedValues()
         {
