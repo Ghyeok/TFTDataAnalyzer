@@ -99,6 +99,25 @@
     opacity: 0.6;
 }
 
+.tft-browser-results {
+    height: 160px;
+    min-height: 160px;
+    min-width: 0;
+}
+
+.tft-browser-icon {
+    width: 64px;
+    height: 64px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.tft-browser-result {
+    padding-left: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .tft-wrapped-text {
     white-space: normal;
     min-width: 0;

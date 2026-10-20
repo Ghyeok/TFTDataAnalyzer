@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-20-catalog-browser-planning",
+  "inputDigest": "8a135386746710ce39e5c94409972dd66d540492d5ecd18f1b2463af9a5ad814",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.3",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 38620,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 11578,
+    "output_tokens": 552,
+    "thinking_tokens": 0,
+    "cache_read_tokens": 0,
+    "total_tokens": 12130
+  },
+  "responseSeconds": 22.0337455,
+  "exitCode": 0,
+  "durationSeconds": 31.049
+}

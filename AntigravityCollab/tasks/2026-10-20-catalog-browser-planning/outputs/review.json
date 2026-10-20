@@ -1,0 +1,25 @@
+{
+  "findings": [
+    {
+      "action": "inputs/implementation-plan.md의 상세 표시 규격에 Sources의 조회 UTC가 legacy 정규화 기본값(epoch)일 때 실제 수집 시각으로 오인하지 않도록 표시를 구분하거나 '정규화 기본값(수집 시각은 manifest 기준)'으로 안내하는 규칙과 테스트 항목을 추가한다.",
+      "impact": "legacy 정규화 본문의 Sources 조회 시각이 epoch일 수 있는데 이를 그대로 수집 시각처럼 노출하면 사용자가 카탈로그 출처 및 수집 시점을 오판할 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (승인할 동작 - 항목 선택 시 출처 표시), inputs/review-contract.md (기존 코드의 확인된 연결 지점 - Sources 조회UTC/epoch 구분)",
+      "severity": "P2"
+    },
+    {
+      "action": "관계ID 표시 규격에 '현재 활성 카탈로그 내 대상 레코드의 종류와 이름을 조회하며, 대상이 카탈로그에 없을 경우 원시 관계ID와 카탈로그 내 미수록(이름 없음) 안내를 표시한다'고 명시한다.",
+      "impact": "참조 대상 ID가 활성 카탈로그에 존재하지 않거나 교차 종류를 가리킬 때의 표시 방식이 정의되지 않아 구현자마다 누락 숨김·오류 처리 등이 달라질 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (승인할 동작 - 관계ID는 해당 종류와 참조 이름을 함께 표기), inputs/review-contract.md (UnitRecord.TraitIds, ItemRecord.ComponentIds, AugmentRecord.RelatedIds)",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "8a135386746710ce39e5c94409972dd66d540492d5ecd18f1b2463af9a5ad814",
+  "taskId": "2026-10-20-catalog-browser-planning",
+  "unverified": [
+    " 기획 초안 단계이므로 제품 코드 구현, NUnit EditMode 테스트, Unity Editor UI(940px/500px PNG) 및 보호 파일 해시 불변 검증은 아직 수행되지 않음",
+    "실제 증강 정책 분류 자료 등록 및 실데이터 Match API 표본(n>=100) 달성 여부는 이번 정적 카탈로그 탐색 범위 밖이며 미검증 상태임"
+  ],
+  "verdict": "pass"
+}
