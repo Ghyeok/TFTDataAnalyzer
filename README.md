@@ -17,13 +17,13 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한 번 시도하며 새 카탈로그를 자동으로 가져오지 않습니다. 마지막 성공 가져오기와 원본 버전이 다르면 기존 데이터 탭에 수동 가져오기 안내가 나타납니다. 원본 게임 버전을 TFT 패치 번호로 추정하지 않습니다. 시작 확인 상태의 두 필드는 `Library/TftAnalyzerStore/version-check.json`, 가져오기 완료 UTC는 인덱스에 저장하며 기존 카탈로그는 변경하지 않습니다.
 
-2026-10-20 수집 준비 안내 수정 후 기본 EditMode는631개 중630통과·실패0·호스트 링크 권한으로1개 제외입니다. 추가 회귀11개와 관련 수집 UI/VM65개도 통과했습니다. 이전 PR14에서는 공개 버전 목록 확인과 전송만 가짜인 가져오기→AssetDatabase→수집→익명 저장→집계→분석 흐름,940/500px 화면을 검증했습니다. 이번 수정에서 수동 PNG·실제 네트워크 카탈로그 import·Match API 호출·네이티브 확인창 직접 클릭은 미실행입니다. 신뢰 분류를 주입한 합성 비율 표시를 기본 실데이터 분류 공급 증거로 쓰지 않습니다.
+2026-10-20 증강 분류 공급 경로 구현 후 기본 EditMode는680개 중679통과·실패0·호스트 링크 권한으로1개 제외입니다. 공급 경로45개와 분석 서비스7개 테스트도 통과했습니다. 이전 PR14에서는 공개 버전 목록 확인과 전송만 가짜인 가져오기→AssetDatabase→수집→익명 저장→집계→분석 흐름,940/500px 화면을 검증했습니다. 이번 수정에서 수동 PNG·실제 네트워크 카탈로그 import·Match API 호출·네이티브 확인창 직접 클릭은 미실행입니다. 신뢰 분류를 주입한 합성 비율 표시를 기본 실데이터 분류 공급 증거로 쓰지 않습니다.
 
 수동 가짜 E2E의 마지막 가져오기에서 두 차례 발생한 간헐 실패는 [KI-001](docs/known-issues.md)로 남겼습니다. 2026-10-20 사용자 지시에 따라 이 문제의 원인 규명을 다음 개발의 선행 조건에서 제외하고 작업을 계속합니다. 후속 진단3회 정상으로 해결을 주장하지 않으며, 종합 QA·최신 PR 검수·병합·최종 승인은 별도로 관리합니다([최신 수정 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/PR14RevisionReport.md)).
 
-[수집 준비 상태 안내 수정](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/Checkpoint.md)은 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했습니다. 최초 수집 전에는 카탈로그·입력·API 키·수집 대상 중 부족한 조건을 안내하고, 이전 실행 결과는 보존합니다. 검증 전후 기존 창·프레임과 보호 파일은 같았습니다. Unity 연결 도구의 통신 오류2건은 별도 기록했으며 해결을 주장하지 않습니다. PR 최신 head 검수와 사용자 최종 승인은 남아 있습니다([결과와 사용법](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)).
+[수집 준비 상태 안내 수정](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/Checkpoint.md)은 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했습니다. 최초 수집 전에는 카탈로그·입력·API 키·수집 대상 중 부족한 조건을 안내하고, 이전 실행 결과는 보존합니다. 검증 전후 기존 창·프레임과 보호 파일은 같았습니다. Unity 연결 도구의 통신 오류2건은 별도 기록했으며 해결을 주장하지 않습니다. PR15의 최신 head 검수·main 병합과 사용자 최종 승인을 완료했습니다([결과와 사용법](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)).
 
-최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-19 사용자 요청으로 일시중단했습니다([운영 지침](docs/coderabbit-monitoring.md)).
+최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-20 사용자 요청으로 삭제하고 목록의 부재를 확인했습니다([운영 지침](docs/coderabbit-monitoring.md)).
 
 ## 핵심 설계
 
@@ -88,9 +88,11 @@ flowchart TD
 
 통계는 카탈로그 전체 식별자, 지역, 큐, 티어 구간별로 구분합니다. 표시용 데이터는 표본 수와 관측 기간을 보존하고, 허용된 비율에 **95% Wilson 신뢰구간**을 함께 제공합니다. 기본 최소 표본은 **100건**이며 정책 구성에서 기준을 높일 수 있습니다. 미달하면 정책이 허용한 평균 순위·표본 수와 `표본 부족` 상태를 표시하고 비율·분자·분모·신뢰구간을 화면과 CSV에서 제거합니다. Legend·알 수 없는 증강처럼 평균도 차단하는 경우는 평균을 복원하지 않습니다.
 
+검토된 증강 분류 자료의 공급 경로는 [현재 구현 사이클](Assets/Plan/Workflow/Cycles/2026-10-20-augment-policy-provider/Checkpoint.md)에서 구현·독립 검수·QA를 통과했습니다. 기본 승인 목록은 비어 있고 실제 분류 자료도 아직 확보·승인하지 않았으므로, 이 구현만으로 증강이 포함된 실사용 비율 지표의 차단이 해제되지는 않습니다. 자료 등록은 별도 근거 검토와 승인을 거칩니다.
+
 내부 집계는 참가자 수·순위 합계·Top 4와 1위의 분자·분모, 관측 경기 기간과 데이터 버전을 보존합니다. 상대 배치는 조합 쌍마다 한 로비를 한 표본으로 계산하며, 같은 조합이 여러 참가자에게 나타나 비교가 모호한 로비는 제외 건수로 기록합니다. 입력에는 실제 수집 시각이 없어 현재 기간은 경기 시각의 범위입니다.
 
-표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 검토된 `MetricPolicyMetadata`를 연결하기 전에는 증강이 있는 조합의 비율이 나타나지 않습니다. 출처를 보존하는 새 집계 캐시는 `aggregates/2/`에 저장하며 기존 스키마 1 캐시는 보존하고 관측에서 다시 생성해야 합니다.
+표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 분류 자료 공급 경로는 연결됐지만 기본 승인 목록이 비어 있으므로, 승인된 `MetricPolicyMetadata` 자료가 등록되기 전까지 증강이 있는 조합의 비율은 차단됩니다. 출처를 보존하는 새 집계 캐시는 `aggregates/2/`에 저장하며 기존 스키마 1 캐시는 보존하고 관측에서 다시 생성해야 합니다.
 
 ### 수집과 저장 원칙
 

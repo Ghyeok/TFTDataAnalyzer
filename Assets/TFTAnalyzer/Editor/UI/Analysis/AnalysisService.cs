@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TFTAnalyzer.Analytics;
 using TFTAnalyzer.Domain;
+using TFTAnalyzer.Editor.Compliance;
 using TFTAnalyzer.Editor.Persistence;
 
 namespace TFTAnalyzer.Editor.UI.Analysis
@@ -18,8 +19,14 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         private readonly ObservationStore _observations;
         private readonly AggregateStore _aggregates;
         private readonly MetricPolicy _policy;
-        public AnalysisService(ObservationStore observations, AggregateStore aggregates = null, MetricPolicy policy = null)
-        { _observations = observations ?? throw new ArgumentNullException(nameof(observations)); _aggregates = aggregates; _policy = policy ?? new MetricPolicy(); }
+        private readonly IAugmentPolicyMetadataProvider _provider;
+        public AnalysisService(ObservationStore observations, AggregateStore aggregates = null, MetricPolicy policy = null,
+            IAugmentPolicyMetadataProvider provider = null)
+        {
+            if (policy != null && provider != null) throw new ArgumentException("analysis_policy_configuration_invalid");
+            _observations = observations ?? throw new ArgumentNullException(nameof(observations)); _aggregates = aggregates;
+            _policy = policy ?? new MetricPolicy(); _provider = provider;
+        }
 
         // Recovery/index and aggregate-cache writes happen only behind explicit local Refresh.
         public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
@@ -27,6 +34,14 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (!MatchesCatalog(catalog, identity)) throw new ArgumentException("analysis_catalog_invalid");
             return AnalyzerStoreOperations.Shared.RunAsync(() => Task.Run(async () =>
             {
+                token.ThrowIfCancellationRequested();
+                var policy = _policy;
+                if (_provider != null)
+                {
+                    var read = _provider.Load(catalog, identity, token);
+                    token.ThrowIfCancellationRequested();
+                    policy = new MetricPolicy(augmentMetadata: read?.State == AugmentPolicyLoadState.Loaded ? read.Metadata : null);
+                }
                 var observations = new List<AnonymousMatchObservation>();
                 await foreach (var observation in _observations.ReadAllAsync(token))
                 {
@@ -35,7 +50,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                 }
                 token.ThrowIfCancellationRequested();
                 var aggregate = AggregateBuilder.Build(observations);
-                var result = Present(catalog, identity, observations, aggregate, _policy, token);
+                var result = Present(catalog, identity, observations, aggregate, policy, token);
                 if (_aggregates != null)
                     foreach (var scope in aggregate.Scopes) await _aggregates.SaveAsync(scope, token);
                 token.ThrowIfCancellationRequested();

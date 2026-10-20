@@ -5,8 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TFTAnalyzer.Analytics;
+using TFTAnalyzer.Domain;
+using TFTAnalyzer.Editor.Compliance;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Analysis;
+using TFTAnalyzer.Serialization;
+using TFTAnalyzer.Tests.Compliance;
 
 namespace TFTAnalyzer.Tests.UI
 {
@@ -68,6 +72,112 @@ namespace TFTAnalyzer.Tests.UI
                 Assert.That(vm.CanExport, Is.False); Assert.That(vm.CanRefresh, Is.True);
                 Assert.That(File.Exists(_paths.AggregatePath(observation.Scope)), Is.False);
             }
+        }
+
+        [Test]
+        public async Task ReviewedPolicyFlowsFromPinnedFileThroughStoreToPresentationAndCsv()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(AugmentPolicyFixture.Document().ToString(Newtonsoft.Json.Formatting.None));
+            var directory = Path.Combine(_paths.ProjectRoot, "Assets", "TFTAnalyzer", "Data", "Policy"); Directory.CreateDirectory(directory);
+            var document = Path.Combine(directory, ContentHasher.Sha256Hex(bytes) + ".json"); File.WriteAllBytes(document, bytes);
+            var observations = AnalysisFixture.Observations(100, "AUG"); var store = new ObservationStore(_paths);
+            foreach (var observation in observations) await store.AppendIfNewAsync(observation, CancellationToken.None);
+            var before = File.ReadAllBytes(_paths.ObservationPath(observations[0].Scope));
+            var provider = new ReviewedAugmentPolicyProvider(_paths.ProjectRoot, new[] { AugmentPolicyFixture.Registration(bytes) });
+            var service = new AnalysisService(store, new AggregateStore(_paths), provider: provider);
+            var snapshot = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None);
+            var row = snapshot.AllRows.Single(x => x.First.UnitIds.Contains("A"));
+            Assert.That(row.Presentation.State, Is.EqualTo(MetricVisibility.Visible));
+            Assert.That(row.Presentation.SampleCount, Is.EqualTo(100));
+            var export = Path.Combine(_temporary, "reviewed.csv");
+            new AnalysisCsvExporter(_paths.ProjectRoot).Save(export, new[] { row.Presentation });
+            Assert.That(File.ReadAllText(export), Does.Contain("top_four_rate"));
+            Assert.That(File.ReadAllBytes(document), Is.EqualTo(bytes));
+            Assert.That(File.ReadAllBytes(_paths.ObservationPath(observations[0].Scope)), Is.EqualTo(before));
+            Assert.That(Directory.GetFiles(_temporary, "*.tmp", SearchOption.AllDirectories), Is.Empty);
+        }
+
+        [Test]
+        public async Task MissingInvalidAndOtherCatalogNeverReuseAnEarlierReviewedPolicy()
+        {
+            var store = new ObservationStore(_paths); var first = AnalysisFixture.Observations(1, "AUG");
+            var secondIdentity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.3", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+            foreach (var observation in first)
+            {
+                await store.AppendIfNewAsync(observation, CancellationToken.None);
+                await store.AppendIfNewAsync(new AnonymousMatchObservation(ContentHasher.Sha256Hex("second|" + observation.MatchHash),
+                    new MetricScope(secondIdentity, "asia", "1100", "ALL"), observation.PlayedAt, observation.Participants), CancellationToken.None);
+            }
+            var bytes = System.Text.Encoding.UTF8.GetBytes(AugmentPolicyFixture.Document().ToString(Newtonsoft.Json.Formatting.None));
+            var inner = AugmentPolicyFixture.Provider(_paths.ProjectRoot, bytes);
+            var calls = 0;
+            var provider = new CallbackProvider((catalog, identity, token) => { calls++; return inner.Load(catalog, identity, token); });
+            var service = new AnalysisService(store, provider: provider);
+            var a = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None);
+            var b = await service.LoadAsync(AugmentPolicyFixture.Catalog(secondIdentity), secondIdentity, CancellationToken.None);
+            Assert.That(a.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation.State, Is.EqualTo(MetricVisibility.InsufficientSample));
+            Assert.That(b.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+            Assert.That(calls, Is.EqualTo(2));
+            foreach (var read in new[] { AugmentPolicyLoadResult.Missing, AugmentPolicyLoadResult.Invalid })
+            {
+                service = new AnalysisService(store, provider: new CallbackProvider((catalog, identity, token) => read));
+                var snapshot = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None);
+                var presentation = snapshot.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation;
+                Assert.That(presentation.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+                Assert.That(presentation.ReasonCode, Is.EqualTo("unclassified_augment"));
+                Assert.That(presentation.Ratios, Is.Empty);
+            }
+        }
+
+        [Test]
+        public async Task ProviderCancellationKeepsOwnedOperationAndDoesNotPublishOrWriteAggregates()
+        {
+            var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (var release = new ManualResetEventSlim())
+            using (var cancellation = new CancellationTokenSource())
+            {
+                var calls = 0;
+                var provider = new CallbackProvider((catalog, identity, token) =>
+                {
+                    calls++; Assert.That(identity, Is.SameAs(AnalysisFixtureIdentity));
+                    entered.TrySetResult(true); release.Wait(TimeSpan.FromSeconds(10), token); token.ThrowIfCancellationRequested();
+                    return AugmentPolicyLoadResult.Missing;
+                });
+                var service = new AnalysisService(new ObservationStore(_paths), new AggregateStore(_paths), provider: provider);
+                var pending = service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixtureIdentity, cancellation.Token);
+                try
+                {
+                    Assert.That(await Task.WhenAny(entered.Task, Task.Delay(5000)), Is.SameAs(entered.Task));
+                    cancellation.Cancel();
+                    try { await pending; Assert.Fail("Cancellation must propagate."); }
+                    catch (OperationCanceledException) { }
+                    Assert.That(calls, Is.EqualTo(1));
+                    Assert.That(Directory.Exists(Path.Combine(_paths.RootDirectory, "aggregates")), Is.False);
+                }
+                finally { cancellation.Cancel(); release.Set(); try { await pending; } catch (OperationCanceledException) { } }
+            }
+        }
+
+        private static readonly CatalogIdentity AnalysisFixtureIdentity = AnalysisFixture.Identity();
+
+        [Test]
+        public async Task ExplicitPolicyInjectionRemainsCompatibleAndConflictingConfigurationIsRejected()
+        {
+            var store = new ObservationStore(_paths); var metadata = new MetricPolicyMetadata(AnalysisFixture.Identity(),
+                new System.Collections.Generic.Dictionary<string, AugmentPolicyKind> { ["AUG"] = AugmentPolicyKind.Standard });
+            foreach (var observation in AnalysisFixture.Observations(1, "AUG")) await store.AppendIfNewAsync(observation, CancellationToken.None);
+            var policy = new MetricPolicy(100, metadata);
+            var service = new AnalysisService(store, policy: policy);
+            Assert.That((await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None)).AllRows
+                .Single(x => x.First.UnitIds.Contains("A")).Presentation.State, Is.EqualTo(MetricVisibility.InsufficientSample));
+            Assert.Throws<ArgumentException>(() => new AnalysisService(store, policy: policy, provider: new ReviewedAugmentPolicyProvider(_paths.ProjectRoot)));
+        }
+
+        private sealed class CallbackProvider : IAugmentPolicyMetadataProvider
+        {
+            private readonly Func<StaticCatalog, CatalogIdentity, CancellationToken, AugmentPolicyLoadResult> _read;
+            internal CallbackProvider(Func<StaticCatalog, CatalogIdentity, CancellationToken, AugmentPolicyLoadResult> read) { _read = read; }
+            public AugmentPolicyLoadResult Load(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token) => _read(catalog, identity, token);
         }
     }
 }

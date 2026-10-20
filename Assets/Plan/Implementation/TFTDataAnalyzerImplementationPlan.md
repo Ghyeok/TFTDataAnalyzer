@@ -14,7 +14,9 @@
 
 - Phase1~3의 계획된 주요 기능과 Task6 커밋은 구현됐고 PR14가 main `fa0df4d`에 병합됐다. PR14 병합 기준 제품 트리는 당시 전체620/619통과/0실패/호스트 링크1제외의 실행 버전과 같았다. 이후 아래 준비 안내 수정 후 전체631개 중630통과/0실패/호스트 링크1제외를 실제 실행했다.
 - [KI-001](../../../docs/known-issues.md)은 미해결 기록 후 개발 계속이다. 실제 Riot API 사용 검증·증강 신뢰 분류 공급·최소 표본 달성은 구현된 기본 경로와 분리해 다룬다.
-- 수집 전 준비 상태 안내는 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했다. 제품1/테스트2파일의 변경이며 실제 API·새 자동 수집은 추가하지 않았다. [승인 계획](../Workflow/Cycles/2026-10-20-collection-readiness/refined/ImplementationPlan.md)과 [결과·한계](../Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)를 따르며 최신 head PR 검수·최종 승인은 남아 있다.
+- 수집 전 준비 상태 안내는 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했다. 제품1/테스트2파일의 변경이며 실제 API·새 자동 수집은 추가하지 않았다. [승인 계획](../Workflow/Cycles/2026-10-20-collection-readiness/refined/ImplementationPlan.md)과 [결과·한계](../Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)를 따르며 PR15 최신 head 검수·main 병합·사용자 최종 승인을 완료했다.
+
+다음 권고 과업은 [검토된 증강 분류 공급 경로](../Workflow/Cycles/2026-10-20-augment-policy-provider/Checkpoint.md)는 기획 A/B 검토·사용자 승인 후 구현·코드검수·QA를 통과했다. 초기 head bfb5231의 전체680개/679P/0F/1호스트제약 제외를 확인했고 [PR #16](https://github.com/Ghyeok/TFTDataAnalyzer/pull/16)의 검수 보완을 반영했다. 제품 코드 변경 없이 강화한 서비스 테스트7/7을 재확인했으며, 새 수정 head의 검수·병합·최종 승인은 대기한다. 실제 분류 자료 등록 전 비율 차단은 유지된다.
 
 ## Global Constraints
 
