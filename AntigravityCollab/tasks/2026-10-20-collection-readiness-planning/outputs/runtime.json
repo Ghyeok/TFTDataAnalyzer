@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-20-collection-readiness-planning",
+  "inputDigest": "7e2856abf6bb6bca298e270bf401b9e06394d085110d772d4cf5fd7bb5a9f6e1",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.2",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 14844,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 9071,
+    "output_tokens": 1596,
+    "thinking_tokens": 1108,
+    "cache_read_tokens": 0,
+    "total_tokens": 10667
+  },
+  "responseSeconds": 31.650137,
+  "exitCode": 0,
+  "durationSeconds": 40.139
+}

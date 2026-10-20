@@ -51,6 +51,39 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator ReadinessLabelTracksConfigurationChecksWithoutConsentOrRequests()
+        {
+            _service.KeyAvailable = _service.SeedsAvailable = false;
+            Submit("collection-configuration-check");
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("API 키와 수집 대상"));
+            Assert.That(_tree.Q<Button>("collection-start").enabledInHierarchy, Is.False);
+
+            _service.KeyAvailable = true;
+            Submit("collection-configuration-check");
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("수집 대상 설정"));
+            Assert.That(_tree.Q<Button>("collection-start").enabledInHierarchy, Is.False);
+
+            _service.SeedsAvailable = true;
+            Submit("collection-configuration-check");
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("입력 조건이 갖춰졌습니다"));
+            Assert.That(_tree.Q<Button>("collection-start").enabledInHierarchy, Is.True);
+
+            _tree.Q<IntegerField>("collection-maximum").value = 1001;
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("상한"));
+            Assert.That(_tree.Q<Button>("collection-start").enabledInHierarchy, Is.False);
+            _tree.Q<IntegerField>("collection-maximum").value = 5;
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("입력 조건이 갖춰졌습니다"));
+            Assert.That(_tree.Q<Button>("collection-start").enabledInHierarchy, Is.True);
+            Assert.That(_confirmations, Is.Zero);
+            Assert.That(_service.Requests, Is.Empty);
+        }
+
+        [UnityTest]
         public IEnumerator RealFieldsAndButtonRequireConsentAndPassExactlyTheVisibleBound()
         {
             Assert.That(_tree.Q<Label>("collection-credentials").text, Does.Contain("설정됨"));

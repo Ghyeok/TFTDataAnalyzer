@@ -1,0 +1,54 @@
+# Antigravity 기획 A 공개 응답
+
+기준 main fa0df4d. 제공 문서 한정1회 실행. 실제 backend 모델을 독립 검증한 것은 아니며 강제 도구/OS 접근 차단도 미검증이다.
+
+```json
+{
+  "cliVersion": "1.4.2",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "initModel": "gemini-4-argon-medium",
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "exitCode": 0,
+  "durationSeconds": 40.139,
+  "responseSeconds": 31.650137,
+  "usage": {
+    "input_tokens": 9071,
+    "output_tokens": 1596,
+    "thinking_tokens": 1108,
+    "cache_read_tokens": 0,
+    "total_tokens": 10667
+  },
+  "accessRestrictionVerified": false
+}
+```
+
+```json
+{
+  "findings": [
+    {
+      "action": "작업 종료 직후에는 실행/취소/오류 결과 문구를 유지하되, 이후 사용자가 입력 변경이나 '환경 설정 확인'(RefreshConfiguration)을 명시적으로 수행할 때의 상태 전이(Idle 복귀 여부 및 안내 갱신 시점)를 구현 및 회귀 테스트에서 명확히 고정할 것.",
+      "impact": "실행 종료 후 상태가 Idle로 복귀하는 구조이거나 반대로 터미널 상태에 머무는 구조일 때, 직후 터미널 결과가 즉시 덮어써지거나 반대로 이후 설정 재확인 시에도 준비 안내로 갱신되지 않는 사용성 혼동이 발생할 수 있음.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md#범위와-선택, inputs/implementation-plan.md#TODO와-완료-증거",
+      "severity": "P3"
+    },
+    {
+      "action": "실제 API 키 유효성/네트워크 연결 검증, 기본 증강 신뢰 분류 공급, 완전 일치 보드 표본 100개 확보 과제는 본 작은 수정 범위에 포함하지 않고 후속 기획/검증으로 분리 유지할 것.",
+      "impact": "준비 상태 문구 개선 범위를 넘어 실제 수집·통계 정책이나 네트워크 동작을 변경하면 승인된 작은 수정 범위와 안전 계약을 벗어나게 됨.",
+      "inScope": false,
+      "reference": "inputs/implementation-plan.md#기존-구현-검토와-별도-항목, inputs/implementation-review.md",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "7e2856abf6bb6bca298e270bf401b9e06394d085110d772d4cf5fd7bb5a9f6e1",
+  "taskId": "2026-10-20-collection-readiness-planning",
+  "unverified": [
+    "제공 문서만 검토하였으며 실제 코드베이스의 CollectionViewModel 상태 열거형 정의 및 EditMode 테스트 실행은 수행하지 않음.",
+    "제품 코드 변경에 대한 최종 사용자 구현 승인은 아직 완료되지 않음."
+  ],
+  "verdict": "pass"
+}
+```

@@ -336,7 +336,9 @@ Fail if project assemblies expose types or menu items containing `Spectator`, `L
 
 Recompile, run the entire EditMode assembly, and inspect Unity Console errors. Expected: zero compile errors, zero failed tests, explicit network tests skipped by default.
 
-- [ ] **Step 6: Commit checkpoint**
+- [x] **Step 6: Commit checkpoint**
+
+2026-10-20 확인: PR14는 main fa0df4d에 병합됐다. 기능 코드·검수 수정·실패 이력과 지침의 커밋이 실제로 존재하므로 이 체크를 반영한다. KI-001은 미해결로 보존하고 후속 개발을 허용한 사용자 결정을 유지하며, 원인 해결·실데이터 검증·전체 사이클 최종 승인으로 확대하지 않는다.
 
 ```powershell
 git add Assets/TFTAnalyzer/Editor/Ingestion/StaticVersionCheckScheduler.cs Assets/TFTAnalyzer/Tests
