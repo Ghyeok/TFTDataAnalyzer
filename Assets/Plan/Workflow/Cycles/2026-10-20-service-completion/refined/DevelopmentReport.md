@@ -21,3 +21,14 @@
 ## 커밋 줄바꿈 검증 보완
 
 staging과테스트원시바이트비교에서3파일의해시가달랐는데root가검사결과를분기하지않아로컬커밋을먼저실행했다. push는중단하고10파일전체를다시대조했다. 실제작업파일은모두테스트동결원시바이트와같고,커밋blob도CRLF→LF만정규화하면10파일전체가같다. 다른본문차이는없다. 근거는catalog-browser-commit-normalization-evidence.json이며테스트를새로실행한것으로표시하지않는다. 이후검증명령결과를확인한뒤에만종속커밋/push를실행한다.
+
+## PR #17 첫 외부 검수 보완 — 2026-10-20
+
+- c5ce192의 CodeRabbit 지적 3건을 검증해 수용했다. 과거 PR16 병합 명령의 공백과 현재 정본 계획의 승인 상태를 정정했다. 고정 검토 입력은 변경하지 않았다.
+- 목록 행은 상위 Label 스타일이 white-space: normal을 적용하고 있었다. 500px 소유 테스트 창에 긴 한국어 이름/ID를 넣어 실제 resolvedStyle가 Normal인 RED 1건을 확인한 뒤, 결과 목록 하위 선택자의 우선순위와 nowrap을 지정했다. 관련 UI170/170 통과(52.29초), 실패/제외0이다. 처음 테스트에 사용한 IResolvedStyle.overflow는 지원되지 않아 CS1061이 발생했고 해당 단언을 제거한 뒤 정상 컴파일했다. 이를 제품 실패나 유효 RED로 세지 않는다.
+- 수정 후 정상 940/500px 검색·상세 네 PNG를 다시 직접 확인했다. 실제 캡처는 기존 짧은 증강 행이며 긴 가짜 행의 픽셀 검증으로 확대하지 않는다. 긴 행은 실제 UI의 NoWrap/Ellipsis 스타일 회귀로 검증했다. 소유 창 잔류0, 기존 창9/native1/포커스0 보존, 수집/분석 호출0이다.
+- 현재 컴파일/Console 오류0·경고0. 최초 전체701(700통과/기존 제외1)은 수정 전 증거이며 이번 수정 후 전체 재실행을 주장하지 않는다. 범위가 스타일·단일 UI회귀·문서 정정이므로 관련UI를 검증했다.
+- 보호 원본1,389개 중1,388개 동일. Library/TftAnalyzerStore/version-check.json은 lastCheckedUtc=12:45:16Z, lastSeenVersion=16.20.1로 이전 동결 뒤 변경돼 있었다. 수정 검증 전 창 기록(12:52 이후)보다 이전이며 기존 버전 확인 상태와 이번 UI 실행을 구분한다. 카탈로그/아이콘/관측/사용자 Volume 변경0이다. 사용자 새 docs/riot-api-key.md도 커밋 범위에서 제외한다.
+- 실행 원문: Library/TftAnalyzerValidation/pr17-revision-{red-status,red-status-2,red-test,green-status,ui-tests,evidence,windows-before,windows-after,console}.json 및 갱신된 catalog-visual-*.json/catalog-window-*.png. 기존 QA 담당에게 한정 독립 검수를 요청했다. 신규 에이전트0, 실제 모델/추론·개별 사용량 확인불가.
+
+수정 검증 Console의 groundTruth는 현재 오류0·경고0이다. entries에는 이미 수정한 테스트 작성 CS1061(seq150) 이력1이 남아 있으므로 ‘새 오류가 전혀 없었다’고 기록하지 않는다. 기존 전체검증 뒤 생긴 이력과 현재 컴파일 상태를 구분했다.

@@ -18,7 +18,7 @@
 - 사용자 “확인했어. 다음 작업으로 넘어갈까?” 이후 한 번 조회했다. head cc62282d2bf69a3a9f8a6971484a7f3c5f2d062e, CodeRabbit SUCCESS, 최신 review도 같은 head, inline thread0(추가 페이지 없음), 별도 CI CheckRun0, OPEN/MERGEABLE/CLEAN이다. 기준 main은534cfa5 그대로다. 주기적 조회나 Hermes 예약은 만들지 않았다.
 - outside-diff minor1의 “모든 scope 저장에 CancellationToken.None 사용” 제안은 root와 기존 코드검수 담당이 현재 코드·승인 계약에 대조해 반려했다. 파일 교체는 scope 단위이며 취소 중 일부 캐시만 최신으로 남을 수 있으나, 분석은 그 캐시를 읽지 않고 같은 관측 snapshot에서 계산한다. 취소 후 부분 결과를 UI/CSV에 게시하지 않는다. 제안도 I/O 실패·프로세스 종료의 전체 원자성은 보장하지 못하고 취소·후속 작업을 지연시킨다. 향후 전체 캐시 세대 읽기 도입 시 별도 설계한다. 다중 scope 저장 중 취소를 직접 재현한 새 실행 증거는 없으며, 이번에는 소스 검토만 했다.
 - 검증 소스6파일의 SHA-256이 기존 동결 자료와 일치했다. 제품/테스트 변경0, Unity/새 테스트 실행0, 신규 에이전트0(기존 코드검수 담당1회 재사용). 사용자 DefaultVolumeProfile.asset의 SHA-256도 기존4789b438…984a 그대로다. 현재 검사와 기존 전체680개/서비스7개 실행을 구분한다.
-- 정확한 head를 고정한 gh pr merge16 --squash 시도는 자동 승인 검토에서 명시적 사용자 병합 승인 부족으로 거절됐다. 원격 병합은 실행되지 않았다. 우회·재시도하지 않고 사용자의 PR16 main 병합 승인을 기다린다. 로컬 상태 문서 갱신은 미커밋이다.
+- 정확한 head를 고정한 gh pr merge 16 --squash 시도는 자동 승인 검토에서 명시적 사용자 병합 승인 부족으로 거절됐다. 원격 병합은 실행되지 않았다. 우회·재시도하지 않고 사용자의 PR16 main 병합 승인을 기다린다. 로컬 상태 문서 갱신은 미커밋이다.
 - 로컬 증거: Library/TftAnalyzerValidation/pr16-final-review-gate.json. 다음 행동은 명시적 승인 후 PR16 병합이며, 승인 대기 중 새 제품 구현·실제 자료 등록·API 호출을 시작하지 않는다.
 
 ## 명시적 승인 후 병합 완료

@@ -34,3 +34,10 @@
 - 경고1은 root가전체실행전작성한DevelopmentReport.md를테스트생성파일로보고했다. 초기mtime12:31:07Z<freeze12:31:34Z<warning12:33:02Z와SHA를원문에보존했다. 이후문서갱신과내부import/cleanup원인추정을구분한다. 현재groundTruth오류0/경고1이다.
 - 기존QA가소스·지정실행·네PNG를직접대조해잔여결함0으로수용했다. [QA](refined/QAReport.md)·[공개원문](raw/QA.md)·[사용법/한계](refined/FinalDocumentation.md)를확인한다. 제품/테스트의추가수정·불필요한반복테스트는하지않았다.
 - 다음행동은허용파일만커밋·PR제출, 최신head의CodeRabbit/의견/CI를5분간격확인하고조건충족시main병합이다. Hermes예약/새에이전트는없다. 사용자Volume은커밋제외한다. 전체목표의실제분류자료/API/표본과남은계획은계속진행한다.
+
+## PR #17 검수 보완 재개 위치
+
+- PR17: https://github.com/Ghyeok/TFTDataAnalyzer/pull/17 . 첫 head c5ce192은 CodeRabbit SUCCESS였지만 유효 지적3건이 있어 병합하지 않았다. 5분 간격 두 번 확인했고 결과 원문은 pr17-review-check-01/02.json이다.
+- 문서2건과 좁은 목록 행 말줄임표를 수정했다. 긴 이름500px RED1F→관련UI170/170, 정상940/500px4PNG 재확인, 창9/native1/focus0 보존. 수정 후 전체701 재실행은 하지 않았다. 상세와 보호 상태 파일의 변경 예외는 DevelopmentReport를 따른다.
+- 다음 행동: 독립 한정 QA 확인→허용 파일만 수정 커밋/push→새 head 검수/CI/미해결 스레드를5분 간격 확인. 과거 head SUCCESS를 새 head에 적용하지 않는다. 새 지적이 없고 모두 통과하면 기존 승인대로 병합한다. Hermes 예약은 없다.
+- 사용자는 실제 API 로컬 설정을 준비하겠다고 답했다. 완료로 간주하지 않고 비밀값을 받지 않는다. 사용자 Volume 및 untracked docs/riot-api-key.md는 보존·커밋 제외한다.

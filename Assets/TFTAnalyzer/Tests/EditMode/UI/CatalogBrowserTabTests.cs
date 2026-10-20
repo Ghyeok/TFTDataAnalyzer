@@ -64,6 +64,21 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator LongResultAtNarrowWidthStaysOnOneLineWithEllipsis()
+        {
+            _host.position = new Rect(100, 100, 500, 700);
+            var units = new[] { new UnitRecord("TFT18_" + new string('X', 100),
+                new LocalizedText(new string('가', 100), "Long unit name"), 1, null, "", null) };
+            _vm.SetCatalog(CatalogBrowserViewModelTests.Catalog(units: units), DataManagerTestSupport.Identity());
+            yield return EditorWindowTestSupport.WaitForRender();
+            yield return null;
+            var row = _tree.Q<Label>(className: "tft-browser-result");
+            Assert.That(row, Is.Not.Null, "The actual list must create a result row.");
+            Assert.That(row.resolvedStyle.whiteSpace, Is.EqualTo(WhiteSpace.NoWrap));
+            Assert.That(row.resolvedStyle.textOverflow, Is.EqualTo(TextOverflow.Ellipsis));
+        }
+
+        [UnityTest]
         public IEnumerator SearchKindAndSelectionEventsShowTheActualRecord()
         {
             _tree.Q<TextField>("browser-search").value = "nature";
