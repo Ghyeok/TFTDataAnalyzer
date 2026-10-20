@@ -23,7 +23,7 @@ Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한
 
 [수집 준비 상태 안내 수정](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/Checkpoint.md)은 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했습니다. 최초 수집 전에는 카탈로그·입력·API 키·수집 대상 중 부족한 조건을 안내하고, 이전 실행 결과는 보존합니다. 검증 전후 기존 창·프레임과 보호 파일은 같았습니다. Unity 연결 도구의 통신 오류2건은 별도 기록했으며 해결을 주장하지 않습니다. PR15의 최신 head 검수·main 병합과 사용자 최종 승인을 완료했습니다([결과와 사용법](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)).
 
-최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-19 사용자 요청으로 일시중단했습니다([운영 지침](docs/coderabbit-monitoring.md)).
+최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-20 사용자 요청으로 삭제하고 목록의 부재를 확인했습니다([운영 지침](docs/coderabbit-monitoring.md)).
 
 ## 핵심 설계
 
@@ -92,7 +92,7 @@ flowchart TD
 
 내부 집계는 참가자 수·순위 합계·Top 4와 1위의 분자·분모, 관측 경기 기간과 데이터 버전을 보존합니다. 상대 배치는 조합 쌍마다 한 로비를 한 표본으로 계산하며, 같은 조합이 여러 참가자에게 나타나 비교가 모호한 로비는 제외 건수로 기록합니다. 입력에는 실제 수집 시각이 없어 현재 기간은 경기 시각의 범위입니다.
 
-표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 검토된 `MetricPolicyMetadata`를 연결하기 전에는 증강이 있는 조합의 비율이 나타나지 않습니다. 출처를 보존하는 새 집계 캐시는 `aggregates/2/`에 저장하며 기존 스키마 1 캐시는 보존하고 관측에서 다시 생성해야 합니다.
+표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 분류 자료 공급 경로는 연결됐지만 기본 승인 목록이 비어 있으므로, 승인된 `MetricPolicyMetadata` 자료가 등록되기 전까지 증강이 있는 조합의 비율은 차단됩니다. 출처를 보존하는 새 집계 캐시는 `aggregates/2/`에 저장하며 기존 스키마 1 캐시는 보존하고 관측에서 다시 생성해야 합니다.
 
 ### 수집과 저장 원칙
 

@@ -122,7 +122,10 @@ namespace TFTAnalyzer.Tests.UI
             {
                 service = new AnalysisService(store, provider: new CallbackProvider((catalog, identity, token) => read));
                 var snapshot = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None);
-                Assert.That(snapshot.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation.Ratios, Is.Empty);
+                var presentation = snapshot.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation;
+                Assert.That(presentation.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+                Assert.That(presentation.ReasonCode, Is.EqualTo("unclassified_augment"));
+                Assert.That(presentation.Ratios, Is.Empty);
             }
         }
 
