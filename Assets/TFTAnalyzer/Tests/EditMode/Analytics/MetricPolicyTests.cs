@@ -13,6 +13,23 @@ namespace TFTAnalyzer.Tests.Analytics
     /// <summary>Tests policy-approved output rather than merely hiding rates in a future UI.</summary>
     public sealed class MetricPolicyTests
     {
+        [TestCase(AugmentPolicyKind.Standard, MetricVisibility.Visible)]
+        [TestCase(AugmentPolicyKind.Unknown, MetricVisibility.PolicyBlocked)]
+        [TestCase(AugmentPolicyKind.LegendBased, MetricVisibility.PolicyBlocked)]
+        [TestCase(AugmentPolicyKind.Legend, MetricVisibility.PolicyBlocked)]
+        public void CopiedThresholdPreservesReviewedMetadataAndOriginalPolicy(AugmentPolicyKind kind, MetricVisibility state)
+        {
+            var original = new MetricPolicy(100, Metadata("SAFE_AUGMENT", kind));
+            var raised = original.WithMinimumSamples(200);
+            Assert.That(raised.MinimumSamples, Is.EqualTo(200));
+            Assert.That(original.MinimumSamples, Is.EqualTo(100));
+            Assert.That(raised.Evaluate(Metric(200, "SAFE_AUGMENT"), Catalog()).State, Is.EqualTo(state));
+            Assert.That(raised.Evaluate(Metric(200, "SAFE_AUGMENT"), Catalog()).ReasonCode,
+                Is.EqualTo(original.Evaluate(Metric(200, "SAFE_AUGMENT"), Catalog()).ReasonCode));
+            Assert.That(raised.Evaluate(Metric(199, "SAFE_AUGMENT"), Catalog()).Ratios, Is.Empty);
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.WithMinimumSamples(99));
+        }
+
         /// <summary>Retains approved averages and sample counts while suppressing every ratio field below100.</summary>
         [TestCase(1, MetricVisibility.InsufficientSample, "insufficient_sample")]
         [TestCase(99, MetricVisibility.InsufficientSample, "insufficient_sample")]

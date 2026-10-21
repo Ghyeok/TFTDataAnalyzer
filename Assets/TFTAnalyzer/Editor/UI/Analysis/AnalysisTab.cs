@@ -19,10 +19,12 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         private readonly Func<string> _chooseExportPath;
         private readonly Action<string, IReadOnlyList<MetricPresentation>> _writeExport;
         private readonly DropdownField[] _filters;
+        private readonly IntegerField _minimum;
         private readonly Button _refresh, _cancel, _export, _rowsPrevious, _rowsNext, _pairsPrevious, _pairsNext;
         private IReadOnlyList<MetricRowViewModel> _renderedRows, _renderedPairs;
         private int _rowPage, _pairPage;
         private bool _disposed, _queued, _preserveExportNotice;
+        private EditorApplication.CallbackFunction _pendingExport;
 
         public AnalysisTab(VisualElement tab, AnalysisViewModel model, Func<string> chooseExportPath,
             Action<string, IReadOnlyList<MetricPresentation>> writeExport)
@@ -32,6 +34,8 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             _chooseExportPath = chooseExportPath ?? throw new ArgumentNullException(nameof(chooseExportPath));
             _writeExport = writeExport ?? throw new ArgumentNullException(nameof(writeExport));
             _filters = FilterNames.Select(name => tab.Q<DropdownField>("analysis-" + name)).ToArray();
+            _minimum = tab.Q<IntegerField>("analysis-minimum-samples");
+            _minimum.RegisterValueChangedCallback(OnMinimumChanged);
             foreach (var field in _filters) field.RegisterValueChangedCallback(OnFilterChanged);
             _refresh = tab.Q<Button>("analysis-refresh");
             _cancel = tab.Q<Button>("analysis-cancel");
@@ -50,6 +54,9 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             _vm.Changed += QueueRender;
             Render();
         }
+
+        private void OnMinimumChanged(ChangeEvent<int> evt)
+        { if (!_disposed) _vm.SetMinimumSamples(evt.newValue); }
 
         private void OnFilterChanged(ChangeEvent<string> evt)
         {
@@ -70,6 +77,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         private void Export()
         {
             if (_disposed || !_vm.CanExport) return;
+            CancelPendingExport();
             // Take the entire filtered presentation snapshot before the modal dialog pumps Editor events.
             var snapshot = _vm.Snapshot;
             var identity = _vm.ActiveIdentity;
@@ -78,24 +86,46 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             var visibleFilters = _filters.Select(field => field.value).ToArray();
             var presentations = Array.AsReadOnly(_vm.Rows.Concat(_vm.Pairs).Select(row => row.Presentation).ToArray());
             var status = _tab.Q<Label>("analysis-export-status");
+            bool IsCurrent() => _vm.CanExport && ReferenceEquals(snapshot, _vm.Snapshot) && Equals(identity, _vm.ActiveIdentity) &&
+                identity.Patch.SetNumber == _vm.ActiveIdentity.Patch.SetNumber &&
+                ReferenceEquals(rows, _vm.Rows) && ReferenceEquals(pairs, _vm.Pairs) &&
+                visibleFilters.SequenceEqual(_filters.Select(field => field.value), StringComparer.Ordinal);
+            void Reject()
+            {
+                _preserveExportNotice = true;
+                status.text = "분석 대상이 변경됐습니다. 현재 결과로 다시 저장해 주세요.";
+            }
             try
             {
                 var path = _chooseExportPath();
                 if (_disposed || string.IsNullOrEmpty(path)) return;
-                if (!_vm.CanExport || !ReferenceEquals(snapshot, _vm.Snapshot) || !Equals(identity, _vm.ActiveIdentity) ||
-                    identity.Patch.SetNumber != _vm.ActiveIdentity.Patch.SetNumber ||
-                    !ReferenceEquals(rows, _vm.Rows) || !ReferenceEquals(pairs, _vm.Pairs) ||
-                    !visibleFilters.SequenceEqual(_filters.Select(field => field.value), StringComparer.Ordinal))
+                if (!IsCurrent()) { Reject(); return; }
+                // Nested input events drain after this button callback, including changes that return to the old value.
+                EditorApplication.CallbackFunction complete = null;
+                complete = () =>
                 {
-                    // Nested UI events may be delivered after this button callback returns.
-                    _preserveExportNotice = true;
-                    status.text = "분석 대상이 변경됐습니다. 현재 결과로 다시 저장해 주세요.";
-                    return;
-                }
-                _writeExport(path, presentations);
-                status.text = "개인 연구용 CSV를 저장했습니다.";
+                    EditorApplication.update -= complete;
+                    if (!ReferenceEquals(_pendingExport, complete)) return;
+                    _pendingExport = null;
+                    if (_disposed) return;
+                    try
+                    {
+                        if (!IsCurrent()) { Reject(); return; }
+                        _writeExport(path, presentations);
+                        status.text = "개인 연구용 CSV를 저장했습니다.";
+                    }
+                    catch (Exception) { status.text = "CSV를 저장하지 못했습니다. 저장 위치를 확인하고 다시 시도해 주세요."; }
+                };
+                _pendingExport = complete;
+                EditorApplication.update += complete;
             }
             catch (Exception) { if (!_disposed) status.text = "CSV를 저장하지 못했습니다. 저장 위치를 확인하고 다시 시도해 주세요."; }
+        }
+
+        private void CancelPendingExport()
+        {
+            if (_pendingExport != null) EditorApplication.update -= _pendingExport;
+            _pendingExport = null;
         }
 
         private void QueueRender()
@@ -114,6 +144,8 @@ namespace TFTAnalyzer.Editor.UI.Analysis
 
         private void Render()
         {
+            _minimum.SetValueWithoutNotify(_vm.MinimumSamples);
+            _tab.Q<Label>("analysis-minimum-status").text = _vm.MinimumStatusText;
             _refresh.SetEnabled(_vm.CanRefresh);
             _cancel.SetEnabled(_vm.IsBusy);
             _export.SetEnabled(_vm.CanExport);
@@ -225,10 +257,12 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         {
             if (_disposed) return;
             _disposed = true;
+            CancelPendingExport();
             _vm.Changed -= QueueRender;
             EditorApplication.update -= Flush;
             _queued = false;
             foreach (var field in _filters) field.UnregisterValueChangedCallback(OnFilterChanged);
+            _minimum.UnregisterValueChangedCallback(OnMinimumChanged);
             _refresh.clicked -= Refresh;
             _cancel.clicked -= Cancel;
             _export.clicked -= Export;

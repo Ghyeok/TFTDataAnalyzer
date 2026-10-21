@@ -28,6 +28,59 @@ namespace TFTAnalyzer.Tests.UI
         public void TearDown() { if (Directory.Exists(_temporary)) Directory.Delete(_temporary, true); }
 
         [Test]
+        public async Task RequestedMinimumBelowFloorFailsBeforeProviderOrStoreAccess()
+        {
+            var calls = 0;
+            var service = new AnalysisService(new ObservationStore(_paths), new AggregateStore(_paths),
+                provider: new CallbackProvider((catalog, identity, token) => { calls++; return AugmentPolicyLoadResult.Missing; }));
+            Exception error = null;
+            try { await service.LoadAsync(AnalysisFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None, 99); }
+            catch (Exception caught) { error = caught; }
+            Assert.That(error, Is.TypeOf<ArgumentOutOfRangeException>());
+            Assert.That(calls, Is.Zero);
+            Assert.That(Directory.Exists(_paths.RootDirectory), Is.False);
+        }
+
+        [TestCase("loaded")]
+        [TestCase("missing")]
+        [TestCase("invalid")]
+        public async Task RequestedMinimumSurvivesProviderAndDoesNotLeakToNextRequest(string state)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(AugmentPolicyFixture.Document().ToString(Newtonsoft.Json.Formatting.None));
+            var inner = AugmentPolicyFixture.Provider(_paths.ProjectRoot, bytes);
+            var provider = new CallbackProvider((catalog, identity, token) => state == "loaded" ? inner.Load(catalog, identity, token) :
+                state == "missing" ? AugmentPolicyLoadResult.Missing : AugmentPolicyLoadResult.Invalid);
+            var store = new ObservationStore(_paths);
+            foreach (var observation in AnalysisFixture.Observations(100, "AUG")) await store.AppendIfNewAsync(observation, CancellationToken.None);
+            var service = new AnalysisService(store, provider: provider);
+            var raised = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None, 200);
+            Assert.That(raised.MinimumSamples, Is.EqualTo(200));
+            Assert.That(raised.AllRows.SelectMany(x => x.Presentation.Ratios), Is.Empty);
+            Assert.That(raised.AllPairs.SelectMany(x => x.Presentation.Ratios), Is.Empty);
+            var row = raised.AllRows.Single(x => x.First.UnitIds.Contains("A"));
+            Assert.That(row.Presentation.State, Is.EqualTo(state == "loaded" ? MetricVisibility.InsufficientSample : MetricVisibility.PolicyBlocked));
+            var baseline = await service.LoadAsync(AugmentPolicyFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None);
+            Assert.That(baseline.MinimumSamples, Is.EqualTo(100));
+            Assert.That(baseline.AllRows.Single(x => x.First.UnitIds.Contains("A")).Presentation.State,
+                Is.EqualTo(state == "loaded" ? MetricVisibility.Visible : MetricVisibility.PolicyBlocked));
+        }
+
+        [Test]
+        public async Task StricterInjectedPolicyAndBuildSnapshotReportTheEffectiveMinimum()
+        {
+            var policy = new MetricPolicy(250);
+            var store = new ObservationStore(_paths);
+            foreach (var observation in AnalysisFixture.Observations(1)) await store.AppendIfNewAsync(observation, CancellationToken.None);
+            var snapshot = await new AnalysisService(store, policy: policy).LoadAsync(AnalysisFixture.Catalog(), AnalysisFixture.Identity(), CancellationToken.None, 100);
+            Assert.That(snapshot.MinimumSamples, Is.EqualTo(250));
+            Assert.That(policy.MinimumSamples, Is.EqualTo(250));
+            var built = AnalysisService.BuildSnapshot(AnalysisFixture.Catalog(), AnalysisFixture.Identity(), AnalysisFixture.Observations(200), new MetricPolicy(200));
+            Assert.That(built.MinimumSamples, Is.EqualTo(200));
+            Assert.That(built.AllRows.All(x => x.Presentation.State == MetricVisibility.Visible), Is.True);
+            Assert.That(built.AllPairs.All(x => x.Presentation.State == MetricVisibility.Visible), Is.True);
+        }
+
+        [Test]
         public async Task ExplicitRecoveryBuildPolicyFilterCsvUsesOneCoherentAnonymousSnapshot()
         {
             var observations = AnalysisFixture.Observations(2);

@@ -48,13 +48,16 @@ namespace TFTAnalyzer.Editor.UI.Analysis
     public sealed class AnalysisSnapshot
     {
         public CatalogIdentity Identity { get; }
+        public int MinimumSamples { get; }
         public IReadOnlyList<MetricRowViewModel> AllRows { get; }
         public IReadOnlyList<MetricRowViewModel> AllPairs { get; }
         public DateTimeOffset? FirstPlayedAt { get; }
         public DateTimeOffset? LastPlayedAt { get; }
         internal AnalysisSnapshot(CatalogIdentity identity, IEnumerable<MetricRowViewModel> rows,
-            IEnumerable<MetricRowViewModel> pairs)
+            IEnumerable<MetricRowViewModel> pairs, int minimumSamples = MetricPolicy.MinimumSampleFloor)
         {
+            if (minimumSamples < MetricPolicy.MinimumSampleFloor) throw new ArgumentOutOfRangeException(nameof(minimumSamples));
+            MinimumSamples = minimumSamples;
             Identity = identity;
             AllRows = Array.AsReadOnly(rows.ToArray()); AllPairs = Array.AsReadOnly(pairs.ToArray());
             if (AllRows.Count != 0)

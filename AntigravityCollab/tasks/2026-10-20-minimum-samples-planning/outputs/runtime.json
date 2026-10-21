@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-20-minimum-samples-planning",
+  "inputDigest": "d178aea98b1749877cd19f9d4b4aed58666dbc88d070cf2c2930bd241c4dbc88",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.3",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 45296,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 10078,
+    "output_tokens": 1140,
+    "thinking_tokens": 943,
+    "cache_read_tokens": 0,
+    "total_tokens": 11218
+  },
+  "responseSeconds": 35.6421297,
+  "exitCode": 0,
+  "durationSeconds": 44.555
+}

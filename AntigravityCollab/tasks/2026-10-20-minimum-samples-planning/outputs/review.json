@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "inputDigest": "d178aea98b1749877cd19f9d4b4aed58666dbc88d070cf2c2930bd241c4dbc88",
+  "taskId": "2026-10-20-minimum-samples-planning",
+  "unverified": [
+    "기획 초안 및 UI 명칭·배치에 대한 사용자 명시 승인과 기준 PR17 병합 여부",
+    "제공된 2개 입력 문서 외 실제 저장소 코드·UXML·EditMode 테스트·시각 검증 도구의 실행 결과",
+    "실제 Riot API 키·시드 설정·승인된 증강 분류 metadata 등록 및 실데이터 n>=100 표본 충족 여부"
+  ],
+  "verdict": "pass"
+}

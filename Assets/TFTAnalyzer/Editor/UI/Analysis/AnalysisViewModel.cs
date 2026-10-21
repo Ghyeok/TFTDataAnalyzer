@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TFTAnalyzer.Analytics;
 using TFTAnalyzer.Domain;
 
 namespace TFTAnalyzer.Editor.UI.Analysis
@@ -21,11 +22,36 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         public IReadOnlyList<MetricRowViewModel> Rows { get; private set; } = Array.Empty<MetricRowViewModel>();
         public IReadOnlyList<MetricRowViewModel> Pairs { get; private set; } = Array.Empty<MetricRowViewModel>();
         public bool IsBusy => _operation != null;
-        public bool CanRefresh => !_disposed && !IsBusy && Catalog != null && ActiveIdentity != null;
-        public bool CanExport => !_disposed && !IsBusy && Snapshot != null && (Rows.Count != 0 || Pairs.Count != 0);
+        public int MinimumSamples { get; private set; } = MetricPolicy.MinimumSampleFloor;
+        private bool ValidMinimum => MinimumSamples >= MetricPolicy.MinimumSampleFloor;
+        public string MinimumStatusText => !ValidMinimum ? "최소 표본 수는 100 이상으로 입력해 주세요." :
+            Snapshot == null ? "100 이상으로 설정할 수 있습니다. 기준 변경 후 로컬 집계를 갱신해 주세요." :
+            $"현재 결과의 적용 기준: {Snapshot.MinimumSamples}건 이상 (조합: 참가자 관측, 상대 배치: 비교 가능 로비)";
+        public bool CanRefresh => !_disposed && !IsBusy && ValidMinimum && Catalog != null && ActiveIdentity != null;
+        public bool CanExport => !_disposed && !IsBusy && ValidMinimum && Snapshot != null &&
+            Snapshot.MinimumSamples >= MinimumSamples && (Rows.Count != 0 || Pairs.Count != 0);
         public string StatusText { get; private set; } = "데이터 관리 탭에서 검증된 카탈로그를 선택해 주세요.";
         public string ErrorCode { get; private set; } = "";
         public AnalysisViewModel(IAnalysisService service) { _service = service ?? throw new ArgumentNullException(nameof(service)); }
+
+        public void SetMinimumSamples(int minimumSamples)
+        {
+            if (_disposed || minimumSamples == MinimumSamples) return;
+            MinimumSamples = minimumSamples;
+            _generation++; _operation?.Cancel();
+            ClearResults(); SetReadyStatus(); Notify();
+        }
+
+        private void ClearResults()
+        { Snapshot = null; Rows = Array.Empty<MetricRowViewModel>(); Pairs = Array.Empty<MetricRowViewModel>(); }
+
+        private void SetReadyStatus()
+        {
+            ErrorCode = ValidMinimum ? "" : "analysis_minimum_samples_invalid";
+            StatusText = !ValidMinimum ? MinimumStatusText : Catalog == null ?
+                "데이터 관리 탭에서 검증된 카탈로그를 선택해 주세요." :
+                "로컬 집계 갱신을 눌러 저장된 익명 경기 기록에 현재 기준을 적용하세요.";
+        }
 
         public void SetCatalog(StaticCatalog catalog, CatalogIdentity identity = null)
         {
@@ -36,9 +62,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (ReferenceEquals(Catalog, catalog) && AnalysisService.SameIdentity(ActiveIdentity, identity)) return;
             _generation++; _operation?.Cancel();
             Catalog = catalog; ActiveIdentity = identity;
-            Snapshot = null; Rows = Array.Empty<MetricRowViewModel>(); Pairs = Array.Empty<MetricRowViewModel>();
-            ErrorCode = "";
-            StatusText = catalog == null ? "데이터 관리 탭에서 검증된 카탈로그를 선택해 주세요." : "로컬 집계 갱신을 눌러 저장된 익명 경기 기록을 읽고 집계 캐시를 재생성하세요.";
+            ClearResults(); SetReadyStatus();
             Notify();
         }
 
@@ -52,15 +76,16 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         {
             if (!CanRefresh) return;
             var operation = new CancellationTokenSource(); _operation = operation;
-            var generation = ++_generation; var catalog = Catalog; var identity = ActiveIdentity;
-            Snapshot = null; Rows = Array.Empty<MetricRowViewModel>(); Pairs = Array.Empty<MetricRowViewModel>();
+            var generation = ++_generation; var catalog = Catalog; var identity = ActiveIdentity; var minimum = MinimumSamples;
+            ClearResults();
             ErrorCode = ""; StatusText = "로컬 익명 경기 기록을 읽고 집계 캐시를 갱신하고 있습니다."; Notify();
             try
             {
-                var snapshot = await _service.LoadAsync(catalog, identity, operation.Token);
+                var snapshot = await _service.LoadAsync(catalog, identity, operation.Token, minimum);
                 operation.Token.ThrowIfCancellationRequested();
                 if (!Current(generation, operation)) return;
-                if (snapshot == null || !AnalysisService.SameIdentity(snapshot.Identity, identity)) throw new InvalidOperationException();
+                if (snapshot == null || !AnalysisService.SameIdentity(snapshot.Identity, identity) ||
+                    snapshot.MinimumSamples < minimum) throw new InvalidOperationException();
                 Snapshot = snapshot; ApplyFilters();
             }
             catch (OperationCanceledException)
@@ -100,7 +125,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         public void Cancel()
         {
             if (_disposed || _operation == null) return;
-            _operation.Cancel(); StatusText = "로컬 집계 갱신을 취소하고 있습니다."; Notify();
+            _operation.Cancel(); if (ValidMinimum) StatusText = "로컬 집계 갱신을 취소하고 있습니다."; Notify();
         }
         private void Notify() { if (!_disposed) Changed?.Invoke(); }
         public void Dispose()

@@ -20,7 +20,7 @@
 
 ## Global Constraints
 
-현재 활성 목표의 [잔여 점검](../Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md)에서 빠진 정적 레코드 탐색을 확인했다. [기획 A/B](../Workflow/Cycles/2026-10-20-service-completion/refined/PlanningReview.md) 보완과 사용자 [계획 승인](../Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md) 후 구현·독립 검수·QA를 통과했다. 관련UI169/169, 동결 전체701개 중700통과·실패0·호스트 링크1제외, 실제4PNG·창/프레임/보호파일 보존을 확인했다. 최신 외부 PR검수·병합은 별도이며 사용자 목표에 따라5분간격확인·조건충족시병합한다. Hermes예약은재등록하지않는다. 실제분류자료·API·표본검토 등 전체목표의 남은일은 계속 진행한다.
+현재 활성 목표의 [잔여 점검](../Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md)에서 빠진 정적 레코드 탐색을 확인했다. [기획 A/B](../Workflow/Cycles/2026-10-20-service-completion/refined/PlanningReview.md) 보완과 사용자 [계획 승인](../Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md) 후 구현·독립 검수·QA를 통과했다. 관련UI169/169, 동결 전체701개 중700통과·실패0·호스트 링크1제외, 실제4PNG·창/프레임/보호파일 보존을 확인했다. PR17은최신head검수통과후main0c6c1d5로병합했다. 다음승인범위인최소표본설정은구현·전체검증·QA통과후PR제출을준비한다. Hermes예약은재등록하지않는다. 실제분류자료·API·표본검토 등 전체목표의 남은일은 계속 진행한다.
 
 - This project never simulates TFT combat and never reports future win probability.
 - Match API payloads containing PUUIDs or raw Match IDs never touch disk or logs.

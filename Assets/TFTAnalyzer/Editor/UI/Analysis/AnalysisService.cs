@@ -12,7 +12,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
 {
     public interface IAnalysisService
     {
-        Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token);
+        Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null);
     }
     public sealed class AnalysisService : IAnalysisService
     {
@@ -29,18 +29,21 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         }
 
         // Recovery/index and aggregate-cache writes happen only behind explicit local Refresh.
-        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
+        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null)
         {
+            if (minimumSamples.HasValue && minimumSamples.Value < MetricPolicy.MinimumSampleFloor)
+                throw new ArgumentOutOfRangeException(nameof(minimumSamples));
             if (!MatchesCatalog(catalog, identity)) throw new ArgumentException("analysis_catalog_invalid");
+            var effectiveMinimum = Math.Max(_policy.MinimumSamples, minimumSamples ?? _policy.MinimumSamples);
             return AnalyzerStoreOperations.Shared.RunAsync(() => Task.Run(async () =>
             {
                 token.ThrowIfCancellationRequested();
-                var policy = _policy;
+                var policy = _policy.WithMinimumSamples(effectiveMinimum);
                 if (_provider != null)
                 {
                     var read = _provider.Load(catalog, identity, token);
                     token.ThrowIfCancellationRequested();
-                    policy = new MetricPolicy(augmentMetadata: read?.State == AugmentPolicyLoadState.Loaded ? read.Metadata : null);
+                    policy = new MetricPolicy(effectiveMinimum, read?.State == AugmentPolicyLoadState.Loaded ? read.Metadata : null);
                 }
                 var observations = new List<AnonymousMatchObservation>();
                 await foreach (var observation in _observations.ReadAllAsync(token))
@@ -94,7 +97,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                     pairs.Add(new MetricRowViewModel(presentation, descriptors[pair.First.Value], descriptors[pair.Second.Value]));
                 }
             }
-            return new AnalysisSnapshot(identity, rows, pairs);
+            return new AnalysisSnapshot(identity, rows, pairs, policy.MinimumSamples);
         }
 
         internal static bool SameIdentity(CatalogIdentity first, CatalogIdentity second) =>
