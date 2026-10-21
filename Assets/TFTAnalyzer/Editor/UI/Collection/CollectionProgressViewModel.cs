@@ -15,6 +15,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
         public bool Cancelled { get; }
         public bool ScanLimitReached { get; }
         public DateTimeOffset? RetryAfterUtc { get; }
+        public int Quarantined { get; }
+        public bool QuarantineReportSaved { get; }
+        public bool QuarantineReportFailed { get; }
+        public bool QuarantineReportTruncated { get; }
 
         internal CollectionProgressViewModel(MatchCollectionSummary summary = null)
         {
@@ -29,6 +33,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
             Cancelled = summary.Cancelled;
             ScanLimitReached = summary.ScanLimitReached;
             RetryAfterUtc = summary.RetryAfterUtc;
+            Quarantined = summary.Quarantined;
+            QuarantineReportSaved = summary.QuarantineReportSaved;
+            QuarantineReportFailed = summary.QuarantineReportFailed;
+            QuarantineReportTruncated = summary.QuarantineReportTruncated;
         }
     }
 }

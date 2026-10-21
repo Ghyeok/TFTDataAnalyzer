@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TFTAnalyzer.Analytics;
@@ -15,6 +16,14 @@ namespace TFTAnalyzer.Editor.Persistence
         public string ObservationsDirectory => Path.Combine(RootDirectory, "observations");
         public string ProcessedMatchIndexPath => Path.Combine(RootDirectory, "processed-match-hashes.json");
         internal string LeasePath => Path.Combine(RootDirectory, "store.lock");
+
+        /// <summary>Maps a validated digest to the most recent quarantined run for that requested context.</summary>
+        internal string QuarantineReportPath(string requestContextHash)
+        {
+            if (requestContextHash == null || !Regex.IsMatch(requestContextHash, "\\A[0-9a-f]{64}\\z"))
+                throw new ArgumentException("quarantine_report_context_invalid");
+            return Path.Combine(RootDirectory, "diagnostics", "quarantine", requestContextHash + ".json");
+        }
 
         /// <summary>Allows the default Library store or an explicit project-external directory.</summary>
         public AnalyzerStorePaths(string projectRoot, string rootOverride = null)

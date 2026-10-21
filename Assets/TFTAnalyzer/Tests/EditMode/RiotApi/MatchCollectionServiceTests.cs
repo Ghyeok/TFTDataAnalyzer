@@ -12,6 +12,7 @@ using TFTAnalyzer.Analytics;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.RiotApi;
+using TFTAnalyzer.Serialization;
 using UnityEngine;
 
 namespace TFTAnalyzer.Tests.RiotApi
@@ -70,6 +71,164 @@ namespace TFTAnalyzer.Tests.RiotApi
             Assert.That(summary.Requested, Is.EqualTo(2));
             Assert.That(summary.Filtered, Is.EqualTo(2));
             Assert.That(transport.Details, Is.EqualTo(new[] { "M1", "M2" }));
+        }
+
+        /// <summary>Preserves only existing anonymous unknown-ID digests through the real collection path.</summary>
+        [Test]
+        public async Task UnknownIdsLeaveHashOnlyQuarantineReport()
+        {
+            var unknown = new Dictionary<string, string>
+            {
+                ["unit"] = "FAKE-PUUID-unknown-unit", ["item"] = "secret-key-unknown-item",
+                ["trait"] = "FakePlayer-unknown-trait", ["augment"] = "seed-a-unknown-augment"
+            };
+            var transport = new Transport { Body = id =>
+            {
+                var value = JObject.Parse(Body(id));
+                var participant = value["info"]["participants"][0];
+                participant["units"][0]["character_id"] = unknown["unit"];
+                participant["units"][0]["itemNames"] = new JArray(unknown["item"]);
+                participant["traits"][0]["name"] = unknown["trait"];
+                participant["augments"] = new JArray(unknown["augment"]);
+                return value.ToString();
+            }};
+            var summary = await Service(transport).CollectAsync(Request(1), Progress(), default);
+            Assert.That(summary.Filtered, Is.EqualTo(1));
+            Assert.That(summary.Stored, Is.Zero);
+            Assert.That(summary.Quarantined, Is.EqualTo(1));
+            Assert.That(summary.QuarantineReportSaved, Is.True);
+            Assert.That(summary.QuarantineReportFailed, Is.False);
+            var directory = Path.Combine(_paths.RootDirectory, "diagnostics", "quarantine");
+            Assert.That(Directory.Exists(directory), Is.True, "Collection discarded unknown-ID diagnostics without a report.");
+            var file = Directory.GetFiles(directory, "*.json").Single();
+            var json = File.ReadAllText(file);
+            var report = JObject.Parse(json);
+            Assert.That(report.Properties().Select(x => x.Name), Is.EquivalentTo(new[]
+                { "schemaVersion", "requestContextHash", "completedUtc", "quarantinedMatches", "truncated", "entries" }));
+            Assert.That((int)report["schemaVersion"], Is.EqualTo(1));
+            Assert.That((int)report["quarantinedMatches"], Is.EqualTo(1));
+            Assert.That((bool)report["truncated"], Is.False);
+            Assert.That((string)report["requestContextHash"], Does.Match("^[0-9a-f]{64}$"));
+            Assert.That(Path.GetFileNameWithoutExtension(file), Is.EqualTo((string)report["requestContextHash"]));
+            var entries = (JArray)report["entries"];
+            Assert.That(entries.Count, Is.EqualTo(4));
+            foreach (var entry in entries.Cast<JObject>())
+            {
+                Assert.That(entry.Properties().Select(x => x.Name), Is.EquivalentTo(new[] { "kind", "idHash" }));
+                var kind = (string)entry["kind"];
+                Assert.That((string)entry["idHash"], Is.EqualTo(ContentHasher.Sha256Hex("static-id-v1|" + kind + "|" + unknown[kind])));
+            }
+            Assert.That(entries.Select(x => (string)x["kind"]), Is.EqualTo(new[] { "augment", "item", "trait", "unit" }));
+            AssertSafe(json);
+            Assert.That(json, Does.Not.Contain(ContentHasher.Sha256Hex("match-v1|M1")));
+            Assert.That(transport.Streams.All(x => x.Disposed), Is.True);
+            Assert.That(await Observations(), Is.Empty);
+        }
+
+        /// <summary>Publishes one deduplicated report only after the complete run has settled.</summary>
+        [Test]
+        public async Task RepeatedUnknownsPublishOnceAndFinalProgressMatchesReturnedSummary()
+        {
+            var transport = new Transport { Ids = (seed, start) => new[] { "M1", "M2" }, Body = UnknownBody };
+            var reports = new List<CollectionQuarantineReport>();
+            var summary = await Service(transport, saveReport: reports.Add).CollectAsync(Request(2), Progress(), default);
+            Assert.That(reports.Count, Is.EqualTo(1));
+            Assert.That(reports[0].QuarantinedMatches, Is.EqualTo(2));
+            Assert.That(reports[0].Entries.Count, Is.EqualTo(1));
+            Assert.That(summary.Quarantined, Is.EqualTo(2));
+            Assert.That(summary.QuarantineReportSaved, Is.True);
+            Assert.That(summary.QuarantineReportFailed, Is.False);
+            Assert.That(JsonConvert.SerializeObject(_progress.Last().Summary), Is.EqualTo(JsonConvert.SerializeObject(summary)));
+        }
+
+        /// <summary>Cancellation, HTTP quota stop and attempt limits all retain already observed quarantine hashes.</summary>
+        [TestCase("cancel")] [TestCase("rate_limit")] [TestCase("detail_limit")]
+        public async Task EarlyTerminationStillPublishesSettledReport(string ending)
+        {
+            using var cancellation = new CancellationTokenSource();
+            var transport = new Transport { Ids = (seed, start) => new[] { "M1", "M2" }, Body = UnknownBody };
+            var reports = new List<CollectionQuarantineReport>();
+            var progress = new Reporter(value =>
+            {
+                _progress.Add(value);
+                if (value.Summary.Filtered == 1)
+                {
+                    if (ending == "cancel") cancellation.Cancel();
+                    if (ending == "rate_limit") transport.Status = 429;
+                }
+            });
+            var summary = await Service(transport, saveReport: reports.Add).CollectAsync(
+                Request(ending == "detail_limit" ? 1 : 2), progress, cancellation.Token);
+            Assert.That(reports.Count, Is.EqualTo(1));
+            Assert.That(reports[0].QuarantinedMatches, Is.EqualTo(1));
+            Assert.That(summary.Quarantined, Is.EqualTo(1));
+            Assert.That(summary.QuarantineReportSaved, Is.True);
+            Assert.That(summary.Cancelled, Is.EqualTo(ending == "cancel"));
+            Assert.That(summary.StatusCode, Is.EqualTo(ending == "rate_limit" ? 429 : 0));
+            Assert.That(JsonConvert.SerializeObject(_progress.Last().Summary), Is.EqualTo(JsonConvert.SerializeObject(summary)));
+        }
+
+        /// <summary>A diagnostic failure does not undo accepted observations, falsify HTTP failures or leak exception values.</summary>
+        [Test]
+        public async Task ReportFailurePreservesStoredObservationsAndReturnsSeparateFlag()
+        {
+            var transport = new Transport { Ids = (seed, start) => new[] { "M1", "M2" }, Body = id => id == "M1" ? UnknownBody(id) : Body(id) };
+            var summary = await Service(transport, saveReport: report => throw new IOException("secret-key-fake-path"))
+                .CollectAsync(Request(2), Progress(), default);
+            Assert.That(summary.Stored, Is.EqualTo(1));
+            Assert.That(summary.Filtered, Is.EqualTo(1));
+            Assert.That(summary.Quarantined, Is.EqualTo(1));
+            Assert.That(summary.Failed, Is.Zero);
+            Assert.That(summary.QuarantineReportFailed, Is.True);
+            Assert.That(summary.QuarantineReportSaved, Is.False);
+            Assert.That((await Observations()).Count, Is.EqualTo(1));
+            Assert.That(JsonConvert.SerializeObject(_progress.Last().Summary), Is.EqualTo(JsonConvert.SerializeObject(summary)));
+            AssertSafe(summary);
+        }
+
+        /// <summary>Stops before the next request and explicitly reports omitted diagnostics at the unique-entry cap.</summary>
+        [Test]
+        public async Task QuarantineLimitStopsBeforeNextRequestAndPublishes4096SafePairs()
+        {
+            var transport = new Transport { Ids = (seed, start) => new[] { "M1", "M2" }, Body = id =>
+            {
+                var value = JObject.Parse(Body(id));
+                var participants = (JArray)value["info"]["participants"];
+                for (var p = 0; p < participants.Count; p++)
+                    participants[p]["units"] = new JArray(Enumerable.Range(0, 64).Select(u => new JObject
+                    {
+                        ["character_id"] = "fake-unit-" + p + "-" + u, ["tier"] = 2,
+                        ["itemNames"] = new JArray(Enumerable.Range(0, 16).Select(i => "fake-item-" + p + "-" + u + "-" + i))
+                    }));
+                return value.ToString();
+            }};
+            var reports = new List<CollectionQuarantineReport>();
+            var summary = await Service(transport, saveReport: reports.Add).CollectAsync(Request(2), Progress(), default);
+            Assert.That(transport.Details, Is.EqualTo(new[] { "M1" }));
+            Assert.That(reports.Count, Is.EqualTo(1));
+            Assert.That(reports[0].Entries.Count, Is.EqualTo(4096));
+            Assert.That(reports[0].Truncated, Is.True);
+            Assert.That(summary.QuarantineReportTruncated, Is.True);
+            Assert.That(summary.QuarantineReportSaved, Is.True);
+            Assert.That(summary.Quarantined, Is.EqualTo(1));
+            Assert.That(summary.Failed, Is.Zero);
+        }
+
+        /// <summary>A zero-quarantine run must not rewrite an older report or claim that it saved this run.</summary>
+        [Test]
+        public async Task NoQuarantineLeavesPreviousReportBytesAndDoesNotClaimNewSave()
+        {
+            var transport = new Transport { Body = UnknownBody };
+            var first = await Service(transport).CollectAsync(Request(1), null, default);
+            Assert.That(first.QuarantineReportSaved, Is.True);
+            var file = Directory.GetFiles(Path.Combine(_paths.RootDirectory, "diagnostics", "quarantine"), "*.json").Single();
+            var original = File.ReadAllBytes(file);
+            transport.Body = id => Body(id);
+            var summary = await Service(transport).CollectAsync(Request(1), null, default);
+            Assert.That(summary.Quarantined, Is.Zero);
+            Assert.That(summary.QuarantineReportSaved, Is.False);
+            Assert.That(summary.QuarantineReportFailed, Is.False);
+            Assert.That(File.ReadAllBytes(file), Is.EqualTo(original));
         }
 
         /// <summary>Catches unbounded paging when a server repeatedly returns the same full page.</summary>
@@ -291,10 +450,10 @@ namespace TFTAnalyzer.Tests.RiotApi
 
         /// <summary>Builds the real client, anonymizer and store with an offline HTTP boundary.</summary>
         private MatchCollectionService Service(Transport transport, string seeds = "seed-a", Func<string> seedRead = null,
-            Func<string> key = null)
+            Func<string> key = null, Action<CollectionQuarantineReport> saveReport = null)
             => new MatchCollectionService(Catalog(), new ObservationStore(_paths),
                 new RiotApiClient(new EnvironmentRiotApiKeyProvider(key ?? (() => "secret-key")), transport),
-                new EnvironmentSeedPuuidProvider(seedRead ?? (() => seeds)));
+                new EnvironmentSeedPuuidProvider(seedRead ?? (() => seeds)), saveReport);
         /// <summary>Captures synchronous progress snapshots without scheduling races.</summary>
         private IProgress<CollectionProgress> Progress() => new Reporter(value => _progress.Add(value));
         /// <summary>Selects a fully identified fabricated catalog and bounded scope.</summary>
@@ -317,6 +476,13 @@ namespace TFTAnalyzer.Tests.RiotApi
                 "TFTAnalyzer/Tests/Fixtures/Matches/fabricated-match-v2.json")));
             value["metadata"]["match_id"] = id;
             value["info"]["queue_id"] = queue;
+            return value.ToString();
+        }
+        /// <summary>Changes a single fabricated static ID into an untrusted value that must leave only its digest.</summary>
+        private static string UnknownBody(string id)
+        {
+            var value = JObject.Parse(Body(id));
+            value["info"]["participants"][0]["units"][0]["character_id"] = "FAKE-PUUID-unknown-unit";
             return value.ToString();
         }
         /// <summary>Reads the actual store after collection or recovery.</summary>

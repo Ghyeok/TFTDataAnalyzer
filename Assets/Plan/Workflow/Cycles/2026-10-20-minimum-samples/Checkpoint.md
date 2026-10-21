@@ -1,6 +1,6 @@
 # 최소 표본 수 설정 체크포인트
 
-갱신2026-10-21. 현재 상태: 새 Editor 정상 연결·Task1/2 코드검수·UI13/13·최소표본 화면6PNG/예외정리 통과, 전체726/725P0F1환경제외·독립QA통과, 문서통합/PR제출준비. branch codex/analysis-minimum-samples, 기준main0c6c1d5. 사용자 Chrome 창/탭을 보존하며 Windows 재시작·Chrome 종료는 수행하지 않는다. 아래 이전 실패/대기 이력과 현재 결과를 구분한다.
+갱신2026-10-21. 현재 상태: 구현·검수·QA 통과 후 PR18 최신 head ea890d6의CodeRabbit SUCCESS/미해결0/별도CI0을확인해UTC04:16:16 main3484b13으로병합했다. 병합전체트리는검증head와같다. 사용자최종결과승인은별도다. 전체726/725P0F1환경제외·6PNG/예외정리증거는그대로유효하다. 다음은[실제분류자료기획](../2026-10-21-augment-policy-data/Checkpoint.md)이다. 사용자Chrome창/탭을보존하며Windows재시작·Chrome종료는수행하지않는다. 아래이전실패/대기이력과현재결과를구분한다.
 
 상위 설계 §3.6의100이상 사용자 설정을 기존 분석 경로에 연결한다. 실제 API/실제 분류/새 집계 범위는 별도다. 사용자 Volume 및 docs/riot-api-key.md를 보존한다. root가 계획을 작성하고 기존 A/B 경로를 재사용한다. 실제 root 모델/추론·개별사용량은 확인불가다.
 

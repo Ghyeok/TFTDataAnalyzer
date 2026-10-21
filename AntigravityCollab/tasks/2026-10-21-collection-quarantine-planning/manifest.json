@@ -1,0 +1,19 @@
+{
+  "taskId": "2026-10-21-collection-quarantine-planning",
+  "baseCommit": "3484b13fa30a09ba4c6319fa071c17448d46e8b8",
+  "inputDigest": "00481b3a242ec6e251d3bf3dfcac159320566fb4a9978328258de1118195dea1",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-21-collection-quarantine/refined/ImplementationPlan.md",
+      "sha256": "c0711e2b52c0852d7cd10c7b0770a10fb31aeefa4bce3069810ed78e13952228"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "Source-inspected contracts at3484b13 plus current design10.2/Phase2Task3",
+      "sha256": "66e77946621c371db088b18334296d9419f764738b94dc35c2200d2bf3f59be6"
+    }
+  ],
+  "promptVersion": "collection-quarantine-planning-1",
+  "inputBytes": 12772
+}

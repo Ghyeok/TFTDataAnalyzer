@@ -20,6 +20,7 @@ public static class CollectionScopedVisualValidation
     public static Task<object> Run() => Execute(false);
     public static Task<object> RunFailureProbe() => Execute(true);
     public static Task<object> RunInitializationFailureProbe() => Execute(true, true);
+    public static Task<object> RunQuarantine() => Execute(false, false, true);
 
     public static object CleanupLastOwned()
     {
@@ -37,7 +38,7 @@ public static class CollectionScopedVisualValidation
             value.GetInstanceID()==id && value.name==name)};
     }
 
-    private static async Task<object> Execute(bool failAfterOpen, bool failBeforeShow=false)
+    private static async Task<object> Execute(bool failAfterOpen, bool failBeforeShow=false, bool quarantine=false)
     {
         var previousFocus = EditorWindow.focusedWindow;
         var existing = Resources.FindObjectsOfTypeAll<EditorWindow>();
@@ -52,7 +53,8 @@ public static class CollectionScopedVisualValidation
         var captures = new System.Collections.Generic.List<object>();
         var root = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Library/TftAnalyzerValidation");
         var ownershipPath = Path.Combine(root, "collection-visual-owned.json");
-        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+        var service = new OfflineStatus(quarantine);
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(quarantine ? 8 : 5)))
         {
             try
             {
@@ -61,7 +63,7 @@ public static class CollectionScopedVisualValidation
                 owned.name = "TftAnalyzerValidation_" + Guid.NewGuid().ToString("N");
                 File.WriteAllText(ownershipPath, JsonConvert.SerializeObject(new { Id=ownedId, Name=owned.name }));
                 typeof(TftDataAnalyzerWindow).GetField("_collection", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .SetValue(owned, new CollectionViewModel(new OfflineStatus()));
+                    .SetValue(owned, new CollectionViewModel(service));
                 owned.titleContent = new GUIContent("TFT Data Analyzer");
                 if (failBeforeShow) throw new InvalidOperationException("Expected initialization cleanup probe.");
                 owned.Show();
@@ -80,17 +82,39 @@ public static class CollectionScopedVisualValidation
                 typeof(TftDataAnalyzerWindow).GetField("selectedTab",BindingFlags.NonPublic|BindingFlags.Instance)
                     .SetValue(owned,"collection-tab");
                 owned.CreateGUI();
-                owned.Focus();
-                owned.Repaint();
-                await Task.Delay(200, deadline.Token);
-                stage="Capture940";
-                captures.Add(Capture(owned, root));
-                owned.position = new Rect(80, 80, 500, 300);
-                owned.Focus();
-                owned.Repaint();
-                await Task.Delay(200, deadline.Token);
-                stage="Capture500";
-                captures.Add(Capture(owned, root));
+                if (quarantine)
+                {
+                    var model = (CollectionViewModel)typeof(TftDataAnalyzerWindow)
+                        .GetField("_collection", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(owned);
+                    foreach (var width in new[] { 940, 500 })
+                    {
+                        owned.position = new Rect(80, 80, width, 700);
+                        foreach (var scenario in new[] { "saved", "failed", "truncated" })
+                        {
+                            service.Scenario = scenario;
+                            await model.StartAsync(summary => true);
+                            if (model.Progress.Quarantined != 2) throw new InvalidOperationException("Synthetic run did not settle.");
+                            owned.Focus(); owned.Repaint();
+                            await Task.Delay(200, deadline.Token);
+                            stage = "Quarantine-" + width + "-" + scenario;
+                            captures.Add(Capture(owned, root, scenario));
+                        }
+                    }
+                }
+                else
+                {
+                    owned.Focus();
+                    owned.Repaint();
+                    await Task.Delay(200, deadline.Token);
+                    stage="Capture940";
+                    captures.Add(Capture(owned, root));
+                    owned.position = new Rect(80, 80, 500, 300);
+                    owned.Focus();
+                    owned.Repaint();
+                    await Task.Delay(200, deadline.Token);
+                    stage="Capture500";
+                    captures.Add(Capture(owned, root));
+                }
             }
             catch (OperationCanceledException) { failure = "ValidationDeadlineExceeded"; }
             catch { failure = failAfterOpen ? "ExpectedFailure" : "VisualValidationFailed"; }
@@ -114,10 +138,10 @@ public static class CollectionScopedVisualValidation
             BeforeContainerIds=beforeContainerIds,AfterContainerIds=afterContainerIds,
             AddedContainers=addedContainers,MissingContainers=missingContainers,
             OwnedWindowsRemaining=leaked ? 1 : 0, ExistingWindowsPreserved=preserved, OriginalFocusRestored=restored,
-            Captures=captures.ToArray()
+            Captures=captures.ToArray(), QuarantineMode=quarantine, SyntheticCollectionCalls=service.Calls, ActualApiCalls=0
         };
         var reportName=failBeforeShow ? "collection-visual-initialization-failure-cleanup.json" :
-            failAfterOpen ? "collection-visual-failure-cleanup.json" : "collection-visual-final.json";
+            failAfterOpen ? "collection-visual-failure-cleanup.json" : quarantine ? "collection-quarantine-visual-final.json" : "collection-visual-final.json";
         File.WriteAllText(Path.Combine(root, reportName),
             JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
@@ -131,7 +155,7 @@ public static class CollectionScopedVisualValidation
         finally { if (owned!=null) UnityEngine.Object.DestroyImmediate(owned); }
     }
 
-    private static object Capture(TftDataAnalyzerWindow window, string root)
+    private static object Capture(TftDataAnalyzerWindow window, string root, string scenario=null)
     {
         var rect=window.position;
         var width=(int)rect.width;
@@ -146,15 +170,23 @@ public static class CollectionScopedVisualValidation
         {
             image.SetPixels(InternalEditorUtility.ReadScreenPixel(new Vector2(rect.x, rect.y), width, height));
             image.Apply();
-            var path=Path.Combine(root, "collection-window-"+width+".png");
+            var path=Path.Combine(root, "collection-window-"+width+(scenario==null ? "" : "-quarantine-"+scenario)+".png");
             File.WriteAllBytes(path,image.EncodeToPNG());
             var footer=window.rootVisualElement.Q<Label>("historical-data-disclaimer");
             var scroll=window.rootVisualElement.Q<ScrollView>("collection-scroll");
             var catalogText=window.rootVisualElement.Q<Label>("collection-catalog").text;
             if (!catalogText.Contains("원본 게임 버전"))
                 throw new InvalidOperationException("The selected catalog was not rendered.");
+            var diagnostic=window.rootVisualElement.Q<Label>("collection-scan-limit");
+            if (scenario!=null)
+            {
+                var expected=scenario=="saved" ? "보고서 저장됨" : scenario=="failed" ? "보고서 저장 실패" : "상한 도달로 일부 누락";
+                if (!diagnostic.text.Contains("격리 2") || !diagnostic.text.Contains(expected) || diagnostic.worldBound.yMax>height)
+                    throw new InvalidOperationException("Quarantine state was not visible.");
+            }
             return new { Path=path, Width=width, Height=height,
                 CatalogLabel=catalogText,
+                QuarantineLabel=diagnostic.text, QuarantineBounds=diagnostic.worldBound.ToString(),
                 FooterBounds=footer.worldBound.ToString(), ScrollMaximum=scroll.verticalScroller.highValue,
                 FooterVisible=footer.worldBound.yMax<=height };
         }
@@ -163,10 +195,22 @@ public static class CollectionScopedVisualValidation
 
     private sealed class OfflineStatus : ICollectionService
     {
-        public bool ApiKeyConfigured=>false;
-        public bool SeedConfigured=>false;
+        private readonly bool _quarantine;
+        internal string Scenario;
+        internal int Calls;
+        internal OfflineStatus(bool quarantine=false) { _quarantine=quarantine; }
+        public bool ApiKeyConfigured=>_quarantine;
+        public bool SeedConfigured=>_quarantine;
         public Task<MatchCollectionSummary> CollectAsync(StaticCatalog catalog,MatchCollectionRequest request,
             IProgress<CollectionProgress> progress,CancellationToken token)
-            =>throw new InvalidOperationException("Visual validation never collects.");
+        {
+            if (!_quarantine) throw new InvalidOperationException("Visual validation never collects.");
+            Calls++;
+            // The summary constructor is internal; reflection supplies only fabricated numeric status to this isolated UI host.
+            var result = (MatchCollectionSummary)Activator.CreateInstance(typeof(MatchCollectionSummary),
+                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new object[] {3,3,1,0,2,0,false,1,false,0,null,2,Scenario!="failed",Scenario=="failed",Scenario=="truncated"}, null);
+            return Task.FromResult(result);
+        }
     }
 }

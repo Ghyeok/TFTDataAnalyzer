@@ -97,7 +97,11 @@ namespace TFTAnalyzer.Editor.UI.Collection
             _tab.Q<Label>("collection-cancellation").text = _vm.State == CollectionState.Cancelling
                 ? "취소: 요청됨 · 진행 중인 작업 종료 대기" : _vm.State == CollectionState.Cancelled ? "취소: 종료됨" : "취소: 요청 없음";
             _tab.Q<Label>("collection-scan-limit").text = $"ID 탐색: {progress.IdPages}페이지" +
-                (progress.ScanLimitReached ? " · 탐색 상한 도달" : "");
+                (progress.ScanLimitReached ? " · 탐색 상한 도달" : "") +
+                $"\n격리 {progress.Quarantined} · " +
+                (progress.QuarantineReportSaved ? "보고서 저장됨" : progress.QuarantineReportFailed ? "보고서 저장 실패" :
+                    progress.Quarantined == 0 ? "이번 보고서 없음" : busy ? "보고서 저장 대기" : "보고서 저장 확인 안 됨") +
+                (progress.QuarantineReportTruncated ? " · 격리 진단 상한 도달로 일부 누락 · 수집 중단" : "");
         }
 
         private static string DescribeCatalog(CatalogIdentity identity)
