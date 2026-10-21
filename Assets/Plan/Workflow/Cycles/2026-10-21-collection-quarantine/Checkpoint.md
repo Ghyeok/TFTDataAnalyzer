@@ -14,4 +14,4 @@ QA정정: root가과거baseline의focus0/warning0을현재보고에잘못적은�
 
 현재Unity설정읽기1회: ApiKeyConfigured=false/CollectionTargetsConfigured=false, 실제값반환0/API호출0. 사용자에게Windows설정방법을안내한뒤완료응답은아직없다. 관련증거는Library/TftAnalyzerValidation/service-credential-readiness-current.json이다.
 
-사용자Assets/DefaultVolumeProfile.asset/docs/riot-api-key.md보존·커밋제외. Chrome창/탭보존,Windows재시작/Chrome종료/강제Editor종료는하지않는다. 기존PR18은MERGED이며 다시 조회하지 않는다. 현재검수대상은PR19이며외부예약/Hermes주기호출없이현재대화에서root가직접조회한다.
+사용자 파일 `Assets/DefaultVolumeProfile.asset` 및 `docs/riot-api-key.md`는 보존하고 커밋에서 제외한다. Chrome창/탭보존,Windows재시작/Chrome종료/강제Editor종료는하지않는다. 기존PR18은MERGED이며 다시 조회하지 않는다. 현재검수대상은PR19이며외부예약/Hermes주기호출없이현재대화에서root가직접조회한다.
