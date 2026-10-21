@@ -325,7 +325,7 @@ public static class CatalogScopedVisualValidation
     private sealed class SyntheticAnalysis : IAnalysisService
     {
         public int LoadCalls;
-        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
+        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null)
         { LoadCalls++; throw new InvalidOperationException("CatalogValidationNeverLoadsAnalysis"); }
     }
 

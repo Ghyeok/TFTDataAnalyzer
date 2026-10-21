@@ -34,6 +34,7 @@ public static class AnalysisScopedVisualValidation
     private static Type ContainerType => typeof(EditorWindow).Assembly.GetType("UnityEditor.ContainerWindow", true);
 
     public static Task<object> Run() => Execute(false, false);
+    public static Task<object> RunMinimumSamples() => Execute(false, false, true);
     public static Task<object> RunFailureProbe() => Execute(true, false);
     public static Task<object> RunInitializationFailureProbe() => Execute(false, true);
 
@@ -79,7 +80,7 @@ public static class AnalysisScopedVisualValidation
         };
     }
 
-    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow)
+    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool minimumSettings = false)
     {
         Directory.CreateDirectory(Root);
         var focus = EditorWindow.focusedWindow;
@@ -145,9 +146,36 @@ public static class AnalysisScopedVisualValidation
                     throw new InvalidOperationException("SyntheticAnalysisStateInvalid");
                 foreach (var width in new[] { 940, 500 })
                 {
-                    window.position = new Rect(80, 80, width, width == 940 ? 700 : 300);
+                    window.position = new Rect(80, 80, width, width == 940 || minimumSettings ? 700 : 300);
                     var scroll = window.rootVisualElement.Q<ScrollView>("analysis-scroll");
                     scroll.scrollOffset = Vector2.zero;
+                    if (minimumSettings)
+                    {
+                        var input = window.rootVisualElement.Q<IntegerField>("analysis-minimum-samples");
+                        input.value = 200;
+                        await analysis.RefreshAsync();
+                        if (analysis.Snapshot?.MinimumSamples != 200 || analysis.Rows.Count == 0 || analysis.Pairs.Count == 0 ||
+                            analysis.Rows.Concat(analysis.Pairs).Any(row => row.Presentation.Ratios.Count != 0))
+                            throw new InvalidOperationException("RaisedMinimumNotApplied");
+                        stage = "Capture" + width + "MinimumTop";
+                        await Settle(window, id, name, deadline.Token);
+                        captures.Add(Capture(window, analysis, width, "minimum-top"));
+                        stage = "Capture" + width + "MinimumRows";
+                        AlignTop(scroll, window.rootVisualElement.Q("analysis-rows"));
+                        await Settle(window, id, name, deadline.Token);
+                        captures.Add(Capture(window, analysis, width, "minimum-rows"));
+                        var calls = fake.LoadCalls;
+                        input.value = 99;
+                        scroll.scrollOffset = Vector2.zero;
+                        stage = "Capture" + width + "MinimumInvalid";
+                        await Settle(window, id, name, deadline.Token);
+                        if (analysis.MinimumSamples != 99 || analysis.Snapshot != null || analysis.CanRefresh || analysis.CanExport ||
+                            window.rootVisualElement.Q<Button>("analysis-refresh").enabledInHierarchy ||
+                            window.rootVisualElement.Q<Button>("analysis-export").enabledInHierarchy || fake.LoadCalls != calls)
+                            throw new InvalidOperationException("InvalidMinimumNotBlocked");
+                        captures.Add(Capture(window, analysis, width, "minimum-invalid"));
+                        continue;
+                    }
                     stage = "Capture" + width + "Top";
                     await Settle(window, id, name, deadline.Token);
                     captures.Add(Capture(window, analysis, width, "top"));
@@ -193,7 +221,7 @@ public static class AnalysisScopedVisualValidation
                 addedContainers.Length == 0 && missingContainers.Length == 0 &&
                 ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == 6),
             Failure = failure, CleanupFailure = cleanupFailure, Stage = stage,
-            SyntheticDataOnly = true, NoObservationStore = true, OfflineCredentials = true,
+            SyntheticDataOnly = true, NoObservationStore = true, OfflineCredentials = true, MinimumSettingsValidation = minimumSettings,
             LoadCalls = fake.LoadCalls, CollectionCalls = OfflineCollection.Calls,
             BeforeIds = before, OwnedIds = new[] { id }, AfterIds = after,
             AddedWindowIds = added, MissingWindowIds = missing,
@@ -203,7 +231,7 @@ public static class AnalysisScopedVisualValidation
             OriginalFocusRestored = restored, PixelVisualReviewRequired = true, Captures = captures.ToArray()
         };
         var file = failBeforeShow ? "analysis-visual-initialization-failure-cleanup.json" :
-            failAfterShow ? "analysis-visual-failure-cleanup.json" : "analysis-visual-final.json";
+            failAfterShow ? "analysis-visual-failure-cleanup.json" : minimumSettings ? "analysis-minimum-visual-final.json" : "analysis-visual-final.json";
         File.WriteAllText(Path.Combine(Root, file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
     }
@@ -303,6 +331,8 @@ public static class AnalysisScopedVisualValidation
             RootBounds = root.worldBound.ToString(), PanelBounds = root.panel.visualTree.worldBound.ToString(),
             CatalogLabel = catalog.text, StatusLabel = status.text, ObservedPeriodLabel = period.text,
             AggregateCount = analysis.Rows.Count, PairCount = analysis.Pairs.Count,
+            MinimumSamples = analysis.MinimumSamples, AppliedMinimumSamples = analysis.Snapshot?.MinimumSamples,
+            MinimumStatus = root.Q<Label>("analysis-minimum-status").text,
             VisibleCount = analysis.Rows.Count(row => row.Presentation.State == MetricVisibility.Visible),
             SuppressedCount = analysis.Rows.Count(row => row.Presentation.State == MetricVisibility.InsufficientSample),
             Labels = tab.Query<Label>().ToList().Select(label => new { label.name, label.text }).ToArray(),
@@ -352,7 +382,7 @@ public static class AnalysisScopedVisualValidation
                 new[] { new ItemRecord("VISUAL_Item", new LocalizedText("검증 아이템", "Visual item"), null, null, null, "", sources) },
                 new[] { new AugmentRecord("VISUAL_Standard", new LocalizedText("검증 증강", "Visual augment"), "1", null, null, null, "", sources) });
         }
-        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
+        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null)
         {
             token.ThrowIfCancellationRequested();
             LoadCalls++;
@@ -364,7 +394,7 @@ public static class AnalysisScopedVisualValidation
                 Enumerable.Range(1, 8).Select(place => new AnonymousParticipant(place, 30,
                     new[] { new AnonymousUnit("VISUAL_Unit" + (index == 99 && place == 1 ? 9 : place), 2, new[] { "VISUAL_Item" }) },
                     new[] { new AnonymousTrait("VISUAL_Trait", 1) }, new[] { "VISUAL_Standard" })).ToArray(), "2", "16.18.1"));
-            var policy = new MetricPolicy(100, new MetricPolicyMetadata(identity,
+            var policy = new MetricPolicy(minimumSamples ?? 100, new MetricPolicyMetadata(identity,
                 new Dictionary<string, AugmentPolicyKind> { ["VISUAL_Standard"] = AugmentPolicyKind.Standard }));
             return Task.FromResult(AnalysisService.BuildSnapshot(catalog, identity, observations, policy));
         }

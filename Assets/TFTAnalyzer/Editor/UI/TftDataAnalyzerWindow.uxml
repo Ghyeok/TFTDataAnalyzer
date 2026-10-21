@@ -97,6 +97,8 @@
                         <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
                         <ui:Label name="analysis-catalog" class="tft-wrapped-text" />
                         <ui:Label text="로컬 새로고침은 익명 관측에서 집계를 재생성합니다. 필터 변경은 현재 결과만 좁히며 네트워크를 사용하지 않습니다." class="tft-wrapped-text" />
+                        <ui:IntegerField name="analysis-minimum-samples" label="최소 표본 수" value="100" class="tft-data-field" />
+                        <ui:Label name="analysis-minimum-status" class="tft-wrapped-text" />
                         <ui:VisualElement class="tft-data-actions">
                             <ui:Button name="analysis-refresh" text="로컬 집계 새로고침" />
                             <ui:Button name="analysis-cancel" text="새로고침 취소" />

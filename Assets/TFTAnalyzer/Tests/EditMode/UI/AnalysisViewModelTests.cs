@@ -14,6 +14,79 @@ namespace TFTAnalyzer.Tests.UI
 {
     public sealed class AnalysisViewModelTests
     {
+        [TestCase(99)]
+        [TestCase(0)]
+        [TestCase(-1)]
+        public async Task InvalidMinimumClearsResultsAndBlocksReadsAndExport(int minimum)
+        {
+            var service = new AnalysisFixture.Service { Result = AnalysisFixture.Snapshot(100) };
+            using (var vm = new AnalysisViewModel(service))
+            {
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                await vm.RefreshAsync(); Assert.That(vm.CanExport, Is.True);
+                vm.SetMinimumSamples(minimum);
+                Assert.That(vm.MinimumSamples, Is.EqualTo(minimum));
+                Assert.That(vm.Snapshot, Is.Null); Assert.That(vm.Rows, Is.Empty); Assert.That(vm.Pairs, Is.Empty);
+                Assert.That(vm.CanRefresh, Is.False); Assert.That(vm.CanExport, Is.False);
+                await vm.RefreshAsync(); Assert.That(service.Calls, Is.EqualTo(1));
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                Assert.That(vm.MinimumSamples, Is.EqualTo(minimum));
+                Assert.That(vm.StatusText, Does.Contain("100"));
+            }
+        }
+
+        [TestCase(100)]
+        [TestCase(200)]
+        [TestCase(int.MaxValue)]
+        public async Task RequestedMinimumIsCapturedAndStricterSnapshotIsAccepted(int minimum)
+        {
+            var service = new AnalysisFixture.Service { Result = AnalysisFixture.Snapshot(1, minimumSamples: Math.Max(250, minimum)) };
+            using (var vm = new AnalysisViewModel(service))
+            {
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                vm.SetMinimumSamples(minimum); await vm.RefreshAsync();
+                Assert.That(service.MinimumSamples, Is.EqualTo(minimum));
+                Assert.That(vm.ErrorCode, Is.Empty);
+                Assert.That(vm.Snapshot.MinimumSamples, Is.EqualTo(Math.Max(250, minimum)));
+                Assert.That(vm.CanExport, Is.True);
+                vm.SetMinimumSamples(minimum);
+                Assert.That(vm.Snapshot, Is.SameAs(service.Result), "The same input is idempotent.");
+            }
+        }
+
+        [TestCase(200)]
+        [TestCase(99)]
+        public async Task ChangedMinimumCancelsAndDiscardsLateCompletion(int minimum)
+        {
+            var completion = new TaskCompletionSource<AnalysisSnapshot>();
+            var service = new AnalysisFixture.Service { Pending = completion.Task };
+            using (var vm = new AnalysisViewModel(service))
+            {
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                var pending = vm.RefreshAsync();
+                vm.SetMinimumSamples(100); Assert.That(service.Token.IsCancellationRequested, Is.False);
+                vm.SetMinimumSamples(minimum); Assert.That(service.Token.IsCancellationRequested, Is.True);
+                Assert.That(vm.IsBusy, Is.True);
+                completion.SetResult(AnalysisFixture.Snapshot(100)); await pending;
+                Assert.That(vm.Snapshot, Is.Null); Assert.That(vm.CanExport, Is.False);
+                Assert.That(vm.CanRefresh, Is.EqualTo(minimum >= 100));
+                Assert.That(vm.MinimumSamples, Is.EqualTo(minimum));
+            }
+        }
+
+        [Test]
+        public async Task SnapshotWithLowerMinimumCannotPublishRatiosForRaisedInput()
+        {
+            var service = new AnalysisFixture.Service { Result = AnalysisFixture.Snapshot(100) };
+            using (var vm = new AnalysisViewModel(service))
+            {
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                vm.SetMinimumSamples(200); await vm.RefreshAsync();
+                Assert.That(vm.ErrorCode, Is.EqualTo("analysis_load_failed"));
+                Assert.That(vm.Snapshot, Is.Null); Assert.That(vm.CanExport, Is.False);
+            }
+        }
+
         [TestCase(99, MetricVisibility.InsufficientSample)]
         [TestCase(100, MetricVisibility.Visible)]
         public void SnapshotUsesPolicyThresholdAndObservedTime(int samples, MetricVisibility expected)
@@ -218,18 +291,19 @@ namespace TFTAnalyzer.Tests.UI
                     new[] { new AnonymousUnit(((char)('A' + p)).ToString(), 2, new[] { "ITEM_" + (char)('A' + p) }) },
                     new[] { new AnonymousTrait("ACTIVE_" + (char)('A' + p), 1), new AnonymousTrait("INACTIVE_" + (char)('A' + p), 0) },
                     p == 0 && augment != null ? new[] { augment } : null)).ToArray())).ToArray();
-        internal static AnalysisSnapshot Snapshot(int count, string augment = null) =>
-            AnalysisService.BuildSnapshot(Catalog(), Identity(), Observations(count, augment));
+        internal static AnalysisSnapshot Snapshot(int count, string augment = null, int minimumSamples = 100) =>
+            AnalysisService.BuildSnapshot(Catalog(), Identity(), Observations(count, augment), new MetricPolicy(minimumSamples));
         internal sealed class Service : IAnalysisService
         {
             internal AnalysisSnapshot Result;
             internal Task<AnalysisSnapshot> Pending;
             internal Exception Failure;
             internal int Calls;
+            internal int? MinimumSamples;
             internal CancellationToken Token;
-            public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
+            public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null)
             {
-                Calls++; Token = token;
+                Calls++; Token = token; MinimumSamples = minimumSamples;
                 if (Failure != null) return Task.FromException<AnalysisSnapshot>(Failure);
                 return Pending ?? Task.FromResult(Result);
             }

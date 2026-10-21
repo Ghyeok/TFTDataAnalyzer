@@ -58,6 +58,105 @@ namespace TFTAnalyzer.Tests.UI
             }
         }
 
+        [Test]
+        public void MinimumSampleInputStartsAt100()
+        {
+            var field = _tree.Q<IntegerField>("analysis-minimum-samples");
+            Assert.That(field, Is.Not.Null, "The analysis threshold is not configurable yet.");
+            Assert.That(field.value, Is.EqualTo(100));
+        }
+
+        [UnityTest]
+        public IEnumerator MinimumInputRequiresValidManualRefreshAndKeepsHiddenRatiosOutOfCsv()
+        {
+            var field = _tree.Q<IntegerField>("analysis-minimum-samples");
+            Assert.That(field, Is.Not.Null);
+            field.value = 99; yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_vm.MinimumSamples, Is.EqualTo(99));
+            Assert.That(_tree.Q<Button>("analysis-refresh").enabledInHierarchy, Is.False);
+            Assert.That(_tree.Q<Label>("analysis-minimum-status").text, Does.Contain("100"));
+            Submit("analysis-refresh"); Assert.That(_service.Calls, Is.Zero);
+            field.value = 200; yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_service.Calls, Is.Zero, "Editing the threshold must not load data.");
+            foreach (var count in new[] { 199, 200 })
+            {
+                _service.Pending = new TaskCompletionSource<AnalysisSnapshot>();
+                Submit("analysis-refresh");
+                Assert.That(_service.MinimumSamples, Is.EqualTo(200));
+                _service.Pending.SetResult(AnalysisFixture.Snapshot(count, minimumSamples: 200));
+                yield return EditorWindowTestSupport.WaitForRender();
+                Assert.That(_tree.Q<Label>("analysis-minimum-status").text, Does.Contain("적용 기준: 200"));
+                Assert.That(_vm.Rows.Concat(_vm.Pairs).All(x => x.Presentation.Ratios.Count > 0), Is.EqualTo(count == 200));
+                _exportPath = "test.csv"; Submit("analysis-export");
+                yield return EditorWindowTestSupport.WaitForRender();
+                var csv = AnalysisCsvExporter.Serialize(_exported);
+                if (count == 199)
+                {
+                    Assert.That(_exported.All(x => x.Ratios.Count == 0), Is.True);
+                    Assert.That(csv, Does.Contain("InsufficientSample").And.Not.Contain("top_four_rate").And.Not.Contain("relative_placement_advantage"));
+                }
+                else Assert.That(csv, Does.Contain("top_four_rate").And.Contain("relative_placement_advantage"));
+            }
+            Assert.That(_service.Calls, Is.EqualTo(2)); Assert.That(_writes, Is.EqualTo(2));
+        }
+
+        [UnityTest]
+        public IEnumerator MinimumChangeBlocksExportImmediatelyAndRebuildDetachesOldInput()
+        {
+            Submit("analysis-refresh"); _service.Pending.SetResult(AnalysisFixture.Snapshot(100));
+            yield return EditorWindowTestSupport.WaitForRender();
+            var oldField = _tree.Q<IntegerField>("analysis-minimum-samples"); Assert.That(oldField, Is.Not.Null);
+            oldField.value = 200; _exportPath = "test.csv"; Submit("analysis-export");
+            Assert.That(_vm.Snapshot, Is.Null); Assert.That(_writes, Is.Zero);
+            Rebuild(); oldField.value = 300;
+            Assert.That(_vm.MinimumSamples, Is.EqualTo(200));
+            var current = _tree.Q<IntegerField>("analysis-minimum-samples");
+            Assert.That(current.value, Is.EqualTo(200));
+            _binding.Dispose(); current.value = 400;
+            Assert.That(_vm.MinimumSamples, Is.EqualTo(200));
+            _vm.SetMinimumSamples(500); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(current.value, Is.EqualTo(400), "A disposed binding must not repaint later changes.");
+        }
+
+        [UnityTest]
+        public IEnumerator MinimumChangeDuringDialogRejectsExportEvenIfTheInputReturnsToItsOldValue()
+        {
+            Submit("analysis-refresh"); _service.Pending.SetResult(AnalysisFixture.Snapshot(100));
+            yield return EditorWindowTestSupport.WaitForRender();
+            var field = _tree.Q<IntegerField>("analysis-minimum-samples"); Assert.That(field, Is.Not.Null);
+            _exportPath = "test.csv"; _duringDialog = () => { field.value = 200; field.value = 100; };
+            Submit("analysis-export");
+            Assert.That(_dialogs, Is.EqualTo(1)); Assert.That(_writes, Is.Zero);
+            Assert.That(_vm.Snapshot, Is.Null);
+            yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_tree.Q<Label>("analysis-export-status").text, Does.Contain("변경"));
+        }
+
+        [UnityTest]
+        public IEnumerator RebuildCancelsPendingCsvWriteAndNewBindingCanExport()
+        {
+            Submit("analysis-refresh"); _service.Pending.SetResult(AnalysisFixture.Snapshot(100));
+            yield return EditorWindowTestSupport.WaitForRender();
+            _exportPath = "test.csv"; Submit("analysis-export");
+            Assert.That(_writes, Is.Zero, "A write waits for nested input events to drain.");
+            Rebuild(); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_writes, Is.Zero, "The disposed binding must cancel its pending disk write.");
+            Submit("analysis-export"); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_writes, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator MinimumInputRemainsEditableDuringLoadAndCancelsItsLateResult()
+        {
+            var field = _tree.Q<IntegerField>("analysis-minimum-samples"); Assert.That(field, Is.Not.Null);
+            Submit("analysis-refresh"); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(field.enabledInHierarchy, Is.True);
+            field.value = 200; Assert.That(_service.Token.IsCancellationRequested, Is.True);
+            _service.Pending.SetResult(AnalysisFixture.Snapshot(100)); yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(_vm.Snapshot, Is.Null); Assert.That(_vm.MinimumSamples, Is.EqualTo(200));
+            Assert.That(_vm.CanRefresh, Is.True); Assert.That(_vm.CanExport, Is.False);
+        }
+
         [UnityTest]
         public IEnumerator OnlyExplicitRefreshStartsLocalWorkAndBusyCancelReachesTheSameOperation()
         {
@@ -131,6 +230,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_tree.Q<Label>("analysis-pairs-page").text, Does.Contain("2 / 2"));
             _exportPath = "test.csv";
             Submit("analysis-export");
+            yield return EditorWindowTestSupport.WaitForRender();
             Assert.That(_exported.Count, Is.EqualTo(36), "CSV must include all filtered pages.");
             Assert.That(_exported.All(value => value.Ratios.Count > 0), Is.True);
             _tree.Q<DropdownField>("analysis-unit").value = "A";
@@ -139,6 +239,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_tree.Q("analysis-rows").childCount, Is.EqualTo(1));
             Assert.That(_tree.Q("analysis-pairs").childCount, Is.EqualTo(7));
             Submit("analysis-export");
+            yield return EditorWindowTestSupport.WaitForRender();
             Assert.That(_exported.Count, Is.EqualTo(8));
             Assert.That(_service.Calls, Is.EqualTo(1));
             Assert.That(_writes, Is.EqualTo(2));
@@ -157,6 +258,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(text, Does.Contain("표본 부족").And.Contain("99").And.Not.Contain("%"));
             _exportPath = "test.csv";
             Submit("analysis-export");
+            yield return EditorWindowTestSupport.WaitForRender();
             Assert.That(_exported.All(value => value.Ratios.Count == 0), Is.True);
             _vm.SetCatalog(null);
             Submit("analysis-export");
@@ -238,10 +340,11 @@ namespace TFTAnalyzer.Tests.UI
         private sealed class FakeService : IAnalysisService
         {
             internal int Calls;
+            internal int? MinimumSamples;
             internal CancellationToken Token;
             internal TaskCompletionSource<AnalysisSnapshot> Pending = new TaskCompletionSource<AnalysisSnapshot>();
-            public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token)
-            { Calls++; Token = token; return Pending.Task; }
+            public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null)
+            { Calls++; Token = token; MinimumSamples = minimumSamples; return Pending.Task; }
         }
     }
 }

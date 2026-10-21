@@ -1,0 +1,19 @@
+{
+  "taskId": "2026-10-20-minimum-samples-planning",
+  "baseCommit": "310faf6d05ed4f6e5fb4323d00a444a607b2f700",
+  "inputDigest": "d178aea98b1749877cd19f9d4b4aed58666dbc88d070cf2c2930bd241c4dbc88",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-20-minimum-samples/refined/ImplementationPlan.md",
+      "sha256": "e9954d6da3da0a6be688438471bb6a05f21055117411a2867dd6b92ef3ef7502"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "Current source-inspected contracts at 310faf6",
+      "sha256": "493300c938d751547b06cfb1581563ed05e5ebcd80e583deb19e75ccc43b01be"
+    }
+  ],
+  "promptVersion": "minimum-samples-planning-1",
+  "inputBytes": 11646
+}

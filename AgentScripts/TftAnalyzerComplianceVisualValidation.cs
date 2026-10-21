@@ -245,7 +245,7 @@ public static class ComplianceScopedVisualValidation
     }
     private sealed class OfflineAnalysis : IAnalysisService
     {
-        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token) =>
+        public Task<AnalysisSnapshot> LoadAsync(StaticCatalog catalog, CatalogIdentity identity, CancellationToken token, int? minimumSamples = null) =>
             throw new InvalidOperationException("ValidationNeverLoadsObservations");
     }
     private sealed class OfflineCollection : ICollectionService

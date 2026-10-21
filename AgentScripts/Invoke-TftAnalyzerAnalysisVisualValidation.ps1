@@ -1,18 +1,22 @@
 param(
     [string]$UnityPath = (Join-Path $env:LOCALAPPDATA 'Unity\bin\unity.exe'),
     [switch]$ProbeFailure,
-    [switch]$ProbeInitializationFailure
+    [switch]$ProbeInitializationFailure,
+    [switch]$MinimumSamples
 )
 
 $ErrorActionPreference = 'Stop'
 if ($ProbeFailure -and $ProbeInitializationFailure) { throw 'Choose one cleanup failure probe per invocation.' }
+if ($MinimumSamples -and ($ProbeFailure -or $ProbeInitializationFailure)) { throw 'Choose minimum-sample capture or one cleanup probe.' }
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $outputRoot = Join-Path $projectRoot 'Library\TftAnalyzerValidation'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $entry = if ($ProbeInitializationFailure) { 'AnalysisScopedVisualValidation.RunInitializationFailureProbe' }
-    elseif ($ProbeFailure) { 'AnalysisScopedVisualValidation.RunFailureProbe' } else { 'AnalysisScopedVisualValidation.Run' }
+    elseif ($ProbeFailure) { 'AnalysisScopedVisualValidation.RunFailureProbe' }
+    elseif ($MinimumSamples) { 'AnalysisScopedVisualValidation.RunMinimumSamples' } else { 'AnalysisScopedVisualValidation.Run' }
 $resultFileName = if ($ProbeInitializationFailure) { 'analysis-visual-initialization-failure-command.json' }
-    elseif ($ProbeFailure) { 'analysis-visual-failure-command.json' } else { 'analysis-visual-command.json' }
+    elseif ($ProbeFailure) { 'analysis-visual-failure-command.json' }
+    elseif ($MinimumSamples) { 'analysis-minimum-visual-command.json' } else { 'analysis-visual-command.json' }
 $resultPath = Join-Path $outputRoot $resultFileName
 $cleanupPath = Join-Path $outputRoot 'analysis-visual-fallback-cleanup.json'
 $validationFailure = $null

@@ -55,6 +55,9 @@ namespace TFTAnalyzer.Analytics
             _augmentMetadata = augmentMetadata;
         }
 
+        /// <summary>Copies the threshold while retaining the same immutable reviewed classifications.</summary>
+        public MetricPolicy WithMinimumSamples(int minimumSamples) => new MetricPolicy(minimumSamples, _augmentMetadata);
+
         /// <summary>Returns approved averages and only policy-visible participant ratios, without retaining the raw metric.</summary>
         public MetricPresentation Evaluate(AggregateMetric metric, StaticCatalog catalog)
         {
