@@ -6,7 +6,9 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 ## 개발 현황
 
-[카탈로그 탐색](Assets/Plan/Workflow/Cycles/2026-10-20-service-completion/Checkpoint.md)은 [PR #17](https://github.com/Ghyeok/TFTDataAnalyzer/pull/17)로 main에 병합됐습니다. 데이터 관리에서 카탈로그를 선택하고 ‘카탈로그 내용 탐색’을 펼치면 기물·시너지·아이템·증강의 한영 이름/ID 검색과 상세·관계·효과·출처·기존 아이콘을 읽습니다. 결과는50개씩 넘깁니다. 수록 여부는 실제 패치 등장이나 증강 통계 허용을 인증하지 않으며 기존 분류 차단은 유지합니다. 다음 [최소 표본 설정](Assets/Plan/Workflow/Cycles/2026-10-20-minimum-samples/Checkpoint.md)은 승인 후 구현·관련 검증을 마치고 전체 검증·QA를 진행합니다.
+[정적 가져오기 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-static-import-report/Checkpoint.md)는 사용자 승인 후 구현·코드검수·전체765개 중763통과/실패0/호스트2제외와 실제4PNG 검증을 마쳤고 최종QA 통과 후 PR 단계입니다. 데이터 관리의 ‘최근 가져오기 보고서’에서 요청 조건과 검증 오류·경고, 공식/보완 값과 선택 결과를 읽습니다. 각 상세는200행까지 보유해20행씩 넘기며 창을 닫으면 사라집니다. 실제API설정과수집검증은사용자요청으로미뤘고실제분류등록/n100검증은별도미완료입니다.
+
+[카탈로그 탐색](Assets/Plan/Workflow/Cycles/2026-10-20-service-completion/Checkpoint.md)은 [PR #17](https://github.com/Ghyeok/TFTDataAnalyzer/pull/17)로 main에 병합됐습니다. 데이터 관리에서 카탈로그를 선택하고 ‘카탈로그 내용 탐색’을 펼치면 기물·시너지·아이템·증강의 한영 이름/ID 검색과 상세·관계·효과·출처·기존 아이콘을 읽습니다. 결과는50개씩 넘깁니다. 수록 여부는 실제 패치 등장이나 증강 통계 허용을 인증하지 않으며 기존 분류 차단은 유지합니다. [최소 표본 설정](Assets/Plan/Workflow/Cycles/2026-10-20-minimum-samples/Checkpoint.md)은 PR18/main3484b13, [수집 격리 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-collection-quarantine/Checkpoint.md)는 PR19/main1a90059에 병합됐습니다.
 
 | 단계 | 주요 내용 | 현재 상태 |
 |---|---|---|

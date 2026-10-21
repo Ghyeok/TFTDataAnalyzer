@@ -60,6 +60,61 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator ReturnedReportIsPlainTextPagedAndNeverStartsAnAdditionalImport()
+        {
+            _service.Run = _ => Task.FromResult(StaticImportReportViewModelTests.Result(false,
+                new TFTAnalyzer.Validation.ValidationReport(new[] { new TFTAnalyzer.Validation.ValidationIssue(
+                    TFTAnalyzer.Validation.ValidationSeverity.Error, "bad", "TEST18_Unit", "<b>plain error</b>") }),
+                Enumerable.Range(0, 205).Select(i => new MergeConflict("unit", "ID"+i, "name.enUs",
+                    "<b>Official</b>", "Supplement", MergeResolution.OfficialWins)).ToArray()));
+            _approve = true; SetInputs(); Submit("import-button");
+            yield return WaitForEditorRender();
+            var summary = _tree.Q<Label>("import-report-summary");
+            Assert.That(summary, Is.Not.Null, "The actual UXML must expose the returned import report.");
+            Assert.That(summary.text, Does.Contain("오류 1").And.Contain("공식 값 유지 205").And.Contain("게시하지 않음"));
+            var details = _tree.Q("import-report-validation").Query<Label>().ToList();
+            Assert.That(details.Any(x => x.text.Contains("<b>plain error</b>") && !x.enableRichText), Is.True);
+            var merges = _tree.Q("import-report-merges");
+            Assert.That(merges.Query<Label>().ToList(), Has.Count.EqualTo(20));
+            Assert.That(_tree.Q<Label>("import-report-merge-page").text, Does.Contain("일부 상세 누락").And.Contain("1 / 10"));
+            Submit("import-report-merge-next");
+            Assert.That(merges.Query<Label>().ToList()[0].text, Does.Contain("ID20"));
+            Assert.That(_service.Imports, Has.Count.EqualTo(1));
+            yield return _vm.CheckForUpdatesAsync(); yield return WaitForEditorRender();
+            Assert.That(summary.text, Does.Contain("오류 1"));
+            Rebuild();
+            Assert.That(_tree.Q<Label>("import-report-merge-page").text, Does.Contain("1 / 10"));
+            _binding.Dispose();
+            Submit("import-report-merge-next");
+            Assert.That(_service.Imports, Has.Count.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator MissingPendingCancelledAndEmptyReportsHaveDifferentVisibleMeaning()
+        {
+            Assert.That(_tree.Q<Label>("import-report-summary").text, Does.Contain("기록이 없습니다"));
+            _approve = true; SetInputs(); Submit("import-button"); yield return WaitForEditorRender();
+            Assert.That(_tree.Q<Label>("import-report-summary").text, Does.Contain("오류 0").And.Contain("게시됨"));
+            Assert.That(_tree.Q<Label>("import-report-validation-page").text, Is.EqualTo("0건"));
+            var pending = new TaskCompletionSource<StaticImportResult>();
+            _service.Run = _ => pending.Task;
+            var run = _vm.ImportAsync(_ => true);
+            try
+            {
+                yield return WaitForEditorRender();
+                Assert.That(_tree.Q<Label>("import-report-summary").text,
+                    Does.Contain("진행 중").And.Contain("게시 여부 미확인").And.Not.Contain("오류 0"));
+                _vm.CancelImport();
+            }
+            finally { pending.TrySetCanceled(); }
+            var deadline = EditorApplication.timeSinceStartup + 5;
+            while (!run.IsCompleted) { Assert.That(EditorApplication.timeSinceStartup, Is.LessThan(deadline)); yield return null; }
+            yield return WaitForEditorRender();
+            Assert.That(_tree.Q<Label>("import-report-summary").text,
+                Does.Contain("상세 보고서 없음").And.Contain("게시 여부 미확인").And.Not.Contain("진행 중"));
+        }
+
+        [UnityTest]
         public IEnumerator RealFieldsAndImportButtonRequireConsentAndResetTheVisibleOptIn()
         {
             SetInputs();

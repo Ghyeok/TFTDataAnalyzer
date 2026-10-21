@@ -25,6 +25,99 @@ namespace TFTAnalyzer.Tests.UI
         public void TearDown() => _vm.Dispose();
 
         [Test]
+        public async Task ReturnedValidationAndMergeDecisionsRemainAvailableAfterRejection()
+        {
+            _service.Run = token => Task.FromResult(new StaticImportResult(false, false, "", "", null,
+                new TFTAnalyzer.Validation.ValidationReport(new[] {
+                    new TFTAnalyzer.Validation.ValidationIssue(TFTAnalyzer.Validation.ValidationSeverity.Error,
+                        "unknown_trait", "TEST18_Unit", "Unknown static trait") }),
+                new[] { new MergeConflict("unit", "TEST18_Unit", "name.enUs", "Official", "Other", MergeResolution.OfficialWins) }));
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, true);
+            await _vm.ImportAsync(_ => true);
+            Assert.That(_vm.ErrorCode, Is.EqualTo("ValidationRejected"));
+            var property = _vm.GetType().GetProperty("LastImportReport");
+            Assert.That(property, Is.Not.Null, "The production VM must retain the returned static import report.");
+            var report = property.GetValue(_vm);
+            Assert.That(report, Has.Property("ErrorCount").EqualTo(1));
+            Assert.That(report, Has.Property("OfficialWinsCount").EqualTo(1));
+        }
+
+        [Test]
+        public async Task PreflightActionsPreserveReportButAnApprovedNewRunReplacesIt()
+        {
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            await _vm.ImportAsync(_ => true);
+            var previous = _vm.LastImportReport;
+            Assert.That(previous.ResultAvailable, Is.True);
+            await _vm.CheckForUpdatesAsync();
+            _vm.TrySetInput(DataManagerTestSupport.Identity("16.18.2").Patch, true);
+            await _vm.ImportAsync(_ => false);
+            _vm.TrySetInput(null, false);
+            await _vm.ImportAsync(_ => true);
+            Assert.That(_vm.LastImportReport, Is.SameAs(previous));
+            Assert.That(_service.Imports, Has.Count.EqualTo(1));
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            var pending = new TaskCompletionSource<StaticImportResult>();
+            _service.Run = _ => pending.Task;
+            var run = _vm.ImportAsync(_ => true);
+            try
+            {
+                Assert.That(_vm.LastImportReport, Is.Not.SameAs(previous));
+                Assert.That(_vm.LastImportReport.ResultAvailable, Is.False);
+                Assert.That(_vm.LastImportReport.Published, Is.Null);
+            }
+            finally { pending.TrySetResult(DataManagerTestSupport.ImportResult()); await run; }
+            Assert.That(_vm.LastImportReport.ResultAvailable, Is.True);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public async Task ResultlessTerminationHasNoFabricatedDetailsOrPublication(int failure)
+        {
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            await _vm.ImportAsync(_ => true);
+            var old = _vm.LastImportReport;
+            Exception error = failure == 0 ? new OperationCanceledException("private") : failure == 1
+                ? new InvalidOperationException("private") : new TFTAnalyzer.Editor.Ingestion.StaticImportRecoveryException(
+                    StaticImportRecoveryState.PublishedUnindexed, "private/directory", "private/index", new Exception("private"));
+            _service.Run = _ => Task.FromException<StaticImportResult>(error);
+            await _vm.ImportAsync(_ => true);
+            Assert.That(_vm.LastImportReport, Is.Not.SameAs(old));
+            Assert.That(_vm.LastImportReport.ResultAvailable, Is.False);
+            Assert.That(_vm.LastImportReport.Published, Is.Null);
+            Assert.That(_vm.LastImportReport.ValidationRows, Is.Empty);
+            Assert.That(_vm.LastImportReport.MergeRows, Is.Empty);
+            Assert.That(_vm.StatusText, Does.Not.Contain("private"));
+        }
+
+        [Test]
+        public async Task PublishedReportSurvivesLocalReloadFailureAndLateCancellation()
+        {
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            _service.Run = _ => { _vm.CancelImport(); _service.LocalLoadError = new Exception("private");
+                return Task.FromResult(DataManagerTestSupport.ImportResult()); };
+            await _vm.ImportAsync(_ => true);
+            Assert.That(_vm.ErrorCode, Is.EqualTo("LocalCatalogsUnavailable"));
+            Assert.That(_vm.LastImportReport.Published, Is.True);
+            Assert.That(_vm.LastImportReport.HasValidation, Is.True);
+        }
+
+        [Test]
+        public async Task DisposedVmIgnoresTheLateReturnedReport()
+        {
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            var pending = new TaskCompletionSource<StaticImportResult>();
+            _service.Run = _ => pending.Task;
+            var run = _vm.ImportAsync(_ => true);
+            var started = _vm.LastImportReport;
+            try { _vm.Dispose(); }
+            finally { pending.TrySetResult(DataManagerTestSupport.ImportResult()); await run; }
+            Assert.That(_vm.LastImportReport, Is.SameAs(started));
+            Assert.That(_vm.LastImportReport.ResultAvailable, Is.False);
+        }
+
+        [Test]
         public async Task OnlyExplicitVersionCheckStartsARequestAndDoesNotInferPatch()
         {
             Assert.That(_service.VersionCalls, Is.Zero);

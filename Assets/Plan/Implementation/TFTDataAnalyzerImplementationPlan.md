@@ -20,9 +20,11 @@
 
 ## Global Constraints
 
-2026-10-21 잔여 구현 추적: 실제 증강4개 분류 후보는 A/B에서 Legend 배제 근거가 부족해 반려했고 등록0을 유지한다. 같은 자료의 AI 재검토는 반복하지 않는다. 상위 설계§10.2의 실제 수집 격리 보고서 누락을 별도로 찾아 [승인 계획](../Workflow/Cycles/2026-10-21-collection-quarantine/refined/ImplementationPlan.md)에 따라 구현·코드검수·QA를 통과했다. 전체750개748통과/실패0/호스트symlink2제외,6PNG·소유창0·보호1,399개 보존이며 Console 경고1은 문서 자산 등록에 관한 기록으로 남겼다. 현재 코드·문서 PR 단계이며 실제 API·실제 분류 자료·실제 n100달성은 별도 미완료다.
+2026-10-21 현재 다음 사이클: 상위 설계§12.1의 검증/병합 결과 화면 누락을 [정적 가져오기 보고서 계획](../Workflow/Cycles/2026-10-21-static-import-report/refined/ImplementationPlan.md)으로 보완한다. A/B pass·필수0 및 사용자 명시 승인 후 구현·동결10소스 전체765개763통과/실패0/호스트2제외, UI211/211과4PNG·소유창0을 확인했고 최종QA도필수0으로통과해PR단계다. 실제네트워크·기존카탈로그변경·새분류허용은없다.
 
-현재 활성 목표의 [잔여 점검](../Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md)에서 빠진 정적 레코드 탐색을 확인했다. [기획 A/B](../Workflow/Cycles/2026-10-20-service-completion/refined/PlanningReview.md) 보완과 사용자 [계획 승인](../Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md) 후 구현·독립 검수·QA를 통과했다. 관련UI169/169, 동결 전체701개 중700통과·실패0·호스트 링크1제외, 실제4PNG·창/프레임/보호파일 보존을 확인했다. PR17은최신head검수통과후main0c6c1d5로병합했다. 최소표본설정은전체726/725P0F1환경제외·QA·최신검수통과후PR18/main3484b13으로병합했다. 다음은실제분류자료등록기획이며사용자승인전제품변경은하지않는다. Hermes예약은재등록하지않는다. 실제분류자료·API·표본검토 등 전체목표의 남은일은 계속 진행한다.
+2026-10-21 잔여 구현 추적: 실제 증강4개 분류 후보는 A/B에서 Legend 배제 근거가 부족해 반려했고 등록0을 유지한다. 같은 자료의 AI 재검토는 반복하지 않는다. 상위 설계§10.2의 실제 수집 격리 보고서 누락을 별도로 찾아 [승인 계획](../Workflow/Cycles/2026-10-21-collection-quarantine/refined/ImplementationPlan.md)에 따라 구현·코드검수·QA를 통과했다. 전체750개748통과/실패0/호스트symlink2제외,6PNG·소유창0·보호1,399개 보존이며 Console 경고1은 문서 자산 등록에 관한 기록으로 남겼다. 이후 PR19 최신head d902286검수통과후main1a90059로병합했고전체트리일치를확인했다. 실제 API·실제 분류 자료·실제 n100달성은 별도 미완료다.
+
+현재 활성 목표의 [잔여 점검](../Workflow/Cycles/2026-10-20-service-completion/refined/ServiceCompletionAudit.md)에서 빠진 정적 레코드 탐색을 확인했다. [기획 A/B](../Workflow/Cycles/2026-10-20-service-completion/refined/PlanningReview.md) 보완과 사용자 [계획 승인](../Workflow/Cycles/2026-10-20-service-completion/refined/ImplementationPlan.md) 후 구현·독립 검수·QA를 통과했다. 관련UI169/169, 동결 전체701개 중700통과·실패0·호스트 링크1제외, 실제4PNG·창/프레임/보호파일 보존을 확인했다. PR17은최신head검수통과후main0c6c1d5로병합했다. 최소표본설정은전체726/725P0F1환경제외·QA·최신검수통과후PR18/main3484b13으로병합했다. 실제분류자료기획은별도반려상태로등록0을유지한다. 실제API설정/수집은사용자요청으로미뤘다. Hermes예약은재등록하지않는다. 실제분류자료·API·표본검토 등 전체목표의 남은일은 계속 진행한다.
 
 - This project never simulates TFT combat and never reports future win probability.
 - Match API payloads containing PUUIDs or raw Match IDs never touch disk or logs.

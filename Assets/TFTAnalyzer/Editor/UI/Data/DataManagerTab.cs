@@ -18,11 +18,14 @@ namespace TFTAnalyzer.Editor.UI.Data
         private readonly IntegerField _setNumber;
         private readonly Toggle _supplement;
         private readonly Button _check, _import, _cancel, _compare;
+        private readonly Button _validationPrevious, _validationNext, _mergePrevious, _mergeNext;
         private readonly ListView _list;
         private readonly DropdownField _before, _after;
         private IReadOnlyList<PatchRowViewModel> _boundRows;
         private List<PatchRowViewModel> _healthy = new List<PatchRowViewModel>();
         private CatalogDiff _renderedDiff;
+        private StaticImportReportViewModel _renderedImportReport;
+        private int _validationPage, _mergePage;
         private bool _disposed, _queued, _rendering;
 
         public DataManagerTab(VisualElement tab, DataManagerViewModel vm, Func<string, bool> confirm)
@@ -39,6 +42,10 @@ namespace TFTAnalyzer.Editor.UI.Data
             _import = tab.Q<Button>("import-button");
             _cancel = tab.Q<Button>("cancel-button");
             _compare = tab.Q<Button>("compare-button");
+            _validationPrevious = tab.Q<Button>("import-report-validation-previous");
+            _validationNext = tab.Q<Button>("import-report-validation-next");
+            _mergePrevious = tab.Q<Button>("import-report-merge-previous");
+            _mergeNext = tab.Q<Button>("import-report-merge-next");
             _list = tab.Q<ListView>("catalog-list");
             _before = tab.Q<DropdownField>("diff-before");
             _after = tab.Q<DropdownField>("diff-after");
@@ -51,6 +58,10 @@ namespace TFTAnalyzer.Editor.UI.Data
             _import.clicked += Import;
             _cancel.clicked += Cancel;
             _compare.clicked += Compare;
+            _validationPrevious.clicked += PreviousValidation;
+            _validationNext.clicked += NextValidation;
+            _mergePrevious.clicked += PreviousMerge;
+            _mergeNext.clicked += NextMerge;
             _list.selectionType = SelectionType.Single;
             _list.virtualizationMethod = CollectionVirtualizationMethod.DynamicHeight;
             _list.makeItem = MakeRow;
@@ -127,6 +138,7 @@ namespace TFTAnalyzer.Editor.UI.Data
                     _version.SetValueWithoutNotify(_vm.InputPatch.SourceGameVersion);
                 }
                 _tab.Q<Label>("data-status").text = _vm.StatusText;
+                RenderImportReport();
                 _tab.Q<Label>("available-versions").text = _vm.Versions.Count == 0
                     ? "버전 확인 버튼을 누르면 사용 가능한 원본 버전 목록을 표시합니다."
                     : string.Join(" · ", _vm.Versions);
@@ -159,6 +171,77 @@ namespace TFTAnalyzer.Editor.UI.Data
                 if (!ReferenceEquals(_renderedDiff, _vm.Diff)) RenderDiff();
             }
             finally { _rendering = false; }
+        }
+
+        private void PreviousValidation() => ChangeReportPage(true, -1);
+        private void NextValidation() => ChangeReportPage(true, 1);
+        private void PreviousMerge() => ChangeReportPage(false, -1);
+        private void NextMerge() => ChangeReportPage(false, 1);
+
+        /// <summary>Moves only within the retained snapshot; never invokes the import service.</summary>
+        private void ChangeReportPage(bool validation, int delta)
+        {
+            if (_disposed || _vm.LastImportReport == null) return;
+            var rows = validation ? _vm.LastImportReport.ValidationRows : _vm.LastImportReport.MergeRows;
+            var page = validation ? _validationPage : _mergePage;
+            page = Math.Max(0, Math.Min(Math.Max(0, (rows.Count - 1) / 20), page + delta));
+            if (validation) _validationPage = page; else _mergePage = page;
+            RenderImportReport();
+        }
+
+        /// <summary>Labels the original request and distinguishes missing details from a genuine empty report.</summary>
+        private void RenderImportReport()
+        {
+            var report = _vm.LastImportReport;
+            if (!ReferenceEquals(report, _renderedImportReport))
+            {
+                _renderedImportReport = report;
+                _validationPage = _mergePage = 0;
+            }
+            var summary = _tab.Q<Label>("import-report-summary");
+            summary.enableRichText = false;
+            if (report == null) summary.text = "이 창에서 실행한 가져오기 기록이 없습니다.";
+            else
+            {
+                var identity = report.RequestedIdentity;
+                var patch = identity.Patch;
+                summary.text = $"요청: {patch.SetId} (세트 {patch.SetNumber}) · TFT {patch.PatchId} · 원본 {patch.SourceGameVersion} · {identity.ProfileId}\n" +
+                    "시작 UTC: " + report.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) +
+                    (report.IncludeSupplement ? " · 보완 사용 요청: 예\n" : " · 보완 사용 요청: 아니요\n") +
+                    (report.ResultAvailable
+                        ? (report.Published == true ? "게시됨" : "게시하지 않음") + (report.Idempotent == true ? " · 동일 내용 재사용" : "")
+                        : (_vm.IsBusy && _vm.State == DataManagerState.Importing ? "진행 중 · " : "") + "상세 보고서 없음 · 게시 여부 미확인") +
+                    (report.HasValidation ? $"\n검증 오류 {report.ErrorCount} · 경고 {report.WarningCount}" : "\n검증 상세 없음") +
+                    (report.ResultAvailable ? $"\n공식 값 유지 {report.OfficialWinsCount} · 빈 필드 보완 {report.SupplementFillCount}" : "") +
+                    (report.TextTruncated ? "\n값 길이 상한으로 일부 텍스트 생략" : "");
+            }
+            RenderReportRows("validation", report?.ValidationRows, report?.ValidationTotal, _validationPage,
+                _validationPrevious, _validationNext);
+            RenderReportRows("merge", report?.MergeRows, report?.MergeTotal, _mergePage,
+                _mergePrevious, _mergeNext);
+        }
+
+        /// <summary>Renders at most twenty plain-text entries and discloses omitted detail separately from totals.</summary>
+        private void RenderReportRows(string section, IReadOnlyList<string> rows, int? total, int page,
+            Button previous, Button next)
+        {
+            var container = _tab.Q(section == "validation" ? "import-report-validation" : "import-report-merges");
+            container.Clear();
+            var count = rows?.Count ?? 0;
+            foreach (var text in (rows ?? Array.Empty<string>()).Skip(page * 20).Take(20))
+            {
+                var label = new Label(text) { enableRichText = false };
+                label.AddToClassList("tft-wrapped-text");
+                label.style.marginBottom = 8;
+                container.Add(label);
+            }
+            var notice = _tab.Q<Label>("import-report-" + section + "-page");
+            notice.enableRichText = false;
+            notice.text = !total.HasValue ? "상세 없음" : total.Value == 0 ? "0건" :
+                $"{page + 1} / {Math.Max(1, (count + 19) / 20)} 페이지 · 보유 {count} / 전체 {total.Value}건" +
+                (total.Value > count ? " · 일부 상세 누락" : "");
+            previous.SetEnabled(count > 0 && page > 0);
+            next.SetEnabled((page + 1) * 20 < count);
         }
 
         private VisualElement MakeRow()
@@ -233,6 +316,10 @@ namespace TFTAnalyzer.Editor.UI.Data
             _import.clicked -= Import;
             _cancel.clicked -= Cancel;
             _compare.clicked -= Compare;
+            _validationPrevious.clicked -= PreviousValidation;
+            _validationNext.clicked -= NextValidation;
+            _mergePrevious.clicked -= PreviousMerge;
+            _mergeNext.clicked -= NextMerge;
             _list.selectionChanged -= Select;
         }
     }
