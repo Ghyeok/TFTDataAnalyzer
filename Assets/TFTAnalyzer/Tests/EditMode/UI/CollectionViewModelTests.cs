@@ -29,6 +29,55 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        /// <summary>Retains terminal report status during readiness edits and clears it only for a newly started run.</summary>
+        [TestCase(true, false, false)] [TestCase(false, true, false)] [TestCase(true, false, true)]
+        public async Task QuarantineResultSurvivesReadinessChecksAndNewRunClearsIt(bool saved, bool failed, bool truncated)
+        {
+            var result = new MatchCollectionSummary(3, 3, 1, 0, 2, 0, false, 1, false, 0, null, 2, saved, failed, truncated);
+            _service.Run = token => Task.FromResult(result);
+            await _vm.StartAsync(summary => true);
+            Assert.That(_vm.Progress.Quarantined, Is.EqualTo(2));
+            Assert.That(_vm.Progress.QuarantineReportSaved, Is.EqualTo(saved));
+            Assert.That(_vm.Progress.QuarantineReportFailed, Is.EqualTo(failed));
+            Assert.That(_vm.Progress.QuarantineReportTruncated, Is.EqualTo(truncated));
+            if (failed) Assert.That(_vm.StatusText, Does.Contain("격리 보고서 저장"));
+            if (truncated) Assert.That(_vm.StatusText, Does.Contain("상한"));
+            var previous = _vm.Progress;
+            var oldProgress = _service.LastProgress;
+            _vm.RefreshConfiguration();
+            _vm.TrySetInput("KR", 1100, "ALL", 1);
+            _vm.SetCatalog(null);
+            Assert.That(_vm.Progress, Is.SameAs(previous));
+            _vm.SetCatalog(DataManagerTestSupport.Catalog(DataManagerTestSupport.Identity()));
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            Assert.That(_vm.Progress.Quarantined, Is.Zero);
+            Assert.That(_vm.Progress.QuarantineReportSaved, Is.False);
+            pending.SetResult(CollectionFakeService.Summary(1, 1, 1));
+            await run;
+            oldProgress.Report(new CollectionProgress(result));
+            Assert.That(_vm.Progress.Quarantined, Is.Zero);
+            Assert.That(_vm.Progress.QuarantineReportFailed, Is.False);
+        }
+
+        /// <summary>Unexpected service cancellation or HTTP exceptions preserve safe diagnostics already reported.</summary>
+        [TestCase(true)] [TestCase(false)]
+        public async Task ExceptionFallbackPreservesAlreadyReportedQuarantine(bool cancelled)
+        {
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            _service.LastProgress.Report(new CollectionProgress(new MatchCollectionSummary(2, 2, 0, 0, 2, 0,
+                false, 1, false, 0, null, 2, false, false, true)));
+            pending.SetException(cancelled ? new OperationCanceledException() : new RiotApiException(RiotApiFailure.HttpError, 503));
+            await run;
+            Assert.That(_vm.Progress.Quarantined, Is.EqualTo(2));
+            Assert.That(_vm.Progress.QuarantineReportTruncated, Is.True);
+            Assert.That(_vm.Progress.QuarantineReportSaved, Is.False);
+            Assert.That(_vm.State, Is.EqualTo(cancelled ? CollectionState.Cancelled : CollectionState.Failed));
+        }
+
         [TestCase(false, false, "API 키와 수집 대상")]
         [TestCase(false, true, "API 키 설정")]
         [TestCase(true, false, "수집 대상 설정")]

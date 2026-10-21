@@ -19,6 +19,7 @@ namespace TFTAnalyzer.Editor.Persistence
         private const int MaximumRecordBytes = 8 * 1024 * 1024;
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
         private readonly AnalyzerStorePaths _paths;
+        internal AnalyzerStorePaths Paths => _paths;
         private readonly SemaphoreSlim _gate = new SemaphoreSlim(1, 1);
 
         /// <summary>Accepts paths only; no raw payload, API key or player identifier enters this store.</summary>

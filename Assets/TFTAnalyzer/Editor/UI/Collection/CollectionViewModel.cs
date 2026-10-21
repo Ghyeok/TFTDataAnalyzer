@@ -211,7 +211,9 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 {
                     Progress = new CollectionProgressViewModel(new MatchCollectionSummary(Progress.Requested,
                         Progress.Fetched, Progress.Stored, Progress.Duplicate, Progress.Filtered, Progress.Failed,
-                        true, Progress.IdPages, Progress.ScanLimitReached, 0, Progress.RetryAfterUtc));
+                        true, Progress.IdPages, Progress.ScanLimitReached, 0, Progress.RetryAfterUtc,
+                        Progress.Quarantined, Progress.QuarantineReportSaved, Progress.QuarantineReportFailed,
+                        Progress.QuarantineReportTruncated));
                     SetStatus(CollectionState.Cancelled, "수집을 취소했습니다. 이미 저장한 익명 관측은 보존됩니다.");
                 }
             }
@@ -221,7 +223,8 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 if (!_disposed) ApplyResult(new MatchCollectionSummary(Progress.Requested, Progress.Fetched,
                     Progress.Stored, Progress.Duplicate, Progress.Filtered, Progress.Failed + 1, false,
                     Progress.IdPages, false, error.StatusCode >= 100 && error.StatusCode <= 599 ? (int)error.StatusCode : 0,
-                    error.RetryAfterUtc));
+                    error.RetryAfterUtc, Progress.Quarantined, Progress.QuarantineReportSaved,
+                    Progress.QuarantineReportFailed, Progress.QuarantineReportTruncated));
             }
             catch (Exception)
             {
@@ -258,6 +261,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
                     "수동으로 다시 시도해 주세요. 자동으로 재개하지 않습니다.", "RateLimited");
             else if (result.Failed > 0)
                 SetStatus(CollectionState.Failed, "일부 요청 또는 저장이 실패하여 수집이 종료되었습니다. 저장 수를 확인하고 연결·설정을 점검한 뒤 수동으로 다시 시도해 주세요.", "PartialFailure");
+            else if (result.QuarantineReportTruncated)
+                SetStatus(CollectionState.Succeeded, "격리 진단 상한에 도달해 수집을 중단했습니다. 보고서에 일부 진단이 누락됐습니다. 저장한 익명 관측은 보존됩니다.", "QuarantineReportLimitReached");
+            else if (result.QuarantineReportFailed)
+                SetStatus(CollectionState.Succeeded, "수집은 종료됐으나 격리 보고서 저장에 실패했습니다. 이미 저장한 익명 관측은 보존됩니다.", "QuarantineReportFailed");
             else if (result.ScanLimitReached)
                 SetStatus(CollectionState.Succeeded, "경기 ID 탐색 상한에 도달해 중단했습니다. 상세 시도 상한에 도달한 것은 아닙니다. 저장 수를 확인해 주세요.", "ScanLimitReached");
             else

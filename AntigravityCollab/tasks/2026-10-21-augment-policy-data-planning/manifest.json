@@ -1,0 +1,19 @@
+{
+  "taskId": "2026-10-21-augment-policy-data-planning",
+  "baseCommit": "3484b13fa30a09ba4c6319fa071c17448d46e8b8",
+  "inputDigest": "16e1cdf64c83794a5a869dee058b92ed2b4a75cd6f90fdc044386eed1c59791a",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-21-augment-policy-data/refined/ImplementationPlan.md",
+      "sha256": "77c27746ebc43ba5ecd4d18e8a4323a53f79d63655065a9c127d82b12abd2bd9"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "Source inspection and primary-source findings at3484b13; exact local catalog descriptions",
+      "sha256": "78cc0149d472b47aadead14db03e857fb0a14cf73833c5c176528d0b69b2b4ea"
+    }
+  ],
+  "promptVersion": "augment-policy-data-planning-1",
+  "inputBytes": 11325
+}

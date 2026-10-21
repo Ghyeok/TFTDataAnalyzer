@@ -1,0 +1,33 @@
+{
+  "findings": [
+    {
+      "action": "Record in the pre-approval evidence table (1) explicit source confirmation that TFT Set 18 (Enchanted Wilds) has no Legend mechanic or Legend-tailored augment pool, and (2) the exact Patch 18.2 numeric value versus the local catalog description ('50%') for DA_18_FloraFatalisAugment (Consuming Flora) to verify it reflects balance tuning of the same stableId rather than a separate variant ID.",
+      "impact": "The four IDs correlate unique catalog names, Set 18 mechanics, and Patch 18.2 ordinary Augment notes rather than mere prefix guessing, but the evidence record omits proof of Set 18 Legend absence and the exact numeric discrepancy noted for Consuming Flora.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (범위와 데이터 판단, Task1); inputs/source-contract.md (Primary sources, Exact local records)",
+      "severity": "P2"
+    },
+    {
+      "action": "Explicitly document in the user approval prompt and README/status updates that registering only 4 augments (2 of which are mutually exclusive) serves only to validate the hash-pinned Approved policy supply path and cannot practically unlock real-match n>=100 composition ratios.",
+      "impact": "Because MetricPolicy requires all augments in a composition to be Standard (and n>=100 on full board+augment fingerprints) while DA_18_CovenTraitAugment and DA_18_CovenTraitAugment_LootToAP are mutually exclusive, only two cross-trait 3-augment combinations (Coven + Flora Fatalis + Rivals) can ever pass, yielding near-zero practical analytical value in real matches.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (범위와 데이터 판단, Task2); inputs/source-contract.md (MetricPolicy and composition fingerprint contract)",
+      "severity": "P2"
+    },
+    {
+      "action": "Revise the ApprovedAugmentPolicyDataTests.cs spec so positive tests load the unmodified production catalog and production Approved policy JSON directly (using mutated fixtures only for negative tampering/mismatch assertions), and remove '공개 raw 요청/응답' from the in-scope deliverables list.",
+      "impact": "Stating 'fixture로 교체한 데이터만 검증' contradicts Review Focus 2 (do not replace production registration verification with test-only fixture injection), and listing '공개 raw 요청/응답' contradicts the non-API/no-network scope constraint.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (변경 파일과 인터페이스)",
+      "severity": "P2"
+    }
+  ],
+  "inputDigest": "16e1cdf64c83794a5a869dee058b92ed2b4a75cd6f90fdc044386eed1c59791a",
+  "taskId": "2026-10-21-augment-policy-data-planning",
+  "unverified": [
+    "Actual Riot API match payloads and real observed n>=100 composition/augment frequency in TFT Set 18 (no credentials or raw match data in scope).",
+    "Authoritative Riot machine-readable enum or human/Riot compliance sign-off for Standard vs. LegendBased augment IDs (classification relies on contextual Patch 18.2 and local catalog evidence).",
+    "Remaining 481 catalog augments left as implicit Unknown, including duplicate-name and historical-name-collision entries (e.g., DA_18_BigGrabBag, Baron's Lair, Nesting Dolls)."
+  ],
+  "verdict": "revise"
+}

@@ -51,6 +51,44 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator QuarantineMessagesDistinguishSavedFailedTruncatedAndPendingRuns()
+        {
+            _approve = true;
+            var cases = new[]
+            {
+                (Saved: true, Failed: false, Truncated: false, Text: "보고서 저장됨"),
+                (Saved: false, Failed: true, Truncated: false, Text: "보고서 저장 실패"),
+                (Saved: true, Failed: false, Truncated: true, Text: "상한 도달로 일부 누락")
+            };
+            foreach (var item in cases)
+            {
+                _service.Run = token => Task.FromResult(new MatchCollectionSummary(3, 3, 1, 0, 2, 0, false, 1,
+                    false, 0, null, 2, item.Saved, item.Failed, item.Truncated));
+                Submit("collection-start");
+                yield return CollectionUITestSupport.WaitForSettled(_vm);
+                var text = _tree.Q<Label>("collection-scan-limit").text;
+                Assert.That(text, Does.Contain("격리 2").And.Contain(item.Text));
+                Assert.That(text, Does.Not.Contain("FAKE-PUUID").And.Not.Contain("secret-key").And.Not.Contain("Library/"));
+                Submit("collection-configuration-check");
+                yield return CollectionUITestSupport.WaitForRender();
+                Assert.That(_tree.Q<Label>("collection-scan-limit").text, Is.EqualTo(text));
+            }
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            Submit("collection-start");
+            _service.LastProgress.Report(new CollectionProgress(new MatchCollectionSummary(1, 1, 0, 0, 1, 0,
+                false, 1, false, 0, null, 1)));
+            try
+            {
+                yield return CollectionUITestSupport.WaitForRender();
+                Assert.That(_tree.Q<Label>("collection-scan-limit").text, Does.Contain("격리 1").And.Contain("보고서 저장 대기"));
+            }
+            finally { pending.TrySetResult(CollectionFakeService.Summary(1, 1, 1)); }
+            yield return CollectionUITestSupport.WaitForSettled(_vm);
+            Assert.That(_tree.Q<Label>("collection-scan-limit").text, Does.Contain("격리 0").And.Contain("이번 보고서 없음"));
+        }
+
+        [UnityTest]
         public IEnumerator ReadinessLabelTracksConfigurationChecksWithoutConsentOrRequests()
         {
             _service.KeyAvailable = _service.SeedsAvailable = false;

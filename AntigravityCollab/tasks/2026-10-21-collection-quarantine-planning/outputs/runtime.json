@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-21-collection-quarantine-planning",
+  "inputDigest": "00481b3a242ec6e251d3bf3dfcac159320566fb4a9978328258de1118195dea1",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.3",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 9868,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 10113,
+    "output_tokens": 163,
+    "thinking_tokens": 0,
+    "cache_read_tokens": 0,
+    "total_tokens": 10276
+  },
+  "responseSeconds": 6.6933638,
+  "exitCode": 0,
+  "durationSeconds": 14.008
+}
