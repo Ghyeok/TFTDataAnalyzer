@@ -153,6 +153,12 @@
     margin-bottom: 8px;
 }
 
+.tft-data-heading {
+    -unity-font-style: bold;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+
 .tft-tab-hidden {
     display: none;
 }

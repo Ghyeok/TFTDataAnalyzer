@@ -1,6 +1,6 @@
 # 수집 격리 보고서 체크포인트
 
-2026-10-21. 기준main3484b13, branch codex/collection-quarantine-report. 상태: **승인 구현·독립 코드검수·최종QA 통과, PR19 문서 검수 의견 수정 중**. 동결15소스 전체750/748P0F2환경제외, 보호1,399개 변경0. 사용자 최종 결과 승인은 별도다. [PR19](https://github.com/Ghyeok/TFTDataAnalyzer/pull/19)에190a579를제출했고최신head CodeRabbit/미해결/CI를5분마다확인한다. 문서수정후새head의검수를확인하고조건충족시승인대로병합한다.
+2026-10-21. 기준main3484b13, 구현branch codex/collection-quarantine-report. 상태: **구현·독립 코드검수·QA·최신head CodeRabbit 통과 후 PR19 병합 완료**. 최신head d902286da2d6934b44f520337d9bbdc2e18a007a의 SUCCESS·미해결0·CLEAN을 확인해 UTC09:39:50 [PR19](https://github.com/Ghyeok/TFTDataAnalyzer/pull/19)를 main1a900596c6d876ee49299ba220cd4b834bfbb7fb으로 병합했다. 전체 트리가 검수 head와 같다. 전체750/748통과/실패0/호스트2제외 증거를 보존하며 사용자 최종 결과 승인은 별도다. 대기 PR이 없어 조회를 종료했다.
 
 기획 A=Antigravity/B=기존GPT담당검토후사용자명시승인전제품수정0. 원문ID/PUUID/키/Matchhash저장없이기존종류+SHA진단만제한된로컬보고서로연결하는[계획](refined/ImplementationPlan.md)이다. 기존실제증강분류기획반려는그대로보존하며추가AI반복검수는하지않는다.
 
@@ -14,4 +14,4 @@ QA정정: root가과거baseline의focus0/warning0을현재보고에잘못적은�
 
 현재Unity설정읽기1회: ApiKeyConfigured=false/CollectionTargetsConfigured=false, 실제값반환0/API호출0. 사용자에게Windows설정방법을안내한뒤완료응답은아직없다. 관련증거는Library/TftAnalyzerValidation/service-credential-readiness-current.json이다.
 
-사용자 파일 `Assets/DefaultVolumeProfile.asset` 및 `docs/riot-api-key.md`는 보존하고 커밋에서 제외한다. Chrome창/탭보존,Windows재시작/Chrome종료/강제Editor종료는하지않는다. 기존PR18은MERGED이며 다시 조회하지 않는다. 현재검수대상은PR19이며외부예약/Hermes주기호출없이현재대화에서root가직접조회한다.
+사용자 파일 `Assets/DefaultVolumeProfile.asset` 및 `docs/riot-api-key.md`는 보존하고 커밋에서 제외한다. Chrome창/탭보존,Windows재시작/Chrome종료/강제Editor종료는하지않는다. 기존PR18은MERGED이며 다시 조회하지 않는다. PR19검수는종료했으며외부예약/Hermes주기호출은없다.

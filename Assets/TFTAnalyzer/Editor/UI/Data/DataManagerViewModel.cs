@@ -14,6 +14,7 @@ namespace TFTAnalyzer.Editor.UI.Data
     public sealed class DataManagerViewModel : IDisposable
     {
         private readonly IDataManagerService _service;
+        private readonly Func<DateTimeOffset> _utcNow;
         private CancellationTokenSource _operation;
         private bool _disposed;
         public event Action Changed;
@@ -31,10 +32,15 @@ namespace TFTAnalyzer.Editor.UI.Data
         public CatalogIdentity DiffBeforeIdentity { get; private set; }
         public CatalogIdentity DiffAfterIdentity { get; private set; }
         public CatalogDiff Diff { get; private set; }
+        public StaticImportReportViewModel LastImportReport { get; private set; }
 
         public DataManagerViewModel(IDataManagerService service)
+            : this(service, () => DateTimeOffset.UtcNow) { }
+
+        public DataManagerViewModel(IDataManagerService service, Func<DateTimeOffset> utcNow)
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
+            _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
             StatusText = "로컬 카탈로그를 선택하거나 가져올 패치를 입력해 주세요.";
             ReloadRows();
         }
@@ -98,10 +104,16 @@ namespace TFTAnalyzer.Editor.UI.Data
                     SetStatus(DataManagerState.Failed, "저장 위치가 변경되었습니다. 가져올 대상과 위치를 다시 확인해 주세요.", "DestinationChanged");
                     return;
                 }
+                var startedUtc = _utcNow();
+                var pendingReport = StaticImportReportViewModel.FromResult(request.Identity,
+                    request.IncludeCommunityDragon, startedUtc, null);
                 started = true;
+                LastImportReport = pendingReport;
                 SetStatus(DataManagerState.Importing, "카탈로그를 가져오고 검증하고 있습니다.");
                 var result = await _service.ImportAsync(request, operation.Token);
                 if (_disposed) return;
+                LastImportReport = StaticImportReportViewModel.FromResult(request.Identity,
+                    request.IncludeCommunityDragon, startedUtc, result);
                 // RunAsync's successful return means publication finished; late cancellation cannot undo it.
                 if (!result.Published)
                     SetStatus(DataManagerState.Failed, "데이터 검증을 통과하지 못해 카탈로그를 게시하지 않았습니다.", "ValidationRejected");
