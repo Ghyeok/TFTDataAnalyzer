@@ -13,3 +13,5 @@
 최종 실행: 동결10소스에서전체765개중763통과/실패0/호스트파일symlink2제외,76.99초. 같은full의UI211/211이며명시적네트워크시험0이다. 보호1399개변경/추가0·기존9창/native1/focus동일·Console동일session/새error0/전후error0warning0이다. 문서11개가시험전자산목록에등록됐음을확인해이전지연등록경고를반복하지않았다. 소스동결/전후증거는import-report-final-evidence.json에있다.
 
 최종QA: 기존담당이동결소스/실제4PNG/전체765/보호증거를독립대조해pass·필수0으로판정했다. [QA결과](QAReport.md). 이후제품변경이나불필요한시험재실행없이문서통합/PR을진행한다.
+
+PR20후속검수: 전체765와4PNG는600385e의실행이다. 이후제품/실제C#캡처/UXML/USS등8소스는불변이며PS의동시실패표시3줄및기존테스트의공개속성직접접근을수정했다. mock RED→GREEN(실제Unity0)과VM27/27로두변경을별도확인하고기존코드검수/QA가모두필수0으로통과했다. 현재해시는import-report-review-freeze.json,원래full동결은import-report-source-freeze.json이다. 전체suite/PNG를반복하지않았다.

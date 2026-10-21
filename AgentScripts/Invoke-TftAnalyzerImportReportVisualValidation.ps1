@@ -35,6 +35,9 @@ finally {
     $cleanupExit = $LASTEXITCODE
     $cleanup = Get-Content -LiteralPath $cleanupPath -Raw | ConvertFrom-Json
     if ($cleanupExit -ne 0 -or -not $cleanup.success -or -not $cleanup.data.result.success -or -not $cleanup.data.result.result.Verified) {
+        if ($validationFailure) {
+            Write-Error -ErrorAction Continue -ErrorRecord $validationFailure
+        }
         throw 'Import report owned-window/native-frame cleanup was not verified. Inspect import-report-visual-fallback-cleanup.json; do not overlap another capture.'
     }
 }

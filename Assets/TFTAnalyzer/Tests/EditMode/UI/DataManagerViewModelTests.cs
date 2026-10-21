@@ -35,11 +35,10 @@ namespace TFTAnalyzer.Tests.UI
             _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, true);
             await _vm.ImportAsync(_ => true);
             Assert.That(_vm.ErrorCode, Is.EqualTo("ValidationRejected"));
-            var property = _vm.GetType().GetProperty("LastImportReport");
-            Assert.That(property, Is.Not.Null, "The production VM must retain the returned static import report.");
-            var report = property.GetValue(_vm);
-            Assert.That(report, Has.Property("ErrorCount").EqualTo(1));
-            Assert.That(report, Has.Property("OfficialWinsCount").EqualTo(1));
+            var report = _vm.LastImportReport;
+            Assert.That(report, Is.Not.Null, "The production VM must retain the returned static import report.");
+            Assert.That(report.ErrorCount, Is.EqualTo(1));
+            Assert.That(report.OfficialWinsCount, Is.EqualTo(1));
         }
 
         [Test]
