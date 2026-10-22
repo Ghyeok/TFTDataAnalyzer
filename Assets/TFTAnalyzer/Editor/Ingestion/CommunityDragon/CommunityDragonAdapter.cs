@@ -71,8 +71,8 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                 Source(version, "en_us", enJson)
             };
             var manifest = new PatchManifest(
-                1,
-                patch,
+                3,
+                new CatalogIdentity(patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
                 ReadString(enSet, "name"),
                 DateTime.UnixEpoch,
                 "",
@@ -84,12 +84,14 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                 "",
                 version);
 
-            return new StaticCatalog(
+            var origins = new List<FieldOrigin>();
+            var catalog = new StaticCatalog(
                 manifest,
-                ParseUnits(Records(koRoot, koSet, "champions"), Records(enRoot, enSet, "champions"), patch, sources, version),
-                ParseTraits(Records(koRoot, koSet, "traits"), Records(enRoot, enSet, "traits"), patch, sources, version),
-                ParseItems(Records(koRoot, koSet, "items"), Records(enRoot, enSet, "items"), patch, sources, version),
-                ParseAugments(Records(koRoot, koSet, "augments"), Records(enRoot, enSet, "augments"), patch, sources, version));
+                ParseUnits(origins, Records(koRoot, koSet, "champions"), Records(enRoot, enSet, "champions"), patch, sources, version),
+                ParseTraits(origins, Records(koRoot, koSet, "traits"), Records(enRoot, enSet, "traits"), patch, sources, version),
+                ParseItems(origins, Records(koRoot, koSet, "items"), Records(enRoot, enSet, "items"), patch, sources, version),
+                ParseAugments(origins, Records(koRoot, koSet, "augments"), Records(enRoot, enSet, "augments"), patch, sources, version));
+            return new StaticCatalog(catalog.Manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, origins);
         }
 
         private static JObject SelectSet(JObject root, int setNumber)
@@ -112,6 +114,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
         }
 
         private static IEnumerable<UnitRecord> ParseUnits(
+            List<FieldOrigin> origins,
             JArray ko,
             JArray en,
             PatchKey patch,
@@ -120,7 +123,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
         {
             foreach (var record in Join(ko, en, patch))
             {
-                yield return new UnitRecord(
+                var value = new UnitRecord(
                     record.Id,
                     record.Name,
                     ReadInt(record.Primary, "cost", "tier"),
@@ -130,10 +133,13 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     ReadString(record.Primary, "role"),
                     ReadLocalized(record, "desc", "description"),
                     ReadEffects(record.Primary));
+                ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                yield return value;
             }
         }
 
         private static IEnumerable<TraitRecord> ParseTraits(
+            List<FieldOrigin> origins,
             JArray ko,
             JArray en,
             PatchKey patch,
@@ -142,17 +148,20 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
         {
             foreach (var record in Join(ko, en, patch))
             {
-                yield return new TraitRecord(
+                var value = new TraitRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record, "desc", "description"),
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
                     sources);
+                ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                yield return value;
             }
         }
 
         private static IEnumerable<ItemRecord> ParseItems(
+            List<FieldOrigin> origins,
             JArray ko,
             JArray en,
             PatchKey patch,
@@ -161,7 +170,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
         {
             foreach (var record in Join(ko, en, patch))
             {
-                yield return new ItemRecord(
+                var value = new ItemRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record, "desc", "description"),
@@ -169,10 +178,13 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
                     sources);
+                ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                yield return value;
             }
         }
 
         private static IEnumerable<AugmentRecord> ParseAugments(
+            List<FieldOrigin> origins,
             JArray ko,
             JArray en,
             PatchKey patch,
@@ -181,7 +193,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
         {
             foreach (var record in Join(ko, en, patch))
             {
-                yield return new AugmentRecord(
+                var value = new AugmentRecord(
                     record.Id,
                     record.Name,
                     ReadString(record.Primary, "tier"),
@@ -190,6 +202,8 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
                     sources);
+                ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                yield return value;
             }
         }
 

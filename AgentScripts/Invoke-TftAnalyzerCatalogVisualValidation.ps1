@@ -1,7 +1,8 @@
 param(
     [string]$UnityPath = (Join-Path $env:LOCALAPPDATA 'Unity\bin\unity.exe'),
     [switch]$ProbeFailure,
-    [switch]$ProbeInitializationFailure
+    [switch]$ProbeInitializationFailure,
+    [switch]$FieldOrigins
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +12,11 @@ $outputRoot = Join-Path $projectRoot 'Library\TftAnalyzerValidation'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunInitializationFailureProbe' }
     elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunFailureProbe' } else { 'CatalogScopedVisualValidation.Run' }
+if ($FieldOrigins) {
+    $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunFieldOriginInitializationFailureProbe' }
+        elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunFieldOriginFailureProbe' }
+        else { 'CatalogScopedVisualValidation.RunFieldOrigins' }
+}
 $resultFileName = if ($ProbeInitializationFailure) { 'catalog-visual-initialization-failure-command.json' }
     elseif ($ProbeFailure) { 'catalog-visual-failure-command.json' } else { 'catalog-visual-command.json' }
 $resultPath = Join-Path $outputRoot $resultFileName

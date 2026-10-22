@@ -12,19 +12,22 @@ namespace TFTAnalyzer.Domain
         public IReadOnlyList<TraitRecord> Traits { get; }
         public IReadOnlyList<ItemRecord> Items { get; }
         public IReadOnlyList<AugmentRecord> Augments { get; }
+        public IReadOnlyList<FieldOrigin> FieldOrigins { get; }
 
         public StaticCatalog(
             PatchManifest manifest,
             IEnumerable<UnitRecord> units,
             IEnumerable<TraitRecord> traits,
             IEnumerable<ItemRecord> items,
-            IEnumerable<AugmentRecord> augments)
+            IEnumerable<AugmentRecord> augments,
+            IEnumerable<FieldOrigin> fieldOrigins = null)
         {
             Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
             Units = DomainValues.Copy(units);
             Traits = DomainValues.Copy(traits);
             Items = DomainValues.Copy(items);
             Augments = DomainValues.Copy(augments);
+            FieldOrigins = DomainValues.Copy(fieldOrigins);
         }
     }
 

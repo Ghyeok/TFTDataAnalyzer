@@ -110,24 +110,26 @@ namespace TFTAnalyzer.Editor.UI.Data
                 }));
             }
             foreach (var x in catalog.Units)
-                yield return Create(CatalogRecordKind.Unit, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, CatalogRecordKind.Unit, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("비용", x.Cost.ToString(CultureInfo.InvariantCulture)), ("역할", x.Role), ("관계", Related(x.TraitIds, CatalogRecordKind.Trait)));
             foreach (var x in catalog.Traits)
-                yield return Create(CatalogRecordKind.Trait, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects);
+                yield return Create(catalog, CatalogRecordKind.Trait, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects);
             foreach (var x in catalog.Items)
-                yield return Create(CatalogRecordKind.Item, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, CatalogRecordKind.Item, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("관계", Related(x.ComponentIds, CatalogRecordKind.Item)));
             foreach (var x in catalog.Augments)
-                yield return Create(CatalogRecordKind.Augment, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, CatalogRecordKind.Augment, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("등급", x.Tier), ("관계", Related(x.RelatedIds, null)));
         }
 
-        private static CatalogBrowserRecord Create(CatalogRecordKind kind, string id, LocalizedText name, LocalizedText description,
+        private static CatalogBrowserRecord Create(StaticCatalog catalog, CatalogRecordKind kind, string id, LocalizedText name, LocalizedText description,
             string icon, IEnumerable<SourceStamp> sources, IReadOnlyDictionary<string, double> effects, params (string Label, string Value)[] extra)
         {
             var fields = new List<(string Label, string Value)>
             {
-                ("종류", KindName(kind)), ("안정 ID", id), ("이름(한국어)", name.KoKr), ("이름(영어)", name.EnUs),
+                ("종류", KindName(kind)), ("안정 ID", id),
+                ("필드별 출처", FieldSources(catalog, kind, id)),
+                ("이름(한국어)", name.KoKr), ("이름(영어)", name.EnUs),
                 ("이름 표시", LanguageNotice(name)),
                 ("설명(한국어)", description.KoKr), ("설명(영어)", description.EnUs),
                 ("설명 표시", LanguageNotice(description))
@@ -145,6 +147,20 @@ namespace TFTAnalyzer.Editor.UI.Data
             }
             if (!sources.Any()) fields.Add(("출처", ""));
             return new CatalogBrowserRecord(kind, id, name, icon, string.Join("\n\n", fields.Select(field => field.Label + ": " + Clip(field.Value))));
+        }
+
+        private static string FieldSources(StaticCatalog catalog, CatalogRecordKind kind, string id)
+        {
+            if (catalog.Manifest.SchemaVersion < 3) return "필드별 출처 정보 없음 — 기존 문서 단위 출처만 보존된 카탈로그입니다.";
+            var type = new[] { "unit", "trait", "item", "augment" }[(int)kind];
+            var origins = catalog.FieldOrigins.Where(x => x.RecordType == type && x.StableId == id)
+                .OrderBy(x => x.Pointer, StringComparer.Ordinal).ToArray();
+            if (origins.Length == 0) return "필드별 출처 기록 없음 — 검증이 필요합니다.";
+            return string.Join("\n\n", origins.Select(x => Clip(x.Pointer) +
+                (x.Pointer == "/iconPath" ? " (로컬 변환 전 원본 아이콘 참조의 출처)" : "") + "\n" +
+                string.Join("\n", x.Sources.Select(source =>
+                    (source.IsSupplemental ? "보완" : "공식") + " · " + Clip(source.SourceName) + "\n" +
+                    Clip(source.Url) + "\nSHA-256: " + Clip(source.Sha256)))));
         }
 
         public void Dispose()

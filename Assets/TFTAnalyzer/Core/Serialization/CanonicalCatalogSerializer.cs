@@ -42,18 +42,32 @@ namespace TFTAnalyzer.Serialization
                 throw new JsonSerializationException("Catalog manifest is required.");
             }
 
+            var root = Newtonsoft.Json.Linq.JObject.Parse(json);
+            if (dto.Manifest.SchemaVersion < 1 || dto.Manifest.SchemaVersion > 3 ||
+                (dto.Manifest.SchemaVersion < 3 && root.Properties().Any(x =>
+                    string.Equals(x.Name, "fieldOrigins", StringComparison.OrdinalIgnoreCase))) ||
+                (dto.Manifest.SchemaVersion == 3 && !(root["fieldOrigins"] is Newtonsoft.Json.Linq.JArray)))
+                throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");
             return FromDto(dto);
         }
 
         private static CatalogDto ToDto(StaticCatalog catalog)
         {
+            if (catalog.Manifest.SchemaVersion < 1 || catalog.Manifest.SchemaVersion > 3 ||
+                (catalog.Manifest.SchemaVersion < 3 && catalog.FieldOrigins.Count > 0))
+                throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");
             return new CatalogDto
             {
                 Manifest = ToDto(catalog.Manifest),
                 Units = Stable(catalog.Units, value => value.StableId).Select(ToDto).ToList(),
                 Traits = Stable(catalog.Traits, value => value.StableId).Select(ToDto).ToList(),
                 Items = Stable(catalog.Items, value => value.StableId).Select(ToDto).ToList(),
-                Augments = Stable(catalog.Augments, value => value.StableId).Select(ToDto).ToList()
+                Augments = Stable(catalog.Augments, value => value.StableId).Select(ToDto).ToList(),
+                FieldOrigins = catalog.Manifest.SchemaVersion == 3 ? catalog.FieldOrigins
+                    .OrderBy(x => x.RecordType, StringComparer.Ordinal).ThenBy(x => x.StableId, StringComparer.Ordinal)
+                    .ThenBy(x => x.Pointer, StringComparer.Ordinal).Select(x => new FieldOriginDto
+                    { RecordType = x.RecordType, StableId = x.StableId, Pointer = x.Pointer,
+                        Sources = StableSources(x.Sources) }).ToList() : null
             };
         }
 
@@ -64,7 +78,9 @@ namespace TFTAnalyzer.Serialization
                 (dto.Units ?? new List<UnitDto>()).Select(FromDto),
                 (dto.Traits ?? new List<TraitDto>()).Select(FromDto),
                 (dto.Items ?? new List<ItemDto>()).Select(FromDto),
-                (dto.Augments ?? new List<AugmentDto>()).Select(FromDto));
+                (dto.Augments ?? new List<AugmentDto>()).Select(FromDto),
+                (dto.FieldOrigins ?? new List<FieldOriginDto>()).Select(x => new FieldOrigin(
+                    x.RecordType, x.StableId, x.Pointer, FromDto(x.Sources))));
         }
 
         private static ManifestDto ToDto(PatchManifest manifest)
@@ -304,6 +320,16 @@ namespace TFTAnalyzer.Serialization
             [JsonProperty("traits", Order = 3)] public List<TraitDto> Traits { get; set; }
             [JsonProperty("items", Order = 4)] public List<ItemDto> Items { get; set; }
             [JsonProperty("augments", Order = 5)] public List<AugmentDto> Augments { get; set; }
+            [JsonProperty("fieldOrigins", Order = 6, NullValueHandling = NullValueHandling.Ignore)]
+            public List<FieldOriginDto> FieldOrigins { get; set; }
+        }
+
+        private sealed class FieldOriginDto
+        {
+            [JsonProperty("recordType", Order = 1)] public string RecordType { get; set; }
+            [JsonProperty("stableId", Order = 2)] public string StableId { get; set; }
+            [JsonProperty("pointer", Order = 3)] public string Pointer { get; set; }
+            [JsonProperty("sources", Order = 4)] public List<SourceDto> Sources { get; set; }
         }
 
         private sealed class ManifestDto

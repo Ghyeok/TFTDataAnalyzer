@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "setId": "TFTSet18",
+    "setNumber": 18,
+    "setName": "Test",
+    "patchId": "18.2",
+    "sourceGameVersion": "16.18.1",
+    "createdUtc": "1970-01-01T00:00:00.0000000Z",
+    "contentHash": "",
+    "sources": [
+      {
+        "sourceName": "Riot",
+        "url": "https://example.test/en",
+        "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+        "etag": "etag",
+        "sha256": "hash",
+        "isSupplemental": false
+      }
+    ],
+    "policyReviewDate": "1970-01-01T00:00:00.0000000Z",
+    "policyUrls": [],
+    "validationErrorCount": 0,
+    "validationWarningCount": 0,
+    "previousPatchSummary": "",
+    "communityDragonVersion": ""
+  },
+  "units": [
+    {
+      "stableId": "TEST18_A",
+      "name": {
+        "koKr": "시험",
+        "enUs": "A"
+      },
+      "cost": 1,
+      "traitIds": [],
+      "iconPath": "",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ],
+      "role": "",
+      "description": {
+        "koKr": "",
+        "enUs": ""
+      },
+      "effects": {}
+    }
+  ],
+  "traits": [],
+  "items": [],
+  "augments": []
+}

@@ -76,8 +76,8 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             var stamps = snapshot.AllResponses.Select(ToSourceStamp).ToArray();
             var createdUtc = snapshot.AllResponses.Max(response => response.RetrievedUtc);
             var manifest = new PatchManifest(
-                1,
-                patch,
+                3,
+                new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly),
                 "",
                 createdUtc,
                 "",
@@ -90,12 +90,14 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 "");
             var setPrefixes = DiscoverSetPrefixes(snapshot.Champions, patch);
 
-            return new StaticCatalog(
+            var origins = new List<FieldOrigin>();
+            var catalog = new StaticCatalog(
                 manifest,
-                ParseUnits(snapshot.Champions, patch, setPrefixes),
-                ParseTraits(snapshot.Traits, patch, setPrefixes),
-                ParseItems(snapshot.Items, patch, setPrefixes),
-                ParseAugments(snapshot.Augments, patch, setPrefixes));
+                ParseUnits(origins, snapshot.Champions, patch, setPrefixes),
+                ParseTraits(origins, snapshot.Traits, patch, setPrefixes),
+                ParseItems(origins, snapshot.Items, patch, setPrefixes),
+                ParseAugments(origins, snapshot.Augments, patch, setPrefixes));
+            return new StaticCatalog(catalog.Manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, origins);
         }
 
         private async Task<DataDragonPayloadPair> FetchPairAsync(
@@ -116,13 +118,14 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
         }
 
         private static IEnumerable<UnitRecord> ParseUnits(
+            List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
-                yield return new UnitRecord(
+                var value = new UnitRecord(
                     record.Id,
                     record.Name,
                     ReadInt(record.Primary, "cost", "tier"),
@@ -132,34 +135,40 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadString(record.Primary, "role"),
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
                     ReadNumericBag(record.Primary, "stats", "effects"));
+                ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                yield return value;
             }
         }
 
         private static IEnumerable<TraitRecord> ParseTraits(
+            List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
-                yield return new TraitRecord(
+                var value = new TraitRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Traits, record.Primary),
                     PairSources(pair));
+                ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                yield return value;
             }
         }
 
         private static IEnumerable<ItemRecord> ParseItems(
+            List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
-                yield return new ItemRecord(
+                var value = new ItemRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
@@ -167,17 +176,20 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadNumericBag(record.Primary, "stats", "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Items, record.Primary),
                     PairSources(pair));
+                ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                yield return value;
             }
         }
 
         private static IEnumerable<AugmentRecord> ParseAugments(
+            List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
-                yield return new AugmentRecord(
+                var value = new AugmentRecord(
                     record.Id,
                     record.Name,
                     ReadString(record.Primary, "tier"),
@@ -186,6 +198,8 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Augments, record.Primary),
                     PairSources(pair));
+                ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                yield return value;
             }
         }
 

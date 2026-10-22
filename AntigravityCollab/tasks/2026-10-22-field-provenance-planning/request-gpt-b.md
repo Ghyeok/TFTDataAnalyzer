@@ -1,0 +1,1 @@
+기획B:manifest의동결2입력만읽고SHA/바이트합을확인해독립검토. schema3/구JSON해시호환·FieldOrigin의실제공급·병합/아이콘복사·검증·게시/loader·반환실제schema·실행증거/완료조건을평가한다. 중요데이터호환설계로High추론수준을권고하지만실제runtime값을확인못하면미확인으로기록한다. 쓰기/원본프로젝트/상대결과/Unity/네트워크/재위임금지. pass/revise/blocked와실제필수최대3건및한계만반환.

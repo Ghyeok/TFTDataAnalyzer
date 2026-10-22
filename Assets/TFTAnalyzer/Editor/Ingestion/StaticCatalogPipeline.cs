@@ -213,8 +213,9 @@ namespace TFTAnalyzer.Editor.Ingestion
                     stagingRoot);
                 token.ThrowIfCancellationRequested();
                 var isLegacy = resolution.Status == LegacyCatalogStatus.CompatibleOfficialLegacy;
-                var idempotent = _writer.Publish(staged, finalDirectory, isLegacy);
-                var publishedHash = isLegacy ? staged.LegacyContentHash : staged.ContentHash;
+                var publication = _writer.PublishVerified(staged, finalDirectory, isLegacy);
+                var idempotent = publication.Idempotent;
+                var publishedHash = publication.ContentHash;
                 try
                 {
                     _indexWriter.Upsert(request.Identity, publishedHash, resolution.CatalogAssetPath);
@@ -246,7 +247,7 @@ namespace TFTAnalyzer.Editor.Ingestion
                     idempotent,
                     finalDirectory,
                     publishedHash,
-                    withIcons,
+                    publication.Catalog,
                     validation,
                     loaded.MergeConflicts);
             }
@@ -273,11 +274,11 @@ namespace TFTAnalyzer.Editor.Ingestion
                  !source.Sources.Any(stamp => stamp.IsSupplemental)))
                 throw new InvalidOperationException("Supplemented import is missing CommunityDragon provenance.");
 
-            var manifest = new PatchManifest(2, identity, source.SetName, source.CreatedUtc,
+            var manifest = new PatchManifest(Math.Max(2, source.SchemaVersion), identity, source.SetName, source.CreatedUtc,
                 source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
                 source.ValidationErrorCount, source.ValidationWarningCount,
                 source.PreviousPatchSummary, source.CommunityDragonVersion);
-            return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments);
+            return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, catalog.FieldOrigins);
         }
     }
 }

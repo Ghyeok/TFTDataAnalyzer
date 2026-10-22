@@ -1,6 +1,6 @@
 # 정적 가져오기 검증·병합 보고서 구현 계획
 
-상태: 진행 중. 사용자 “이 계획대로 구현 진행 (권장)” 명시 승인 후 구현·관련 검증 완료, 전체 검증·QA 통과 후 PR 단계. 기획 A(Antigravity)/B(GPT) 모두 pass·필수0. 기준main1a900596c6d876ee49299ba220cd4b834bfbb7fb, branch codex/static-import-report. 실제 API 환경 변수 설정과 실데이터 수집은 사용자 요청으로 미룬다. 기획 당시 승인 전 제품 변경0이었으며 현재 승인 범위만 구현한다.
+상태: 완료. 사용자 “이 계획대로 구현 진행 (권장)” 명시 승인 후 구현·관련 검증 완료, 전체 검증·QA 및 PR20 최신head 검수 통과 후 mainf005879 병합. 구현 계획의 실행 완료이며 사용자 최종 결과 승인은 별도다. 기획 A(Antigravity)/B(GPT) 모두 pass·필수0. 기준main1a900596c6d876ee49299ba220cd4b834bfbb7fb, branch codex/static-import-report. 실제 API 환경 변수 설정과 실데이터 수집은 사용자 요청으로 미룬다. 기획 당시 승인 전 제품 변경0이었으며 현재 승인 범위만 구현한다.
 
 > 구현은 executing-plans로 root가 맡고 기존 코드검수·QA 담당을 같은 사이클에 재사용한다. 새 에이전트 생성·재위임은 하지 않는다.
 
