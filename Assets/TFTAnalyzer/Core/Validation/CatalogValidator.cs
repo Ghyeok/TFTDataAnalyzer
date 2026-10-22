@@ -27,6 +27,7 @@ namespace TFTAnalyzer.Validation
 
             var issues = new List<ValidationIssue>();
             ValidatePatch(catalog, issues);
+            ValidateFieldOrigins(catalog, issues);
             ValidateDuplicates(catalog.Units.Select(value => value.StableId), "unit", issues);
             ValidateDuplicates(catalog.Traits.Select(value => value.StableId), "trait", issues);
             ValidateDuplicates(catalog.Items.Select(value => value.StableId), "item", issues);
@@ -105,6 +106,42 @@ namespace TFTAnalyzer.Validation
             {
                 Error(issues, "invalid_patch_identity", "", "Patch identity is incomplete.");
             }
+        }
+
+        private static void ValidateFieldOrigins(StaticCatalog catalog, ICollection<ValidationIssue> issues)
+        {
+            var schema = catalog.Manifest.SchemaVersion;
+            if (schema < 1 || schema > 3 || (schema < 3 && catalog.FieldOrigins.Count != 0))
+                Error(issues, "invalid_field_origin_schema", "", "Unsupported schema or legacy field origins.");
+            if (schema != 3) return;
+
+            string SourceKey(SourceStamp s) => $"{s.SourceName}\u001f{s.Url}\u001f{s.Sha256}\u001f{s.IsSupplemental}";
+            var manifestSources = new HashSet<string>(catalog.Manifest.Sources.Select(SourceKey), StringComparer.Ordinal);
+            var expected = new Dictionary<(string Type, string Id, string Pointer), IReadOnlyList<SourceStamp>>();
+            void Record(string type, string id, object record, IReadOnlyList<SourceStamp> sources)
+            {
+                foreach (var pointer in FieldOriginFields.Required(record)) expected[(type, id, pointer)] = sources;
+            }
+            foreach (var r in catalog.Units) Record("unit", r.StableId, r, r.Sources);
+            foreach (var r in catalog.Traits) Record("trait", r.StableId, r, r.Sources);
+            foreach (var r in catalog.Items) Record("item", r.StableId, r, r.Sources);
+            foreach (var r in catalog.Augments) Record("augment", r.StableId, r, r.Sources);
+            var seen = new HashSet<(string Type, string Id, string Pointer)>();
+            foreach (var origin in catalog.FieldOrigins)
+            {
+                if (origin == null) { Error(issues, "invalid_field_origin", "", "Null field origin."); continue; }
+                var key = (origin.RecordType, origin.StableId, origin.Pointer);
+                if (!seen.Add(key)) Error(issues, "duplicate_field_origin", origin.StableId, origin.Pointer);
+                if (!expected.TryGetValue(key, out var recordSources))
+                { Error(issues, "invalid_field_origin", origin.StableId, "Unknown record or absent field: " + origin.Pointer); continue; }
+                var recordKeys = new HashSet<string>(recordSources.Select(SourceKey), StringComparer.Ordinal);
+                if (origin.Sources.Count == 0 || origin.Sources.Any(s => s == null ||
+                    !manifestSources.Contains(SourceKey(s)) || !recordKeys.Contains(SourceKey(s)) ||
+                    (catalog.Manifest.Identity?.IncludesCommunityDragon != true && s.IsSupplemental)))
+                    Error(issues, "invalid_field_origin_source", origin.StableId, origin.Pointer);
+            }
+            foreach (var key in expected.Keys.Where(key => !seen.Contains(key)))
+                Error(issues, "missing_field_origin", key.Id, key.Pointer);
         }
 
         private static void ValidateDuplicates(

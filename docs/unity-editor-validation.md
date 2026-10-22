@@ -2,6 +2,10 @@
 
 ## 카탈로그 탐색 검증 도구
 
+2026-10-22 필드 출처 확장: 같은 진입점에 `-FieldOrigins`를 지정하면 기존 로컬 팩을 읽는 기본 모드 대신 메모리의 창작 schema3/2를 사용한다. 원본 파일·인덱스·환경 변수·API는 변경하지 않는다. `-FieldOrigins -ProbeInitializationFailure`와 `-FieldOrigins -ProbeFailure`는 각각 표시 전/후 예외 정리를 확인한다. 기존 로컬 팩 읽기 모드는 그대로 유지한다. `field-origin-catalog-visual-*.json`과 `catalog-window-{940,500}-field-origins{,-legacy}.png`를 구분해 확인한다. 실패 시 생성한 창의 정확한 ID·고유이름·기존 프레임·포커스 보존을 먼저 확인하고 중첩 실행하지 않는다.
+
+이 사이클의 첫 합성 캡처는 InvalidOperationException/캡처0이었고 정리는 성공했다. 합성 상태의 값 존재 여부·행 수만 기록하는 제한 진단을 추가한 1회 재실행과 두 예외probe는 통과했다. 최초 원인은 미확정이며 시간 대기만 늘리거나 제품의 간헐 오류가 해결됐다고 주장하지 않는다. 최종4PNG는 각각 직접 확인했고 기존9창/native1·포커스 보존과 소유창0을 대조했다.
+
 2026-10-20 추가: AgentScripts/Invoke-TftAnalyzerCatalogVisualValidation.ps1는 기존 분석 검증 도구의 소유 창/native frame 패턴을 재사용한다. PublishedCatalogLoader로 검증된 로컬 카탈로그만 읽고 수집/분석/가져오기는 실행하지 않는다. 정상940/500px 검색/상세4PNG를 직접 확인한다. ProbeInitializationFailure와 ProbeFailure는 표시 전/후 예외를 검증한다.
 
 각 호출의finally와CleanupLastOwned는 정확한ID/고유이름, 기존창/ContainerWindow/포커스로 잔류0을 확인한다. 가시성 변경은 실행 전 PID별 HWND 집합에서 새 프레임이 정확히1개일 때만 한다. 2026-10-20 초기 실행의 정상/두예외 Passed, 창9/native1/포커스 보존·추가/누락0을 확인했다. 원문은Library/TftAnalyzerValidation/catalog-visual-*.json과catalog-window-*.png다. 이 이력을 후속 수정의 실행 증거로 적용하지 않는다.

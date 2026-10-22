@@ -34,6 +34,9 @@ public static class CatalogScopedVisualValidation
     private static Type ContainerType => typeof(EditorWindow).Assembly.GetType("UnityEditor.ContainerWindow", true);
 
     public static Task<object> Run() => Execute(false, false);
+    public static Task<object> RunFieldOrigins() => Execute(false, false, true);
+    public static Task<object> RunFieldOriginFailureProbe() => Execute(true, false, true);
+    public static Task<object> RunFieldOriginInitializationFailureProbe() => Execute(false, true, true);
     public static Task<object> RunFailureProbe() => Execute(true, false);
     public static Task<object> RunInitializationFailureProbe() => Execute(false, true);
 
@@ -79,7 +82,7 @@ public static class CatalogScopedVisualValidation
         };
     }
 
-    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow)
+    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false)
     {
         Directory.CreateDirectory(Root);
         var focus = EditorWindow.focusedWindow;
@@ -109,7 +112,7 @@ public static class CatalogScopedVisualValidation
                 id = window.GetInstanceID();
                 window.name = name;
                 WriteOwnership(id, name, before, beforeContainers, focusId, false);
-                data = new DataManagerViewModel(new LocalCatalogs());
+                data = new DataManagerViewModel(new LocalCatalogs(synthetic));
                 analysis = new AnalysisViewModel(fake);
                 collection = new CollectionViewModel(new OfflineCollection());
                 Inject(window, "_dataManager", data);
@@ -129,6 +132,10 @@ public static class CatalogScopedVisualValidation
                 await Settle(window, id, name, deadline.Token);
                 window.CreateGUI();
                 stage = "SelectingVerifiedLocalCatalog";
+                if (synthetic)
+                    await CaptureFieldOrigins(window, data, id, name, deadline.Token, captures);
+                else
+                {
                 var row = data.Rows.FirstOrDefault(value => value.IsSelectable);
                 if (row == null || !data.SelectActiveCatalog(row.Identity))
                     throw new InvalidOperationException("NoVerifiedLocalCatalog");
@@ -154,10 +161,16 @@ public static class CatalogScopedVisualValidation
                     await Settle(window, id, name, deadline.Token);
                     captures.Add(Capture(window, width, "details"));
                 }
+                }
             }
             catch (ExpectedProbe) { expectedFailureObserved = true; failure = "ExpectedProbeFailure"; }
             catch (OperationCanceledException) { failure = "ValidationDeadlineOrAbort"; }
-            catch (Exception exception) { failure = "VisualValidationFailed:" + exception.GetType().Name; }
+            catch (Exception exception)
+            {
+                var known = new[] { "FieldOriginDetailsMissing", "OwnedNativeIdentityAmbiguous", "OwnedNativeVisibilityUnavailable", "SyntheticCatalogInvalid" };
+                failure = "VisualValidationFailed:" + exception.GetType().Name +
+                    (known.Contains(exception.Message) ? ":" + exception.Message : "");
+            }
             finally
             {
                 // Each exact owner still receives cleanup if another cleanup step throws.
@@ -186,7 +199,7 @@ public static class CatalogScopedVisualValidation
                 addedContainers.Length == 0 && missingContainers.Length == 0 &&
                 ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == 4),
             Failure = failure, CleanupFailure = cleanupFailure, Stage = stage,
-            ReadOnlyLocalCatalogs = true, NoObservationStore = true, OfflineCredentials = true,
+            ReadOnlyLocalCatalogs = !synthetic, SyntheticCatalogs = synthetic, NoObservationStore = true, OfflineCredentials = true,
             UnusedSyntheticAnalysisLoadCalls = fake.LoadCalls, CollectionCalls = OfflineCollection.Calls,
             BeforeIds = before, OwnedIds = new[] { id }, AfterIds = after,
             AddedWindowIds = added, MissingWindowIds = missing,
@@ -197,8 +210,62 @@ public static class CatalogScopedVisualValidation
         };
         var file = failBeforeShow ? "catalog-visual-initialization-failure-cleanup.json" :
             failAfterShow ? "catalog-visual-failure-cleanup.json" : "catalog-visual-final.json";
-        File.WriteAllText(Path.Combine(Root, file), JsonConvert.SerializeObject(report, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Root, synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
+    }
+
+    private static async Task CaptureFieldOrigins(TftDataAnalyzerWindow window, DataManagerViewModel data,
+        int id, string name, CancellationToken token, List<object> captures)
+    {
+        foreach (var width in new[] { 940, 500 })
+        foreach (var row in data.Rows)
+        {
+            data.SelectActiveCatalog(row.Identity);
+            var root = window.rootVisualElement;
+            root.Q<Foldout>("catalog-browser").value = true;
+            root.Q<DropdownField>("browser-kind").index = 0;
+            window.position = new Rect(80, 80, width, width == 940 ? 760 : 700);
+            await Settle(window, id, name, token);
+            root.Q<ListView>("browser-results").SetSelection(0);
+            await Settle(window, id, name, token);
+            var text = root.Q<Label>("browser-detail-text").text;
+            var modern = row.Catalog.Manifest.SchemaVersion == 3;
+            File.WriteAllText(Path.Combine(Root, "field-origin-capture-state.json"), JsonConvert.SerializeObject(new
+            { Schema = row.Catalog.Manifest.SchemaVersion, Active = data.ActiveIdentity?.ToString(),
+                DetailLength = text?.Length ?? 0, HasCost = text?.Contains("/cost"), HasSupplement = text?.Contains("보완"),
+                HasLegacyAbsence = text?.Contains("필드별 출처 정보 없음"), Rows = root.Q<ListView>("browser-results").itemsSource?.Count,
+                SelectedIndex = root.Q<ListView>("browser-results").selectedIndex }, Formatting.Indented));
+            if (modern ? !text.Contains("/cost") || !text.Contains("보완") : !text.Contains("필드별 출처 정보 없음"))
+                throw new InvalidOperationException("FieldOriginDetailsMissing");
+            AlignTop(root.Q<ScrollView>("data-scroll"), root.Q("browser-details"));
+            await Settle(window, id, name, token);
+            captures.Add(Capture(window, width, modern ? "field-origins" : "field-origins-legacy"));
+        }
+    }
+
+    private static IReadOnlyList<PatchRowViewModel> SyntheticCatalogRows()
+    {
+        var rows = new List<PatchRowViewModel>();
+        foreach (var schema in new[] { 3, 2 })
+        {
+            var identity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", schema == 3 ? "16.18.1" : "16.18.2"),
+                schema == 3 ? CatalogSourceProfile.OfficialPlusCommunityDragon : CatalogSourceProfile.OfficialOnly);
+            var official = new SourceStamp("Riot Data Dragon", "https://ddragon.leagueoflegends.com/validation.json", DateTime.UnixEpoch, "", new string('a', 64));
+            var supplemental = new SourceStamp("CommunityDragon", "https://raw.communitydragon.org/16.18/validation.json", DateTime.UnixEpoch, "", new string('b', 64), true);
+            var sources = schema == 3 ? new[] { official, supplemental } : new[] { official };
+            var unit = new UnitRecord("TEST18_Validation", new LocalizedText("검증 기물", "Validation unit"), 3, null, "", sources,
+                description: new LocalizedText("보완 자료의 설명", "Supplemental description"));
+            var manifest = new PatchManifest(schema, identity, "창작 검증 자료", DateTime.UnixEpoch, "", sources,
+                DateTime.UnixEpoch, null, 0, 0, "", schema == 3 ? "16.18" : "");
+            var origins = schema == 3 ? FieldOriginFields.Required(unit).Select(pointer => new FieldOrigin("unit", unit.StableId,
+                pointer, new[] { pointer.StartsWith("/description/", StringComparison.Ordinal) ? supplemental : official })) : null;
+            var catalog = new StaticCatalog(manifest, new[] { unit }, null, null, null, origins);
+            if (!new TFTAnalyzer.Validation.CatalogValidator().Validate(catalog).CanPublish)
+                throw new InvalidOperationException("SyntheticCatalogInvalid");
+            var entry = new CatalogIndexEntry(identity, "synthetic-only", "Assets/SyntheticValidation/catalog.json");
+            rows.Add(new PatchRowViewModel(entry, identity, "synthetic-only", catalog, DateTime.UnixEpoch, 0, 0, ""));
+        }
+        return rows.AsReadOnly();
     }
 
     private static void WriteOwnership(int id, string name, int[] before, int[] containers, int focus, bool shown)
@@ -331,8 +398,11 @@ public static class CatalogScopedVisualValidation
 
     private sealed class LocalCatalogs : IDataManagerService
     {
+        private readonly bool _synthetic;
+        public LocalCatalogs(bool synthetic = false) { _synthetic = synthetic; }
         public IReadOnlyList<PatchRowViewModel> LoadLocalCatalogs()
         {
+            if (_synthetic) return SyntheticCatalogRows();
             var paths = new StaticCatalogPaths(Path.GetDirectoryName(Application.dataPath));
             return new PublishedCatalogLoader(paths).Load(AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath));
         }

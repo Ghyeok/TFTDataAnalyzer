@@ -95,7 +95,7 @@ namespace TFTAnalyzer.Editor.Ingestion
                 decisions);
 
             var manifest = new PatchManifest(
-                official.Manifest.SchemaVersion,
+                1,
                 official.Manifest.Patch,
                 string.IsNullOrWhiteSpace(official.Manifest.SetName)
                     ? supplement.Manifest.SetName
@@ -109,9 +109,38 @@ namespace TFTAnalyzer.Editor.Ingestion
                 official.Manifest.ValidationWarningCount,
                 official.Manifest.PreviousPatchSummary,
                 supplement.Manifest.CommunityDragonVersion);
-            return new MergeResult(
-                new StaticCatalog(manifest, units, traits, items, augments),
-                decisions);
+            if (official.Manifest.SchemaVersion == 3)
+                manifest = new PatchManifest(3, new CatalogIdentity(manifest.Patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
+                    manifest.SetName, manifest.CreatedUtc, manifest.ContentHash, manifest.Sources, manifest.PolicyReviewDate,
+                    manifest.PolicyUrls, manifest.ValidationErrorCount, manifest.ValidationWarningCount,
+                    manifest.PreviousPatchSummary, manifest.CommunityDragonVersion);
+            // Materialize values first: the existing merge decisions are produced during enumeration.
+            var values = new StaticCatalog(manifest, units, traits, items, augments);
+            var origins = MergeOrigins(official, supplement, decisions);
+            return new MergeResult(new StaticCatalog(manifest, values.Units, values.Traits, values.Items,
+                values.Augments, origins), decisions);
+        }
+
+        private static IEnumerable<FieldOrigin> MergeOrigins(StaticCatalog official, StaticCatalog supplement,
+            IReadOnlyCollection<MergeConflict> decisions)
+        {
+            string Pointer(string field) => field.StartsWith("effects.", StringComparison.Ordinal)
+                ? "/effects/" + FieldOrigin.Escape(field.Substring(8)) : "/" + field.Replace('.', '/');
+            var fills = new HashSet<(string, string, string)>(decisions
+                .Where(x => x.Resolution == MergeResolution.SupplementFill)
+                .Select(x => (x.RecordType, x.StableId, Pointer(x.FieldName))));
+            var left = official.FieldOrigins.ToLookup(x => (x.RecordType, x.StableId, x.Pointer));
+            // Iterate the union so a missing selected origin remains missing, rather than falling back to another source.
+            var keys = official.FieldOrigins.Concat(supplement.FieldOrigins)
+                .Select(x => (x.RecordType, x.StableId, x.Pointer)).Distinct();
+            var right = supplement.FieldOrigins.ToLookup(x => (x.RecordType, x.StableId, x.Pointer));
+            var officialIds = new HashSet<(string, string)>(official.Units.Select(x => ("unit", x.StableId))
+                .Concat(official.Traits.Select(x => ("trait", x.StableId)))
+                .Concat(official.Items.Select(x => ("item", x.StableId)))
+                .Concat(official.Augments.Select(x => ("augment", x.StableId))));
+            foreach (var key in keys)
+                foreach (var origin in !officialIds.Contains((key.RecordType, key.StableId)) || fills.Contains(key)
+                    ? right[key] : left[key]) yield return origin;
         }
 
         private static IEnumerable<T> MergeRecords<T>(

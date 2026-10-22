@@ -6,7 +6,9 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 ## 개발 현황
 
-[정적 가져오기 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-static-import-report/Checkpoint.md)는 사용자 승인 후 구현·코드검수·전체 765개 중 763개 통과/실패 0개/호스트 제약 2개 제외와 실제 PNG 4장 검증을 마쳤고, 최종 QA 통과 후 PR 단계입니다. 데이터 관리의 ‘최근 가져오기 보고서’에서 요청 조건과 검증 오류·경고, 공식/보완 값과 선택 결과를 읽습니다. 각 상세는 200행까지 보유해 20행씩 넘기며 창을 닫으면 사라집니다. 실제 API 설정과 수집 검증은 사용자 요청으로 미뤘고, 실제 분류 등록과 n100 검증은 별도 미완료입니다.
+[필드별 출처 기록](Assets/Plan/Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 사용자 승인 후 구현·코드검수를 마쳤고 최신 전체797개 중795통과·실패0·호스트제약2제외와 실제4PNG를 확인했습니다. 새 가져오기는 schema3에 값별 공식/보완 출처를 보존하고 탐색 상세에 표시합니다. 기존schema1/2의 파일·해시는 유지하며 같은 내용의 구 팩을 재사용하면 실제 구 형식을 반환하고 ‘필드별 출처 정보 없음’을 안내합니다. 독립 최종QA도 통과했으며 PR 검수/병합 단계입니다.
+
+[정적 가져오기 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-static-import-report/Checkpoint.md)는 사용자 승인 후 구현·코드검수·전체 765개 중 763개 통과/실패 0개/호스트 제약 2개 제외와 실제 PNG 4장 검증을 마쳤고, 최종 QA와 최신 커밋 검수 통과 후 [PR #20](https://github.com/Ghyeok/TFTDataAnalyzer/pull/20)으로 main에 병합됐습니다. 데이터 관리의 ‘최근 가져오기 보고서’에서 요청 조건과 검증 오류·경고, 공식/보완 값과 선택 결과를 읽습니다. 각 상세는 200행까지 보유해 20행씩 넘기며 창을 닫으면 사라집니다. 실제 API 설정과 수집 검증은 사용자 요청으로 미뤘고, 실제 분류 등록과 n100 검증은 별도 미완료입니다.
 
 [카탈로그 탐색](Assets/Plan/Workflow/Cycles/2026-10-20-service-completion/Checkpoint.md)은 [PR #17](https://github.com/Ghyeok/TFTDataAnalyzer/pull/17)로 main에 병합됐습니다. 데이터 관리에서 카탈로그를 선택하고 ‘카탈로그 내용 탐색’을 펼치면 기물·시너지·아이템·증강의 한영 이름/ID 검색과 상세·관계·효과·출처·기존 아이콘을 읽습니다. 결과는50개씩 넘깁니다. 수록 여부는 실제 패치 등장이나 증강 통계 허용을 인증하지 않으며 기존 분류 차단은 유지합니다. [최소 표본 설정](Assets/Plan/Workflow/Cycles/2026-10-20-minimum-samples/Checkpoint.md)은 PR18/main3484b13, [수집 격리 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-collection-quarantine/Checkpoint.md)는 PR19/main1a90059에 병합됐습니다.
 

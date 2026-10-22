@@ -159,7 +159,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     value.Sources));
             }
 
-            return new StaticCatalog(catalog.Manifest, units, traits, items, augments);
+            return new StaticCatalog(catalog.Manifest, units, traits, items, augments, catalog.FieldOrigins);
         }
 
         public StagedCatalog WriteStagedCatalog(
@@ -223,10 +223,18 @@ namespace TFTAnalyzer.Editor.Persistence
         {
             _paths.EnsureGeneratedPath(finalDirectory);
             _paths.EnsureStagingPath(staged.StagingRoot);
+            _paths.EnsureStagingPath(staged.PatchDirectory);
             if (Directory.Exists(finalDirectory))
             {
                 var existingHash = VerifyPublishedHash(finalDirectory, staged.Identity, compatibleLegacy);
                 var expectedHash = compatibleLegacy ? staged.LegacyContentHash : staged.ContentHash;
+                // Old packs stay byte-for-byte immutable. Compare the incoming semantic values using
+                // that pack's own schema, instead of claiming schema 3 metadata was stored there.
+                var existingSchema = JObject.Parse(File.ReadAllText(Path.Combine(finalDirectory, "manifest.json"))).Value<int>("schemaVersion");
+                var incoming = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(staged.PatchDirectory, "catalog.json")));
+                if (incoming.Manifest.SchemaVersion == 3 && existingSchema < 3)
+                    expectedHash = ContentHasher.Sha256Hex(CanonicalCatalogSerializer.Serialize(
+                        NormalizeForContentSnapshot(AsSchema(incoming, existingSchema))));
                 if (!string.Equals(existingHash, expectedHash, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
@@ -240,6 +248,36 @@ namespace TFTAnalyzer.Editor.Persistence
             Directory.CreateDirectory(Path.GetDirectoryName(finalDirectory));
             Directory.Move(staged.PatchDirectory, finalDirectory);
             return false;
+        }
+
+        public sealed class PublicationResult
+        {
+            public StaticCatalog Catalog { get; }
+            public string ContentHash { get; }
+            public int SchemaVersion => Catalog.Manifest.SchemaVersion;
+            public bool Idempotent { get; }
+            internal PublicationResult(StaticCatalog catalog, string hash, bool idempotent)
+            { Catalog = catalog; ContentHash = hash; Idempotent = idempotent; }
+        }
+
+        public PublicationResult PublishVerified(StagedCatalog staged, string finalDirectory, bool compatibleLegacy = false)
+        {
+            _paths.EnsureGeneratedPath(finalDirectory);
+            _paths.EnsureStagingPath(staged.StagingRoot);
+            _paths.EnsureStagingPath(staged.PatchDirectory);
+            var stagedHash = VerifyPublishedHash(staged.PatchDirectory, staged.Identity,
+                staged.Identity == null);
+            if (!string.Equals(stagedHash, staged.ContentHash, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Staged content hash mismatch.");
+            var incoming = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(staged.PatchDirectory, "catalog.json")));
+            if (!new CatalogValidator(_paths.GeneratedRelativeDirectory).Validate(incoming).CanPublish)
+                throw new InvalidDataException("Staged catalog validation failed.");
+            var idempotent = Publish(staged, finalDirectory, compatibleLegacy);
+            var hash = VerifyPublishedHash(finalDirectory, staged.Identity, compatibleLegacy);
+            var catalog = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(finalDirectory, "catalog.json")));
+            if (!new CatalogValidator(_paths.GeneratedRelativeDirectory).Validate(catalog).CanPublish)
+                throw new InvalidDataException("Published catalog validation failed.");
+            return new PublicationResult(catalog, hash, idempotent);
         }
 
         public void CleanupStaging(string stagingRoot)
@@ -295,7 +333,8 @@ namespace TFTAnalyzer.Editor.Persistence
 
             var manifest = JObject.Parse(File.ReadAllText(manifestPath));
             if (expectedIdentity != null &&
-                (manifest.Value<int?>("schemaVersion") != (compatibleLegacy ? 1 : 2) ||
+                ((compatibleLegacy ? manifest.Value<int?>("schemaVersion") != 1 :
+                    manifest.Value<int?>("schemaVersion") != 2 && manifest.Value<int?>("schemaVersion") != 3) ||
                  !string.Equals(manifest.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
                  manifest.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
                  !string.Equals(manifest.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
@@ -328,7 +367,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 }
 
                 if (embedded == null ||
-                    embedded.Value<int?>("schemaVersion") != (compatibleLegacy ? 1 : 2) ||
+                    embedded.Value<int?>("schemaVersion") != manifest.Value<int?>("schemaVersion") ||
                     !string.Equals(embedded.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
                     embedded.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
                     !string.Equals(embedded.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
@@ -460,16 +499,28 @@ namespace TFTAnalyzer.Editor.Persistence
                 value.Effects,
                 value.IconPath,
                 value.Sources.Select(NormalizeSource)));
-            return new StaticCatalog(manifest, units, traits, items, augments);
+            return new StaticCatalog(manifest, units, traits, items, augments,
+                catalog.FieldOrigins.Select(origin => new FieldOrigin(origin.RecordType, origin.StableId,
+                    origin.Pointer, origin.Sources.Select(NormalizeSource))));
         }
 
         private static StaticCatalog AsSchemaOne(StaticCatalog catalog)
+            => AsSchema(catalog, 1);
+
+        private static StaticCatalog AsSchema(StaticCatalog catalog, int schema)
         {
             var source = catalog.Manifest;
-            var manifest = new PatchManifest(1, source.Patch, source.SetName, source.CreatedUtc,
+            if (schema != 1 && schema != 2) throw new ArgumentOutOfRangeException(nameof(schema));
+            if (schema == 1 && source.Identity?.IncludesCommunityDragon == true)
+                throw new InvalidOperationException("Supplemental catalog cannot be projected to legacy official schema.");
+            var manifest = schema == 1 ? new PatchManifest(1, source.Patch, source.SetName, source.CreatedUtc,
                 source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
                 source.ValidationErrorCount, source.ValidationWarningCount,
-                source.PreviousPatchSummary, source.CommunityDragonVersion);
+                source.PreviousPatchSummary, source.CommunityDragonVersion) :
+                new PatchManifest(2, source.Identity, source.SetName, source.CreatedUtc,
+                    source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
+                    source.ValidationErrorCount, source.ValidationWarningCount,
+                    source.PreviousPatchSummary, source.CommunityDragonVersion);
             return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments);
         }
     }
