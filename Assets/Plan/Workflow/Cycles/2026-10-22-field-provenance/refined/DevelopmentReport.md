@@ -1,6 +1,8 @@
 # 승인·구현·검수 실행 기록
 
-기존 담당자에게 전달한 실제 요청·응답은 [검수 원문](Reviews.md)에 보존한다. 최종 QA는 동결19해시·전체796개·신규31개·PNG4장·창정리·보호1399를 독립 확인해 pass/필수0으로 판정했다. 실제 API·분류 등록·n100·병합·서비스 전체 완료는 이 판정 밖이다.
+상태: 진행 중
+
+기존 담당자에게 전달한 실제 요청·응답은 [검수 원문](../raw/Reviews.md)에 보존한다. 최종 QA는 동결19해시·전체796개·신규31개·PNG4장·창정리·보호1399를 독립 확인해 pass/필수0으로 판정했다. 실제 API·분류 등록·n100·병합·서비스 전체 완료는 이 판정 밖이다.
 
 2026-10-22. 기준 f0058799355cd2754f193eff38d7dd415cd700e6, branch codex/field-provenance.
 
@@ -37,4 +39,4 @@
 
 `field-origin-full-tests.json`:796개 중794통과·실패0·호스트symlink2제외,83.32초. 새 FieldOrigin31개 전부 통과. 마지막 추가한 mixed pipeline→loader·구schema2보완재사용·출처만 변경한 불변 충돌도 여기에 포함된다. `field-origin-final-evidence.json`:동결 소스19개 변경0·보호1399개 변경0·창9/native1/포커스 전후동일·Console오류0경고0. 정상·표시전후 probe3개 모두정리통과/owned0. QA·PR 최신 head 검수·병합은 별도 단계다.
 
-PR21 CodeRabbit 보완과 최종797/795P0F/호스트2제외, 새PNG·LF체크아웃·지연Console2도구오류의 증거는 [PR21 보완 기록](PR21Revision.md)을 따른다. 최초796/794P 기록을 새797 실행의 Console0 증거로 확대하지 않는다.
+PR21 CodeRabbit 보완과 최종797/795P0F/호스트2제외, 새PNG·LF체크아웃·지연Console2도구오류의 증거는 [PR21 보완 기록](PR21RevisionReport.md)을 따른다. 최초796/794P 기록을 새797 실행의 Console0 증거로 확대하지 않는다.
