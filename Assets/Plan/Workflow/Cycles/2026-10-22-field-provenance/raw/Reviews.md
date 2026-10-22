@@ -60,3 +60,30 @@ ParsedFieldOrigins.cs:23의 접미사 판별이 효과 키도 locale 필드로 �
 CodeRabbit: “raw 문서에서 내부 실행 정보를 제거하세요. raw 문서는 실제 프롬프트와 공개 가능한 응답만 기록해야 합니다. 이 파일은 CodeRabbit 검토 시각, 사용 한도, Editor PID, 지연된 사후 확인, 내부 오류 상태를 기록합니다. 해당 내용을 공개 가능한 응답에서 제거하거나 별도 감사 기록으로 이동하세요.”
 
 Codex 공개 반영 응답: “실행 시각·PID·검증 한계는 실제 요청·응답 원문과 구분해 검증 보고서로 옮기겠습니다. 제품 코드와 테스트 결과는 그대로 유지됩니다.”
+
+
+## PR21 문서 보완 검수 원문 — head 19a8c4d
+
+### CodeRabbit PRRT_kwDOVK_2hM6vH3X3
+
+<!-- coderabbit-ai-generated:v1 -->
+
+**📐 Maintainability & Code Quality** | **🟡 Minor** | **⚡ Quick win**
+
+**정제 문서에 목적과 사용법을 추가하십시오.**
+
+경로 지침은 정제 문서에 사용자 관점의 목적, 결정, 변경, 사용법, 제한, 검증 결과를 포함하도록 요구합니다. 이 문서는 결정, 변경, 제한, 검증 결과는 기록하지만 목적과 사용법을 명시하지 않습니다. `목적`과 `사용법/적용 범위` 섹션을 추가하십시오.
+
+### CodeRabbit PRRT_kwDOVK_2hM6vH3X-
+
+<!-- coderabbit-ai-generated:v1 -->
+
+**🎯 Functional Correctness** | **🟡 Minor** | **⚡ Quick win**
+
+**지연된 Console 오류의 원인을 확정하지 마십시오.**
+
+관련 보고서가 확인하는 내용은 `Unity.Pipeline.BasePipelineServer`의 `/api/commands` 전송 오류 2건과 제품 코드 또는 컴파일 언급이 없다는 사실입니다. 원인은 미확정입니다. `도구 오류` 대신 `Unity Pipeline 전송 오류(원인 미확정)`처럼 관찰된 사실로 기록하십시오.
+
+### Codex 공개 응답
+
+Workflow §3.4.1의 정제 문서 계약을 확인했다. DevelopmentReport에 목적·사용법과 적용 범위를 명시하고, 지연 Console 기록은 관측한 Unity Pipeline 전송 오류 2건(원인 미확정)으로 고친다. 제품 코드·시험·기존 카탈로그를 변경하지 않는다.

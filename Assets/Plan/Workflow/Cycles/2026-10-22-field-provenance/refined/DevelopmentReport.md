@@ -2,6 +2,14 @@
 
 상태: 진행 중
 
+## 목적
+
+새 카탈로그에서 값별 공식·보완 출처를 보존하고 사용자가 실제 선택된 원본을 확인할 수 있게 한다. 이 보고서는 승인된 구현의 결정·실행 증거·제한을 정리한다.
+
+## 사용법과 적용 범위
+
+데이터 관리 → 카탈로그 내용 탐색에서 행을 선택해 상세의 ‘필드별 출처’를 읽는다. 새 schema3은 포인터·문서 URL·SHA256을 표시하고, 기존 schema1/2는 ‘필드별 출처 정보 없음’을 표시한다. 기존 팩을 재사용한 가져오기도 실제 저장된 구 팩의 정보를 표시한다. 상세한 동작과 제한은 [사용법](FinalDocumentation.md), 검수 보완 후 최신 실행 결과는 [PR21 보완 기록](PR21RevisionReport.md)을 따른다.
+
 기존 담당자에게 전달한 실제 요청·응답은 [검수 원문](../raw/Reviews.md)에 보존한다. 최종 QA는 동결19해시·전체796개·신규31개·PNG4장·창정리·보호1399를 독립 확인해 pass/필수0으로 판정했다. 실제 API·분류 등록·n100·병합·서비스 전체 완료는 이 판정 밖이다.
 
 2026-10-22. 기준 f0058799355cd2754f193eff38d7dd415cd700e6, branch codex/field-provenance.
@@ -39,4 +47,4 @@
 
 `field-origin-full-tests.json`:796개 중794통과·실패0·호스트symlink2제외,83.32초. 새 FieldOrigin31개 전부 통과. 마지막 추가한 mixed pipeline→loader·구schema2보완재사용·출처만 변경한 불변 충돌도 여기에 포함된다. `field-origin-final-evidence.json`:동결 소스19개 변경0·보호1399개 변경0·창9/native1/포커스 전후동일·Console오류0경고0. 정상·표시전후 probe3개 모두정리통과/owned0. QA·PR 최신 head 검수·병합은 별도 단계다.
 
-PR21 CodeRabbit 보완과 최종797/795P0F/호스트2제외, 새PNG·LF체크아웃·지연Console2도구오류의 증거는 [PR21 보완 기록](PR21RevisionReport.md)을 따른다. 최초796/794P 기록을 새797 실행의 Console0 증거로 확대하지 않는다.
+PR21 CodeRabbit 보완과 최종797/795P0F/호스트2제외, 새PNG·LF체크아웃·지연 관측한 Console의 Unity Pipeline 전송 오류 2건(원인 미확정)의 증거는 [PR21 보완 기록](PR21RevisionReport.md)을 따른다. 최초796/794P 기록을 새797 실행의 Console0 증거로 확대하지 않는다.
