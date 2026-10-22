@@ -156,11 +156,18 @@ namespace TFTAnalyzer.Editor.UI.Data
             var origins = catalog.FieldOrigins.Where(x => x.RecordType == type && x.StableId == id)
                 .OrderBy(x => x.Pointer, StringComparer.Ordinal).ToArray();
             if (origins.Length == 0) return "필드별 출처 기록 없음 — 검증이 필요합니다.";
-            return string.Join("\n\n", origins.Select(x => Clip(x.Pointer) +
-                (x.Pointer == "/iconPath" ? " (로컬 변환 전 원본 아이콘 참조의 출처)" : "") + "\n" +
-                string.Join("\n", x.Sources.Select(source =>
-                    (source.IsSupplemental ? "보완" : "공식") + " · " + Clip(source.SourceName) + "\n" +
-                    Clip(source.Url) + "\nSHA-256: " + Clip(source.Sha256)))));
+            return string.Join("\n\n", origins.SelectMany(origin => origin.Sources.Select(source => (origin.Pointer, Source: source)))
+                .GroupBy(x => (Sup: x.Source.IsSupplemental, Name: x.Source.SourceName, x.Source.Url, Hash: x.Source.Sha256))
+                .OrderBy(group => group.Key.Sup).ThenBy(group => group.Key.Name, StringComparer.Ordinal)
+                .ThenBy(group => group.Key.Url, StringComparer.Ordinal).ThenBy(group => group.Key.Hash, StringComparer.Ordinal)
+                .Select(group =>
+                {
+                    var source = group.First().Source;
+                    var pointers = string.Join(", ", group.Select(x => Clip(x.Pointer) +
+                        (x.Pointer == "/iconPath" ? " (로컬 변환 전 원본 아이콘 참조의 출처)" : "")));
+                    return (source.IsSupplemental ? "보완" : "공식") + " · " + Clip(source.SourceName) + "\n" +
+                        Clip(source.Url) + "\nSHA-256: " + Clip(source.Sha256) + "\n" + pointers;
+                }));
         }
 
         public void Dispose()

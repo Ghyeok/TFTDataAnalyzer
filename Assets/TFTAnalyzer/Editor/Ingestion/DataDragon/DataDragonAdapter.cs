@@ -123,6 +123,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
+            var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 var value = new UnitRecord(
@@ -131,11 +132,11 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadInt(record.Primary, "cost", "tier"),
                     null,
                     ReadIcon(patch, DataDragonDocumentKind.Champions, record.Primary),
-                    PairSources(pair),
+                    sources,
                     ReadString(record.Primary, "role"),
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
                     ReadNumericBag(record.Primary, "stats", "effects"));
-                ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, sources[0], sources[1]);
                 yield return value;
             }
         }
@@ -146,6 +147,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
+            var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 var value = new TraitRecord(
@@ -154,8 +156,8 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Traits, record.Primary),
-                    PairSources(pair));
-                ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                    sources);
+                ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, sources[0], sources[1]);
                 yield return value;
             }
         }
@@ -166,6 +168,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
+            var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 var value = new ItemRecord(
@@ -175,8 +178,8 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadStringArray(record.Primary, "components"),
                     ReadNumericBag(record.Primary, "stats", "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Items, record.Primary),
-                    PairSources(pair));
-                ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                    sources);
+                ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, sources[0], sources[1]);
                 yield return value;
             }
         }
@@ -187,6 +190,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes)
         {
+            var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 var value = new AugmentRecord(
@@ -197,8 +201,8 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     null,
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Augments, record.Primary),
-                    PairSources(pair));
-                ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, ToSourceStamp(pair.KoKr), ToSourceStamp(pair.EnUs));
+                    sources);
+                ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, sources[0], sources[1]);
                 yield return value;
             }
         }

@@ -36,3 +36,5 @@
 ## 최종 전체 실행
 
 `field-origin-full-tests.json`:796개 중794통과·실패0·호스트symlink2제외,83.32초. 새 FieldOrigin31개 전부 통과. 마지막 추가한 mixed pipeline→loader·구schema2보완재사용·출처만 변경한 불변 충돌도 여기에 포함된다. `field-origin-final-evidence.json`:동결 소스19개 변경0·보호1399개 변경0·창9/native1/포커스 전후동일·Console오류0경고0. 정상·표시전후 probe3개 모두정리통과/owned0. QA·PR 최신 head 검수·병합은 별도 단계다.
+
+PR21 CodeRabbit 보완과 최종797/795P0F/호스트2제외, 새PNG·LF체크아웃·지연Console2도구오류의 증거는 [PR21 보완 기록](PR21Revision.md)을 따른다. 최초796/794P 기록을 새797 실행의 Console0 증거로 확대하지 않는다.
