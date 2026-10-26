@@ -20,6 +20,8 @@
 
 ## Global Constraints
 
+2026-10-26 현재: 필드별 출처 기록은PR21/main5a67afb에병합됐다. [보완 정적 자료 형식 호환](../Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은새기획A/B·사용자승인후구현·독립코드검수·전체826/824P0F/호스트2제외와최종QA통과를확인했고PR통합단계다. 같은요청official catalog로global범위를검증하며제외ID경고도bounded표본으로보존한다. 새능력치/시너지구간/아이템제한구조모델과실제API·분류등록·n100은여전히잔여다. 아래이전날짜의현재표시는각시점이력이다.
+
 2026-10-22 현재 사이클: 정적 가져오기 보고서는 PR20/mainf005879에 병합했다. [필드별 출처 기록](../Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 A/B 검토·사용자 명시 승인 후 구현·코드검수를 마쳤으며 전체796/794P0F/호스트2제외와4PNG·소유창0·보호1399불변을 확인했다. 최종QA·PR 최신head 검수/병합은 별도 진행한다. 구schema1/2를 변경하지 않으며 실제 API 수집은 계속 미룬다.
 
 2026-10-21 현재 다음 사이클: 상위 설계§12.1의 검증/병합 결과 화면 누락을 [정적 가져오기 보고서 계획](../Workflow/Cycles/2026-10-21-static-import-report/refined/ImplementationPlan.md)으로 보완한다. A/B pass·필수0 및 사용자 명시 승인 후 구현·동결10소스 전체765개763통과/실패0/호스트2제외, UI211/211과4PNG·소유창0을 확인했고 최종QA도필수0으로통과해PR단계다. 실제네트워크·기존카탈로그변경·새분류허용은없다.

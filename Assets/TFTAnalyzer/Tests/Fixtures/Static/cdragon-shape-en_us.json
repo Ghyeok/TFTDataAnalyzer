@@ -1,0 +1,77 @@
+{
+  "setData": [
+    {
+      "number": 17,
+      "champions": [
+        {
+          "apiName": "TFT_Other_Unit",
+          "name": "Other",
+          "cost": 1
+        }
+      ]
+    },
+    {
+      "number": 18,
+      "champions": [
+        {
+          "apiName": "TFT_Shape_Unit_A",
+          "name": "Shape Unit",
+          "cost": 2,
+          "traits": [
+            "Shape Trait"
+          ],
+          "ability": {
+            "desc": "Nested description",
+            "variables": [
+              {
+                "name": "Power",
+                "value": [
+                  0,
+                  10,
+                  20
+                ]
+              }
+            ]
+          },
+          "stats": {
+            "hp": 600
+          },
+          "role": "Mage"
+        }
+      ],
+      "traits": [
+        {
+          "apiName": "TFT_Shape_Trait_A",
+          "name": "Shape Trait",
+          "desc": "Trait description",
+          "effects": [
+            {
+              "minUnits": 2,
+              "maxUnits": 4,
+              "style": 1,
+              "variables": {
+                "Power": 10
+              }
+            }
+          ]
+        }
+      ],
+      "items": [
+        {
+          "apiName": "TFT_Shape_Item_A",
+          "name": "Item",
+          "effects": {
+            "Power": 0
+          }
+        }
+      ],
+      "augments": [
+        {
+          "apiName": "TFT_Shape_Augment_A",
+          "name": "Augment",
+          "desc": "Augment description"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "inputDigest": "2014bec7ee69d0c3e73299e8d4d260651cc3c26e973a4d4eb166f50e4afed219",
+  "taskId": "2026-10-22-community-shape-planning",
+  "unverified": [
+    "진단용 로컬 캐시 2문서의 원본 source URL·locale·패치 버전 근거 미확인",
+    "진단 캐시 내 cost 0 기물(1개)의 공식 카탈로그 stable ID 포함 여부 미확인 (구현 시 창작 fixture 및 파서 검증 필요)",
+    "런타임 외부의 실제 모델·숨겨진 추론·토큰 사용량 메타데이터 미확인"
+  ],
+  "verdict": "pass"
+}

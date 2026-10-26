@@ -1,0 +1,19 @@
+{
+  "taskId": "2026-10-22-community-shape-planning",
+  "baseCommit": "54a29f35fad8d5c3624654dd2a281052bec7a340",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Root source inspection and local diagnostic artifacts; planning draft only",
+      "sha256": "7535bfbb39e10dcfed4b78c5d4f4247d926159f6cf036dcd2de91cc65876c723"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "Root source inspection and local diagnostic artifacts; planning draft only",
+      "sha256": "5a8405683163eb0a6fb279d04c2e2d5292a09c6b4820550a09f38fb532cbdde3"
+    }
+  ],
+  "inputDigest": "2014bec7ee69d0c3e73299e8d4d260651cc3c26e973a4d4eb166f50e4afed219",
+  "promptVersion": "community-shape-planning-1",
+  "inputBytes": 12130
+}

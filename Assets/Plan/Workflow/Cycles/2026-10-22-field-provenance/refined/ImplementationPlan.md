@@ -83,8 +83,11 @@ Task1/2에서 어댑터→직렬화→검증 경로로 다음을 확인한다: �
 - [x] 새 source 정보/구 자료 부재/태그 비해석·기존 검색/선택/페이지 회귀. 화면 변경은 테스트 소유 창과 synthetic metadata로만 검증한다.
 - [x] 940/500px에서 새 provenance와 구 자료 부재 PNG4장을 직접 확인한다. 새로 만든 창과 예약 callback은 finally로 정리하고 전후 EditorWindow/native ID·포커스를 대조한다. 사용자 창·Inspector·Chrome은 보존한다.
 - [x] 소스 동결→관련 회귀와 전체 EditMode1회→기존 QA 담당의 실행·실제PNG·해시 대조. 새 수정/실패가 없으면 반복하지 않는다.
-- [ ] 문서/원문/meta/링크·실제 모델/확인 가능한 사용량을 정리해 코드와 함께PR. 최신head CodeRabbit·미해결·CI를5분마다확인해조건충족시승인범위대로병합. 사용자 최종 결과 승인은 별도다.
+- [x] 문서/원문/meta/링크·실제 모델/확인 가능한 사용량을 정리해 코드와 함께PR. 최신head CodeRabbit·미해결·CI를5분마다확인해조건충족시승인범위대로병합. 사용자 최종 결과 승인은 별도다.
 
 ## 권한·제외
 
 실제 API/정적 다운로드/환경 변수 변경·실제 증강 분류 등록·n100 기준/집계 변경·공개 배포는 포함하지 않는다. 구 카탈로그와 관측, 사용자 `Assets/DefaultVolumeProfile.asset` 및 `docs/riot-api-key.md`를 보존하고 키 문서는 읽지 않는다. Hermes 예약은 삭제 상태다. KI-001의 원인 조사나 같은 분류 자료의 반복 AI 검토를 재개하지 않는다.
+
+
+PR21 최신54a29f3의 CodeRabbit SUCCESS·미해결0·CLEAN 및 최신head coveredCommitId를 확인한 뒤 UTC2026-10-22 10:04:32 main5a67afb679bd9c2e91cf71f3bc83b2ce80622bcc에 병합했다. 전체 트리는 최신head와 같다. 사용자 최종 결과 승인과 전체 서비스 완료는 별도이며 이 기록으로 승인됐다고 간주하지 않는다.

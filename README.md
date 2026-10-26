@@ -6,7 +6,7 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 ## 개발 현황
 
-[필드별 출처 기록](Assets/Plan/Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 사용자 승인 후 구현·코드검수를 마쳤고 최신 전체797개 중795통과·실패0·호스트제약2제외와 실제4PNG를 확인했습니다. 새 가져오기는 schema3에 값별 공식/보완 출처를 보존하고 탐색 상세에 표시합니다. 기존schema1/2의 파일·해시는 유지하며 같은 내용의 구 팩을 재사용하면 실제 구 형식을 반환하고 ‘필드별 출처 정보 없음’을 안내합니다. 독립 최종QA도 통과했으며 PR 검수/병합 단계입니다.
+[필드별 출처 기록](Assets/Plan/Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 사용자 승인 후 구현·코드검수를 마쳤고 최신 전체797개 중795통과·실패0·호스트제약2제외와 실제4PNG를 확인했습니다. 새 가져오기는 schema3에 값별 공식/보완 출처를 보존하고 탐색 상세에 표시합니다. 기존schema1/2의 파일·해시는 유지하며 같은 내용의 구 팩을 재사용하면 실제 구 형식을 반환하고 ‘필드별 출처 정보 없음’을 안내합니다. 독립 최종QA와 최신 커밋 검수 통과 후 PR #21/main5a67afb에 병합됐습니다.
 
 [정적 가져오기 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-static-import-report/Checkpoint.md)는 사용자 승인 후 구현·코드검수·전체 765개 중 763개 통과/실패 0개/호스트 제약 2개 제외와 실제 PNG 4장 검증을 마쳤고, 최종 QA와 최신 커밋 검수 통과 후 [PR #20](https://github.com/Ghyeok/TFTDataAnalyzer/pull/20)으로 main에 병합됐습니다. 데이터 관리의 ‘최근 가져오기 보고서’에서 요청 조건과 검증 오류·경고, 공식/보완 값과 선택 결과를 읽습니다. 각 상세는 200행까지 보유해 20행씩 넘기며 창을 닫으면 사라집니다. 실제 API 설정과 수집 검증은 사용자 요청으로 미뤘고, 실제 분류 등록과 n100 검증은 별도 미완료입니다.
 
@@ -32,6 +32,8 @@ Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한
 최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-20 사용자 요청으로 삭제하고 목록의 부재를 확인했습니다([운영 지침](docs/coderabbit-monitoring.md)).
 
 ## 핵심 설계
+
+[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 승인 후 구현·독립 코드검수·전체826개 중824통과/실패0/호스트제약2제외와 최종QA 통과를 확인했고 PR 통합 단계입니다. 선택 세트의 기물·시너지를 읽고, 전역 아이템·증강은 같은 요청의 공식 ID 범위로 제한합니다. 중첩 설명과 관계를 기존 탐색에 공급하고, 제외·미지원 구조·손상은 최근 가져오기 보고서에 표시합니다. 기물 능력치·스킬 변수와 시너지 활성 구간의 새 구조 모델은 이번 범위 밖이며 경고로 알립니다. 기존 같은 식별자의 팩과 새 값이 다르면 덮어쓰지 않습니다. 실제 다운로드나 통계 분류 허용은 추가하지 않았습니다.
 
 ### 데이터 출처와 병합
 

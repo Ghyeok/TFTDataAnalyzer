@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-22-community-shape-planning",
+  "inputDigest": "2014bec7ee69d0c3e73299e8d4d260651cc3c26e973a4d4eb166f50e4afed219",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.4",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 29808,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 10011,
+    "output_tokens": 1929,
+    "thinking_tokens": 1728,
+    "cache_read_tokens": 0,
+    "total_tokens": 11940
+  },
+  "responseSeconds": 31.927343,
+  "exitCode": 0,
+  "durationSeconds": 41.381
+}
