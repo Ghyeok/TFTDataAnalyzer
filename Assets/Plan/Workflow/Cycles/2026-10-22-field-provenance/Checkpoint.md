@@ -13,3 +13,6 @@
 PR20은 최신head c8e746a CodeRabbitSUCCESS·미해결0·CLEAN 후 UTC2026-10-21 13:58:53 mainf005879로병합했고전체트리일치확인. 현재 [PR21](https://github.com/Ghyeok/TFTDataAnalyzer/pull/21)의 최초head3619a5f에서CodeRabbit SUCCESS·미해결6을확인해보완했다. 보완전체797/795P0F/호스트2제외·동결20/보호1399불변·새4PNG·LF체크아웃증거는 [보완 기록](refined/PR21RevisionReport.md)에있다. 즉시사후명령은사용량한도로미실행이었고복구후동일PID의지연Console에는Pipeline전송오류2건이있다. 새head를push하면 최신head CodeRabbit·미해결의견·CI·실행증거를5분간격직접확인해조건충족시기존승인대로병합한다. Hermes예약은삭제상태다.
 
 실제API설정/수집은사용자요청으로미룬다. 증강ID의Legend배제근거를확정하지못해분류등록0·동일자료AI재검수중단을유지한다. 실제n100사용성·실제데이터전과정·KI-001위험관리·최종사용자확인은전체서비스잔여범위다. 서비스전체완료로판정하지않는다. 사용자변경 Assets/DefaultVolumeProfile.asset 및 docs/riot-api-key.md는수정·스테이징하지않고키문서본문은읽지않았다.
+
+
+최신 상태 갱신: PR21 최신54a29f3 CodeRabbit SUCCESS·미해결0·CLEAN/검토범위 최신head 확인 후 UTC2026-10-22 10:04:32 main5a67afb679bd9c2e91cf71f3bc83b2ce80622bcc로 병합. main과 해당head의 전체 트리가 같으며 테스트소스20 불변을 확인했다. 5분 직접조회 루프 종료, Hermes예약삭제 유지. 사용자 최종 결과 승인은 별도 대기다. 새 승인 기획은 다음 community-shape-compatibility 사이클에서 이어간다.

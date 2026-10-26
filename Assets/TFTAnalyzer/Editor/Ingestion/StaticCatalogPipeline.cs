@@ -61,15 +61,18 @@ namespace TFTAnalyzer.Editor.Ingestion
         public StaticCatalog Catalog { get; }
         public IReadOnlyList<HttpResponseData> RawResponses { get; }
         public IReadOnlyList<MergeConflict> MergeConflicts { get; }
+        public IReadOnlyList<ValidationIssue> Issues { get; }
 
         public StaticSourceLoadResult(
             StaticCatalog catalog,
             IEnumerable<HttpResponseData> rawResponses,
-            IEnumerable<MergeConflict> mergeConflicts)
+            IEnumerable<MergeConflict> mergeConflicts,
+            IEnumerable<ValidationIssue> issues = null)
         {
             Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             RawResponses = Array.AsReadOnly((rawResponses ?? Enumerable.Empty<HttpResponseData>()).ToArray());
             MergeConflicts = Array.AsReadOnly((mergeConflicts ?? Enumerable.Empty<MergeConflict>()).ToArray());
+            Issues = Array.AsReadOnly((issues ?? Enumerable.Empty<ValidationIssue>()).ToArray());
         }
     }
 
@@ -112,12 +115,12 @@ namespace TFTAnalyzer.Editor.Ingestion
                 token);
             responses.Add(supplementSnapshot.KoKr);
             responses.Add(supplementSnapshot.EnUs);
-            var supplement = _communityDragon.Parse(
+            var supplement = _communityDragon.ParseWithDiagnostics(
                 supplementSnapshot.KoKr.Utf8Body,
                 supplementSnapshot.EnUs.Utf8Body,
-                request.Patch);
-            var merge = _merger.Merge(official, supplement);
-            return new StaticSourceLoadResult(merge.Catalog, responses, merge.Conflicts);
+                request.Patch, official);
+            var merge = _merger.Merge(official, supplement.Catalog);
+            return new StaticSourceLoadResult(merge.Catalog, responses, merge.Conflicts, supplement.Issues);
         }
     }
 
@@ -175,7 +178,7 @@ namespace TFTAnalyzer.Editor.Ingestion
 
                 var catalog = PromoteManifest(loaded.Catalog, request.Identity);
 
-                var validation = _validator.Validate(catalog);
+                var validation = new ValidationReport(_validator.Validate(catalog).Issues.Concat(loaded.Issues));
                 if (!validation.CanPublish)
                 {
                     return new StaticImportResult(
@@ -193,7 +196,7 @@ namespace TFTAnalyzer.Editor.Ingestion
                     _transport,
                     stagingRoot,
                     token);
-                validation = _validator.Validate(withIcons);
+                validation = new ValidationReport(_validator.Validate(withIcons).Issues.Concat(loaded.Issues));
                 if (!validation.CanPublish)
                 {
                     return new StaticImportResult(
