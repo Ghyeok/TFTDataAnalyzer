@@ -2,7 +2,7 @@
 
 > **For agentic workers:** 승인 후 root가 superpowers:executing-plans/TDD로 구현하고 기존 코드검수·QA 담당을 재사용한다. 새 에이전트·재위임은 하지 않는다.
 
-상태: 승인 대기
+상태: 진행 중
 
 **Goal:** 상위 설계§6.6의 현지화 문자열 분리 저장을 새 카탈로그 형식에 연결하고 안정ID/필드별 한영 값과 영어 대체 여부를 보존한다.
 **Architecture:** 새 schema5의 레코드 JSON에서 이름/설명 문자열을 빼고 localizations 표로 저장한다. 로드할 때 검증한 표를 기존 immutable LocalizedText API에 재연결한다. 기존1~4 형식과 모든 구조화 값·출처·불변 저장 계약을 보존한다.
@@ -13,7 +13,7 @@
 
 한영 이름/설명 표시와 영어 대체 표시는 이미 동작한다. 하지만 상위§6.6은 안정ID와 필드명으로 문자열을 레코드 본문과 분리한다고 요구하고, 현재 정규 JSON은 각 record.name/description 안에 koKr/enUs를 중첩한다. Phase1의 상세 승인 모델 LocalizedText와 상위 표현 계약의 차이를 확인했다. 현재 동작에 맞춰 상위 문구를 줄여 완료로 간주하지 않는다.
 
-root 권고는 저장 형식만 정규화하고 기존 Domain/UI API는 유지하는 것이다. 모든 Domain record를 새 mutable 언어 서비스로 치환하면 수명/참조/출처 범위를 불필요하게 넓힌다. 기존 형식에 별도 표를 중복 추가하면 두 원본이 충돌해 채택하지 않는다. 이 선택은 root의 제안이며 A/B·사용자 승인 전이다.
+root 권고는 저장 형식만 정규화하고 기존 Domain/UI API는 유지하는 것이다. 모든 Domain record를 새 mutable 언어 서비스로 치환하면 수명/참조/출처 범위를 불필요하게 넓힌다. 기존 형식에 별도 표를 중복 추가하면 두 원본이 충돌해 채택하지 않는다. 이 선택은 이후 A/B 검토와 사용자 명시 승인을 받았다.
 
 대상은 현재 LocalizedText인 네 종류의 name/description이다. stableId·role·tier·변수명·URL은 번역 문자열로 해석하지 않는다. 단일 manifest.setName이나 미공급 언어를 임의로 번역하지 않는다. UI 레이아웃·언어 선택·Unity Localization package·다운로드·API·증강 분류·집계는 추가하지 않는다.
 
@@ -56,18 +56,18 @@ Assets/TFTAnalyzer 기준:
 ## TODO·검수·QA
 
 ### 1. 원본4 동결과 schema5 문자열 표
-- [ ] 승인 후 제품수정 전에 실제4serializer로 네kind·이름/설명·구조화값/출처의 창작golden을 생성하고 원본실행·SHA를 기록한다. 기존1~3golden은 보존한다.
-- [ ] LocalizedCatalogSerializationTests의 LiteralRoundTripAndFallbackRecords, InvalidLocalizationTable, LegacySchemasRejectInjectedTable, CanonicalOrderingAndLegacyBytes에서 실제RED를 확보한다. ko없음/en유효·ko우선·양쪽공백·빈설명·날짜/개행·동일ID다른kind·/~/| ID·표순서·누락/중복/추가/인라인·타입·flag불일치를 검증한다. schema5 missing구조화출처/extensionSource변조도 거절해야 한다.
-- [ ] 새 helper와 serializer/validator 연결 후 GREEN. 기존1~4bytes/hash·fieldOrigins와 새표/문자열변경hash를 비교한다. schema5 오류를 string coercion이나 field 초기값으로 숨기지 않는다.
+- [x] 승인 후 제품수정 전에 실제4serializer로 네kind·이름/설명·구조화값/출처의 창작golden을 생성하고 원본실행·SHA를 기록한다. 기존1~3golden은 보존한다.
+- [x] LocalizedCatalogSerializationTests의 LiteralRoundTripAndFallbackRecords, InvalidLocalizationTable, LegacySchemasRejectInjectedTable, CanonicalOrderingAndLegacyBytes에서 실제RED를 확보한다. ko없음/en유효·ko우선·양쪽공백·빈설명·날짜/개행·동일ID다른kind·/~/| ID·표순서·누락/중복/추가/인라인·타입·flag불일치를 검증한다. schema5 missing구조화출처/extensionSource변조도 거절해야 한다.
+- [x] 새 helper와 serializer/validator 연결 후 GREEN. 기존1~4bytes/hash·fieldOrigins와 새표/문자열변경hash를 비교한다. schema5 오류를 string coercion이나 field 초기값으로 숨기지 않는다.
 
 ### 2. 실제 가져오기와 불변 게시
-- [ ] LocalizedCatalogPublicationTests에서 fakeIHttpTransport→actual양adapter→공식우선merge→icon→writer→loader→browser까지 공급되는 RED→GREEN. 한영이름/설명·fallback·표없어진인라인·논리출처·구조화수치·확장값을 확인한다. Raw source의 localizations라는 미지원필드는 확장JSON일뿐 내부표/권한으로 승격하지 않는다.
-- [ ] 현재schema5가 새pack에 도달하고 VerifyPublishedHash가5를 검증한다. 구1/2/3/4 같은identity·같은기존의미는 실제구형식/해시로재사용하고 파일/인덱스를보존한다. 구4의구조화값·sourceSHA·기존leaf출처가 달라지면 충돌이며 구4projection에서 이를 빼지 않는다.
-- [ ] 새5의 같은identity 다른문자열/표값도 충돌. 취소·쓰기실패·index복구와 기존bytes보존을 확인한다. 실제 API·분류 등록은 하지 않는다. 새pack5와 구pack재사용을 혼동하지 않는다.
+- [x] LocalizedCatalogPublicationTests에서 fakeIHttpTransport→actual양adapter→공식우선merge→icon→writer→loader→browser까지 공급되는 RED→GREEN. 한영이름/설명·fallback·표없어진인라인·논리출처·구조화수치·확장값을 확인한다. Raw source의 localizations라는 미지원필드는 확장JSON일뿐 내부표/권한으로 승격하지 않는다.
+- [x] 현재schema5가 새pack에 도달하고 VerifyPublishedHash가5를 검증한다. 구1/2/3/4 같은identity·같은기존의미는 실제구형식/해시로재사용하고 파일/인덱스를보존한다. 구4의구조화값·sourceSHA·기존leaf출처가 달라지면 충돌이며 구4projection에서 이를 빼지 않는다.
+- [x] 새5의 같은identity 다른문자열/표값도 충돌. 취소·쓰기실패·index복구와 기존bytes보존을 확인한다. 실제 API·분류 등록은 하지 않는다. 새pack5와 구pack재사용을 혼동하지 않는다.
 
 ### 3. 회귀·독립 검수·통합
-- [ ] actual source 기대만 갱신하고1~4명시fixture coverage를 유지한다. 관련GREEN 후 소스동결→전체EditMode1회·Console/보호/기존창/nativeframe 대조. 새 실패/변경 없는 전체suite 반복 금지.
-- [ ] 기존 동일 코드검수·QA 담당을 재사용해 TODO/실제diff/증거 확인. UI레이아웃 변경은 없으므로 같은PNG를 반복하지 않는다. UI동작 변경이 필요하면 기존소유창도구의 한작업/finally 캡처·예외정리를 사용한다.
+- [x] actual source 기대만 갱신하고1~4명시fixture coverage를 유지한다. 관련GREEN 후 소스동결→전체EditMode1회·Console/보호/기존창/nativeframe 대조. 새 실패/변경 없는 전체suite 반복 금지.
+- [x] 기존 동일 코드검수·QA 담당을 재사용해 TODO/실제diff/증거 확인. UI레이아웃 변경은 없으므로 같은PNG를 반복하지 않는다. UI동작 변경이 필요하면 기존소유창도구의 한작업/finally 캡처·예외정리를 사용한다.
 - [ ] 문서/raw/meta/사용법·공급한계·최신상태를 갱신해 commit/PR. 최신head CodeRabbit·미해결·CI·실행증거를5분간격직접확인하고 충족시승인범위main병합. Hermes0·사용자최종결과승인별도.
 
 검증명령은 CLI절대경로의 command run_tests --project-path C:/Unity/TFTDataAnalyzer --mode editor --filter_type testName --filter LocalizedCatalog --timeout 180 --format json, 전체는 --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300. recompile 완료/실패false·새시험인식>0·진행job없음을 확인하고 단일jobterminal까지 기다린다.
@@ -77,4 +77,7 @@ Assets/TFTAnalyzer 기준:
 잘못된kind/ID로다른레코드문자열이연결되는문제(TODO1/2), derivedfallbackflag불일치·빈설명/공백누락(TODO1), schema5에서4출처검증을건너뛰는경계(TODO1), 구4projection에서구조화값/출처를빼서재사용에성공시키는문제(TODO2), 실제adapter가4에머물고단위helper만5인미연결(TODO2)을 반드시검수한다. A/B검토와 사용자명시승인전 제품·새시험·Unity실행은하지않는다.
 
 
-기획 검토 결과: 동일 공통입력의 A Antigravity·B GPT 모두 pass/필수0. [통합 검토](PlanningReview.md)의 실제 실행과 미검증 범위를 확인한다. 원본 inputs는 초안 상태/CLI공백오타를 포함한 당시 사본으로 보존하며, 본 승인안은 상태와 timeout 공백 표기만 정정했다. 제품 구현·새 테스트·새 Unity 실행은 아직 하지 않았다. 워크플로§3.1.6에 따라 이 계획의 사용자 명시 승인을 기다린다.
+기획 검토 결과: 동일 공통입력의 A Antigravity·B GPT 모두 pass/필수0. [통합 검토](PlanningReview.md)의 실제 실행과 미검증 범위를 확인한다. 원본 inputs는 초안 상태/CLI공백오타를 포함한 당시 사본으로 보존하며, 본 승인안은 상태와 timeout 공백 표기만 정정했다. 이는 승인 전 기획 검토 시점의 기록이다. 이후 사용자 명시 승인으로 구현과 검증을 진행했다.
+
+
+사용자 call_d5412b46c27542e99a05dffe990ea1c4의‘이 계획대로 구현 진행’으로 본계획을명시승인했다. 외부전송승인과별개인구현승인이다. root executing-plans/TDD로전용branch/단일기존Editor에서TODO1부터진행한다.

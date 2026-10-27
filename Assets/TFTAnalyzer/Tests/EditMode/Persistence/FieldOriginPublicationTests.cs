@@ -40,7 +40,7 @@ namespace TFTAnalyzer.Tests.Persistence
             var result = await p.RunAsync(new StaticImportRequest(c.Manifest.Identity), default);
             Assert.That(result.Published, Is.True);
             var disk = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(result.FinalDirectory, "catalog.json")));
-            Assert.That(disk.Manifest.SchemaVersion, Is.EqualTo(4));
+            Assert.That(disk.Manifest.SchemaVersion, Is.EqualTo(5));
             Assert.That(disk.FieldOrigins.Count, Is.EqualTo(c.FieldOrigins.Count));
             Assert.That(new CatalogValidator().Validate(disk).CanPublish, Is.True);
             Assert.That(result.Catalog.Manifest.SchemaVersion, Is.EqualTo(disk.Manifest.SchemaVersion));
@@ -78,7 +78,7 @@ namespace TFTAnalyzer.Tests.Persistence
             var oldManifest = schema == 1 ? new PatchManifest(1, m.Patch, m.SetName, m.CreatedUtc, "", m.Sources, m.PolicyReviewDate,
                 m.PolicyUrls, 0, 0, "", "") : new PatchManifest(2, m.Identity, m.SetName, m.CreatedUtc, "", m.Sources, m.PolicyReviewDate, m.PolicyUrls, 0, 0, "", m.CommunityDragonVersion);
             // These are explicit old-format fixture values. Current adapters now return
-            // schema4 structures, which must not be smuggled into a schema1/2 fixture.
+            // structured values, which must not be smuggled into a schema1/2 fixture.
             var old = new StaticCatalog(oldManifest,
                 c.Units.Select(x => new UnitRecord(x.StableId, x.Name, x.Cost, x.TraitIds, x.IconPath, x.Sources, x.Role, x.Description, x.Effects)),
                 c.Traits.Select(x => new TraitRecord(x.StableId, x.Name, x.Description, x.Effects, x.IconPath, x.Sources)),

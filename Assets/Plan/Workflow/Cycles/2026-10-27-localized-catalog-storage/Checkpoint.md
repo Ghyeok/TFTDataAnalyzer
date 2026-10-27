@@ -1,11 +1,13 @@
 # 현지화 문자열 분리 저장 체크포인트
 
-상태: 승인 대기
+상태: 진행 중
 
-2026-10-27 현재는 [통합 계획](refined/ImplementationPlan.md)의 사용자 구현 승인 대기다. 기준main7922fa6/branch codex/localized-catalog-storage. [기획A/B](refined/PlanningReview.md)는 같은동결2입력의pass/필수0이다. 새제품/새시험/새Unity실행0이며현재새PR가없어조회루프0이다. 다음 첫 행동은 사용자명시승인 확인후 계획TODO1의**기존schema4serializer로골든생성**이다. 승인전에제품을수정하지않는다.
+사용자 call_d5412b46c27542e99a05dffe990ea1c4가 [구현 계획](refined/ImplementationPlan.md)을 승인했다. 기준 main 7922fa6, 기획 커밋 265bdf1, 브랜치 codex/localized-catalog-storage다. TODO 1·2 구현 및 회귀, 독립 코드검수 수정과 재검수를 완료했고 독립 최종 QA도 필수 수정 없이 통과했다. 문서 점검과 PR 통합이 남았다. PR은 아직 생성하지 않았다.
 
-PR23은최신6acc2a0 CodeRabbitSUCCESS·미해결0·실행증거후main7922fa6에병합했고전체tree일치를확인했다. 해당monitor는StoppedAfterVerifiedMerge/nextCheckUtc=null이다. Hermes/외부예약0. 사용자최종결과승인과전체서비스완료는별도다.
+schema4 원본 serializer로 제품 수정 전에 생성한 창작 golden의 SHA는 6152c706c5e36c459c81cb08bbd4d384c18141f0f69240d9ee734ebc7021cd7e다. 구 1~3 golden을 재생성하지 않았다. schema5 manifest 별칭 문제는 실제 2건 RED 후 수정하여 관련 60/60 GREEN과 동일 코드검수 담당의 delta pass를 받았다.
 
-A송신은처음auto-review가새payload구체승인부족으로실행전거절했으나사용자가call_2c96c309ff154cf7b589f4f4727f2285에서동일2문서전송·기획검수를명시승인했다. 같은경로session18708은terminalexit0/SUCCESS였다. agy1.4.7/gemini-4-argon-medium/effortmedium/13960tokens/39.046초,toolAttempts0·강제격리미검증. 기존B담당재사용·신규agent/재위임0·GPT실제모델/usage미확인. 입력16094bytes,digest eadd8516c28e796367d36944565fcc7f5e227caf38854779f9a7f408af732012/LF보존. 검수이후입력수정0이며최종계획상태/CLI공백만정정했다.
+최종 소스 232개를 동결한 뒤 직렬화 86/86, 전체 EditMode 999건 중 997 통과·실패 0·호스트 심볼릭 링크 제한으로 2건 건너뜀을 확인했다. 기존 창 9개·native 프레임 1개·포커스가 유지됐다. 보호 대상 1389개 중 version-check.json 1개가 변경됐고 나머지 1388개는 동일했다. 기존 스케줄러가 원인일 가능성은 있으나 확정하지 못했다. Console 오류는 1→3이며 새 2건은 Unity.Pipeline /api/commands 전송 오류이고 원인은 미확정이다. UI 레이아웃 변경은 없고 실제 BrowserVM과 기존 UI 테스트를 검증했다. 상세 내용은 [개발 기록](refined/DevelopmentReport.md)에 있다.
 
-작업트리에는새기획/기존PR23병합현황문서와.gitattributes의두동결입력LF규칙이있다. 제품소스변경0. 사용자Assets/DefaultVolumeProfile.asset와미추적docs/riot-api-key.md는보존하며키문서본문열람금지다. 기존팩/관측/Chrome/사용자창보존,실제API·분류등록0·n100·성급/장착미공급·KI-001·사용자최종확인은잔여다.
+기획 A/B는 동일 공통 입력으로 pass, 필수 수정 0이었다. A의 외부 전송 최초 자동 승인 거절 후 사용자가 두 문서의 전송을 승인해 실행했다. 실제 모델·사용량은 기획 검토 기록에 구분되어 있다. 제품의 실제 경기 API 호출과 증강 분류 등록은 하지 않았다.
+
+사용자 Volume 변경, 키 문서, 기존 카탈로그·관측, Chrome 및 사용자 Unity 창을 보존한다. 키 문서 본문은 읽지 않는다. 환경 변수는 별도로 사용자에게 설정 방법을 안내했으며 설정 이후의 상태는 확인 전이다. 실제 경기 데이터·증강 분류·n100 검증, KI-001과 사용자 최종 확인은 서비스의 잔여 범위다. Hermes 예약은 삭제 상태다.

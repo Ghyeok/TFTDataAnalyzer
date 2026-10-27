@@ -26,7 +26,11 @@ namespace TFTAnalyzer.Serialization
             }
 
             var json = JsonConvert.SerializeObject(ToDto(catalog), Formatting.Indented, Settings);
-            if (catalog.Manifest.SchemaVersion == 4) return StructuredCatalogJson.Write(catalog, json);
+            if (catalog.Manifest.SchemaVersion >= 4)
+            {
+                var structured = StructuredCatalogJson.Write(catalog,json);
+                return catalog.Manifest.SchemaVersion == 5 ? LocalizedCatalogJson.Write(catalog,structured) : structured;
+            }
             return json.Replace("\r\n", "\n") + "\n";
         }
 
@@ -37,26 +41,37 @@ namespace TFTAnalyzer.Serialization
                 throw new ArgumentException("Catalog JSON cannot be blank.", nameof(json));
             }
 
-            var dto = JsonConvert.DeserializeObject<CatalogDto>(json, Settings);
+            var root = StructuredCatalogJson.ReadRoot(json);
+            var schemaToken = (root["manifest"] as Newtonsoft.Json.Linq.JObject)?["schemaVersion"];
+            var separated = schemaToken?.Type == Newtonsoft.Json.Linq.JTokenType.Integer && schemaToken.ToString() == "5";
+            if (separated)
+            {
+                root = LocalizedCatalogJson.Expand(root);
+                StructuredCatalogJson.Guard(root,4); // Strict literal metadata/record types before DTO coercion.
+            }
+            else if (root.Properties().Any(x=>string.Equals(x.Name,"localizations",StringComparison.OrdinalIgnoreCase)))
+                throw new JsonSerializationException("Invalid localized catalog schema.");
+            var dto = JsonConvert.DeserializeObject<CatalogDto>(separated ? root.ToString(Formatting.None) : json, Settings);
             if (dto == null || dto.Manifest == null)
             {
                 throw new JsonSerializationException("Catalog manifest is required.");
             }
 
-            var root = StructuredCatalogJson.ReadRoot(json);
-            if (dto.Manifest.SchemaVersion < 1 || dto.Manifest.SchemaVersion > 4 ||
+            if (dto.Manifest.SchemaVersion < 1 || dto.Manifest.SchemaVersion > 5 ||
+                (dto.Manifest.SchemaVersion == 5 && !separated) ||
+                (separated && dto.Manifest.SchemaVersion != 5) ||
                 (dto.Manifest.SchemaVersion < 3 && root.Properties().Any(x =>
                     string.Equals(x.Name, "fieldOrigins", StringComparison.OrdinalIgnoreCase))) ||
                 (dto.Manifest.SchemaVersion >= 3 && !(root["fieldOrigins"] is Newtonsoft.Json.Linq.JArray)))
                 throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");
-            StructuredCatalogJson.Guard(root, dto.Manifest.SchemaVersion);
-            try { return dto.Manifest.SchemaVersion == 4 ? StructuredCatalogJson.Attach(FromDto(dto), root) : FromDto(dto); }
+            if (!separated) StructuredCatalogJson.Guard(root, dto.Manifest.SchemaVersion);
+            try { return dto.Manifest.SchemaVersion >= 4 ? StructuredCatalogJson.Attach(FromDto(dto), root) : FromDto(dto); }
             catch (ArgumentException error) { throw new JsonSerializationException("Invalid structured static values.", error); }
         }
 
         private static CatalogDto ToDto(StaticCatalog catalog)
         {
-            if (catalog.Manifest.SchemaVersion < 1 || catalog.Manifest.SchemaVersion > 4 ||
+            if (catalog.Manifest.SchemaVersion < 1 || catalog.Manifest.SchemaVersion > 5 ||
                 (catalog.Manifest.SchemaVersion < 3 && catalog.FieldOrigins.Count > 0) ||
                 (catalog.Manifest.SchemaVersion < 4 && StructuredCatalogJson.HasValues(catalog)))
                 throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");

@@ -1,0 +1,694 @@
+{
+  "manifest": {
+    "schemaVersion": 4,
+    "setId": "TFTSet18",
+    "setNumber": 18,
+    "setName": "Localization baseline",
+    "patchId": "18.2",
+    "sourceGameVersion": "16.18.1",
+    "sourceProfile": "official-only",
+    "createdUtc": "1970-01-01T00:00:00.0000000Z",
+    "contentHash": "",
+    "sources": [
+      {
+        "sourceName": "Riot",
+        "url": "https://example.test/en",
+        "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+        "etag": "etag",
+        "sha256": "hash",
+        "isSupplemental": false
+      }
+    ],
+    "policyReviewDate": "1970-01-01T00:00:00.0000000Z",
+    "policyUrls": [],
+    "validationErrorCount": 0,
+    "validationWarningCount": 0,
+    "previousPatchSummary": "",
+    "communityDragonVersion": ""
+  },
+  "units": [
+    {
+      "stableId": "TEST18_Unit",
+      "name": {
+        "koKr": "",
+        "enUs": "Unit /~|"
+      },
+      "cost": 1,
+      "traitIds": [
+        "TEST18_Trait"
+      ],
+      "iconPath": "",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ],
+      "role": "",
+      "description": {
+        "koKr": "한글 설명",
+        "enUs": "Description\n2026-10-27T12:00:00.000Z"
+      },
+      "effects": {},
+      "baseStats": {
+        "hp": 100.0,
+        "mana": null,
+        "zero/~": 0.0
+      },
+      "abilityVariables": [
+        {
+          "name": "Damage",
+          "values": [
+            0.0,
+            10.0,
+            null,
+            30.0
+          ]
+        }
+      ],
+      "extensions": [
+        {
+          "sourceName": "Riot",
+          "locale": "enUs",
+          "pointer": "/date",
+          "canonicalJson": "\"2026-10-27T12:00:00.000Z\""
+        }
+      ]
+    }
+  ],
+  "traits": [
+    {
+      "stableId": "TEST18_Trait",
+      "name": {
+        "koKr": "시너지",
+        "enUs": "Trait"
+      },
+      "description": {
+        "koKr": "",
+        "enUs": ""
+      },
+      "effects": {
+        "legacy": 2.0
+      },
+      "iconPath": "",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ],
+      "breakpoints": [
+        {
+          "minUnits": null,
+          "maxUnits": 9,
+          "style": 1,
+          "effects": {
+            "power": null
+          }
+        }
+      ],
+      "extensions": []
+    }
+  ],
+  "items": [
+    {
+      "stableId": "TEST18_Item",
+      "name": {
+        "koKr": "아이템",
+        "enUs": "Item"
+      },
+      "description": {
+        "koKr": "",
+        "enUs": "Item text"
+      },
+      "componentIds": [],
+      "effects": {
+        "armor": 0.0
+      },
+      "iconPath": "",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ],
+      "unique": false,
+      "extensions": []
+    }
+  ],
+  "augments": [
+    {
+      "stableId": "TEST18_Augment",
+      "name": {
+        "koKr": "증강",
+        "enUs": "Augment"
+      },
+      "tier": "gold",
+      "description": {
+        "koKr": "",
+        "enUs": ""
+      },
+      "relatedIds": [
+        "TEST18_Item",
+        "TEST18_Unit"
+      ],
+      "effects": {},
+      "iconPath": "",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ],
+      "extensions": []
+    }
+  ],
+  "fieldOrigins": [
+    {
+      "recordType": "augment",
+      "stableId": "TEST18_Augment",
+      "pointer": "/name/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "augment",
+      "stableId": "TEST18_Augment",
+      "pointer": "/name/koKr",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "augment",
+      "stableId": "TEST18_Augment",
+      "pointer": "/relatedIds",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "augment",
+      "stableId": "TEST18_Augment",
+      "pointer": "/stableId",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "augment",
+      "stableId": "TEST18_Augment",
+      "pointer": "/tier",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/description/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/effects/armor",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/name/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/name/koKr",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/stableId",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "item",
+      "stableId": "TEST18_Item",
+      "pointer": "/unique",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/breakpoints/0/effects/power",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/breakpoints/0/maxUnits",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/breakpoints/0/minUnits",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/breakpoints/0/style",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/effects/legacy",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/name/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/name/koKr",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "trait",
+      "stableId": "TEST18_Trait",
+      "pointer": "/stableId",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/abilityVariables/0/name",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/abilityVariables/0/values/0",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/abilityVariables/0/values/1",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/abilityVariables/0/values/2",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/abilityVariables/0/values/3",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/baseStats/hp",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/baseStats/mana",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/baseStats/zero~1~0",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/cost",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/description/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/description/koKr",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/extensions/0/canonicalJson",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/name/enUs",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/stableId",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    },
+    {
+      "recordType": "unit",
+      "stableId": "TEST18_Unit",
+      "pointer": "/traitIds",
+      "sources": [
+        {
+          "sourceName": "Riot",
+          "url": "https://example.test/en",
+          "retrievedUtc": "1970-01-01T00:00:00.0000000Z",
+          "etag": "etag",
+          "sha256": "hash",
+          "isSupplemental": false
+        }
+      ]
+    }
+  ]
+}

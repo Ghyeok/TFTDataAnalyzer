@@ -27,7 +27,7 @@ namespace TFTAnalyzer.Tests.Ingestion
         public void StructuredStatic_CommunitySuppliesSourceStructuresAndKeepsUnknownMeaningInert()
         {
             var result = Parse(Document("ko_kr"), Document("en_us")); var c = result.Catalog;
-            Assert.That(c.Manifest.SchemaVersion, Is.EqualTo(4));
+            Assert.That(c.Manifest.SchemaVersion, Is.EqualTo(5));
             Assert.That(c.Units.Single().BaseStats["hp"], Is.EqualTo(100));
             Assert.That(c.Units.Single().BaseStats["zero/~"], Is.Zero); Assert.That(c.Units.Single().BaseStats.ContainsKey("mana"), Is.True);
             Assert.That(c.Units.Single().AbilityVariables.Single().Values, Is.EqualTo(new double?[] { 0, 10, null, 30 }));
@@ -128,7 +128,7 @@ namespace TFTAnalyzer.Tests.Ingestion
         public void StructuredStatic_OfficialSuppliesTypedStatsAndPreservesOldFlatEffects()
         {
             var c = new DataDragonAdapter(new CommunityDragonShapeTests.ShapeTransport()).Parse(OfficialSnapshot(Document("ko_kr"), Document("en_us")), Patch);
-            Assert.That(c.Manifest.SchemaVersion, Is.EqualTo(4));
+            Assert.That(c.Manifest.SchemaVersion, Is.EqualTo(5));
             Assert.That(c.Units.Single().BaseStats["hp"], Is.EqualTo(100)); Assert.That(c.Units.Single().Effects["hp"], Is.EqualTo(100));
             Assert.That(c.Items.Single().Unique, Is.False);
             Assert.That(c.FieldOrigins.Single(x => x.RecordType == "unit" && x.Pointer == "/baseStats/mana").Sources.Single().IsSupplemental, Is.False);
