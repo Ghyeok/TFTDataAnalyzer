@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-10-27-localization-planning",
+  "baseCommit": "7922fa61cc0d5fe99460ffe9deea5752c7d6089f",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-27-localized-catalog-storage/refined/ImplementationPlan.md",
+      "sha256": "687f43877f443cb49dbb9edb3f0c495da39cd9cdc1729513df6b1e73a35ded61"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "root의7922fa6현재코드/상위·하위계약읽기전용요약",
+      "sha256": "757eb62a8325c757218fcf63e711a8352b2ddfac8ac39ed5746aa11d1f9ad3e1"
+    }
+  ],
+  "inputDigest": "eadd8516c28e796367d36944565fcc7f5e227caf38854779f9a7f408af732012",
+  "inputBytes": 16094
+}

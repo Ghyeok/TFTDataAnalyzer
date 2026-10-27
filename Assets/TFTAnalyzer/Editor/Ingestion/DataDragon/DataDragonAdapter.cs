@@ -79,7 +79,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             catch (Exception error) when (error is JsonException || error is ArgumentException || error is OverflowException)
             {
                 issues.Add(new ValidationIssue(ValidationSeverity.Error, "ddragon_invalid_static_data", "", "공식 정적 자료의 형식 또는 값이 잘못되어 가져오기를 중단했습니다."));
-                var manifest = new PatchManifest(4, new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly), "", DateTime.UnixEpoch, "",
+                var manifest = new PatchManifest(5, new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly), "", DateTime.UnixEpoch, "",
                     snapshot.AllResponses.Select(ToSourceStamp), PolicyReviewDate, PolicyUrls, 0, 0, "", "");
                 return new DataDragonParseResult(new StaticCatalog(manifest, null, null, null, null), issues);
             }
@@ -100,7 +100,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             var stamps = snapshot.AllResponses.Select(ToSourceStamp).ToArray();
             var createdUtc = snapshot.AllResponses.Max(response => response.RetrievedUtc);
             var manifest = new PatchManifest(
-                4,
+                5,
                 new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly),
                 "",
                 createdUtc,

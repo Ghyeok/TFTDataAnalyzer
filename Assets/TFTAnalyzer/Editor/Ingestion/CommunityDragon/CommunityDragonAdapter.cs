@@ -80,7 +80,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                 Source(version, "en_us", enJson)
             };
             PatchManifest Manifest(string setName) => new PatchManifest(
-                4,
+                5,
                 new CatalogIdentity(patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
                 setName,
                 DateTime.UnixEpoch,

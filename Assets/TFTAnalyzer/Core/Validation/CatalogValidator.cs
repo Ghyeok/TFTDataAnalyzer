@@ -112,9 +112,9 @@ namespace TFTAnalyzer.Validation
         private static void ValidateFieldOrigins(StaticCatalog catalog, ICollection<ValidationIssue> issues)
         {
             var schema = catalog.Manifest.SchemaVersion;
-            if (schema < 1 || schema > 4 || (schema < 3 && catalog.FieldOrigins.Count != 0))
+            if (schema < 1 || schema > 5 || (schema < 3 && catalog.FieldOrigins.Count != 0))
                 Error(issues, "invalid_field_origin_schema", "", "Unsupported schema or legacy field origins.");
-            if (schema < 3 || schema > 4) return;
+            if (schema < 3 || schema > 5) return;
 
             string SourceKey(SourceStamp s) => $"{s.SourceName}\u001f{s.Url}\u001f{s.Sha256}\u001f{s.IsSupplemental}";
             var manifestSources = new HashSet<string>(catalog.Manifest.Sources.Select(SourceKey), StringComparer.Ordinal);
@@ -143,7 +143,7 @@ namespace TFTAnalyzer.Validation
             }
             foreach (var key in expected.Keys.Where(key => !seen.Contains(key)))
                 Error(issues, "missing_field_origin", key.Id, key.Pointer);
-            if (schema == 4)
+            if (schema >= 4)
             {
                 void Extensions(string type, string id, IReadOnlyList<StaticExtensionField> values)
                 {

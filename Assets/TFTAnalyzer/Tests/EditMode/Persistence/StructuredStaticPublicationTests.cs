@@ -64,7 +64,7 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(result.Published, Is.True, string.Join(",", result.Validation.Issues.Select(x => x.Code)));
             Assert.That(t.IconRequests, Is.EqualTo(1)); Assert.That(index.Writes, Is.EqualTo(1));
             var catalog = result.Catalog;
-            Assert.That(catalog.Manifest.SchemaVersion, Is.EqualTo(4)); Assert.That(catalog.Units.Single().BaseStats["hp"], Is.EqualTo(100));
+            Assert.That(catalog.Manifest.SchemaVersion, Is.EqualTo(5)); Assert.That(catalog.Units.Single().BaseStats["hp"], Is.EqualTo(100));
             Assert.That(catalog.Units.Single().AbilityVariables.Single().Values, Is.EqualTo(new double?[] { 0, 10, null, 30 }));
             Assert.That(catalog.Traits.Single().Breakpoints.Single().MinUnits, Is.Null); Assert.That(catalog.Items.Single().Unique, Is.False);
             Assert.That(catalog.Augments.Single().Extensions.Any(x => x.Pointer == "/unmodeled"), Is.True);
@@ -221,14 +221,14 @@ namespace TFTAnalyzer.Tests.Persistence
         }
 
         [Test]
-        public async Task StructuredStatic_PublishedIndexFailureRecoversSameSchemaFourPack()
+        public async Task StructuredStatic_PublishedIndexFailureRecoversSameCurrentSchemaPack()
         {
             var t = Transport(); var index = new Index { Fail = true }; var pipeline = NetworkPipeline(t, index); var request = Request(true);
             var error = Assert.ThrowsAsync<StaticImportRecoveryException>(async () => await pipeline.RunAsync(request, default));
             Assert.That(error.RecoveryState, Is.EqualTo(StaticImportRecoveryState.PublishedUnindexed));
             var before = File.ReadAllBytes(Path.Combine(error.FinalDirectory, "catalog.json")); index.Fail = false;
             var result = await pipeline.RunAsync(request, default);
-            Assert.That(result.Published && result.Idempotent, Is.True); Assert.That(result.Catalog.Manifest.SchemaVersion, Is.EqualTo(4));
+            Assert.That(result.Published && result.Idempotent, Is.True); Assert.That(result.Catalog.Manifest.SchemaVersion, Is.EqualTo(5));
             Assert.That(File.ReadAllBytes(Path.Combine(result.FinalDirectory, "catalog.json")), Is.EqualTo(before));
         }
 

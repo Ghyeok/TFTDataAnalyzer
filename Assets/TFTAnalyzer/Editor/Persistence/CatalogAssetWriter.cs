@@ -334,7 +334,7 @@ namespace TFTAnalyzer.Editor.Persistence
             var manifest = JObject.Parse(File.ReadAllText(manifestPath));
             if (expectedIdentity != null &&
                 ((compatibleLegacy ? manifest.Value<int?>("schemaVersion") != 1 :
-                    manifest.Value<int?>("schemaVersion") != 2 && manifest.Value<int?>("schemaVersion") != 3 && manifest.Value<int?>("schemaVersion") != 4) ||
+                    manifest.Value<int?>("schemaVersion") != 2 && manifest.Value<int?>("schemaVersion") != 3 && manifest.Value<int?>("schemaVersion") != 4 && manifest.Value<int?>("schemaVersion") != 5) ||
                  !string.Equals(manifest.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
                  manifest.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
                  !string.Equals(manifest.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
@@ -510,7 +510,7 @@ namespace TFTAnalyzer.Editor.Persistence
         private static StaticCatalog AsSchema(StaticCatalog catalog, int schema)
         {
             var source = catalog.Manifest;
-            if (schema < 1 || schema > 3) throw new ArgumentOutOfRangeException(nameof(schema));
+            if (schema < 1 || schema > 4) throw new ArgumentOutOfRangeException(nameof(schema));
             if (schema == 1 && source.Identity?.IncludesCommunityDragon == true)
                 throw new InvalidOperationException("Supplemental catalog cannot be projected to legacy official schema.");
             var manifest = schema == 1 ? new PatchManifest(1, source.Patch, source.SetName, source.CreatedUtc,
@@ -521,6 +521,10 @@ namespace TFTAnalyzer.Editor.Persistence
                     source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
                     source.ValidationErrorCount, source.ValidationWarningCount,
                     source.PreviousPatchSummary, source.CommunityDragonVersion);
+            // Schema4 already contains every logical text and structured value. Only the
+            // physical text-table representation differs from schema5; preserve all lineage.
+            if (schema == 4)
+                return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, catalog.FieldOrigins);
             // Drop only the schema4 structures. Document Sources and schema3 selected
             // lineage are old semantic content and must never be recomputed or pruned.
             var units = catalog.Units.Select(x => new UnitRecord(x.StableId, x.Name, x.Cost, x.TraitIds, x.IconPath, x.Sources, x.Role, x.Description, x.Effects)).ToArray();

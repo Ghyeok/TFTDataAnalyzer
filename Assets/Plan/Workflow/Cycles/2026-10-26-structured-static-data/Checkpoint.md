@@ -1,8 +1,8 @@
 # 구조화 정적 데이터 체크포인트
 
-상태: 진행 중
+상태: 승인 대기
 
-2026-10-27 현재 단계는 [PR23](https://github.com/Ghyeok/TFTDataAnalyzer/pull/23)의 최신 head 검수·통합 대기다. 사용자 call_2208e223ba4c465ab9e566d320436868가 [통합 구현 계획](refined/ImplementationPlan.md)을 명시 승인했다. TODO1~5 구현, 독립 코드검수·최종QA와 CodeRabbit의 제품 수정은 통과했고 TODO6의 최신 head 검수·main 병합이 남아 있다. 사용자 최종 결과 승인은 별도다.
+2026-10-27 현재 [PR23](https://github.com/Ghyeok/TFTDataAnalyzer/pull/23)은 main7922fa61cc0d5fe99460ffe9deea5752c7d6089f에 병합됐다. 최신6acc2a0의 CodeRabbit SUCCESS·미해결0·실행증거와 병합 전체tree동일을 확인했다. 사용자 call_2208e223ba4c465ab9e566d320436868가 [통합 구현 계획](refined/ImplementationPlan.md)을 명시 승인했다. TODO1~5 구현, 독립 코드검수·최종QA와 CodeRabbit의 제품 수정은 통과했고 TODO6의 최신head 검수·main 병합도 마쳤다. 사용자 최종 결과 승인은 별도다.
 
 ## 현재 기준 증거
 
@@ -14,7 +14,7 @@
 
 ## PR와 다음 첫 행동
 
-PR23 최초e42e43b의4의견은 실제RED1 후 코드/문서를 수정해50c474b에 반영했고 모두 해결 처리했다. 50c474b에 추가된3의견은 현재/과거 문서 구분이며 이 문서와 PlanningReview에서 수정한다. 해당 문서 수정 커밋을 push한 뒤 최신head의 CodeRabbit 결과·미해결0·CI·위 실행증거를5분 간격으로 확인한다. 다른head의 통과를 새head에 적용하지 않으며 충족 시 승인 범위대로 main에 병합한다. Hermes 예약은 삭제 상태를 유지한다.
+PR23 최초e42e43b의4의견은 실제RED1 후 코드/문서를 수정해50c474b에 반영했고 해결 처리했다. 추가3의견은6acc2a0의 현재/과거 문서 구분으로 수정했다. 최신6acc2a0에 연결된 CodeRabbit check-run의 head_sha/SUCCESS·미해결0·별도CI없음을 직접 대조했고, 기존 승인대로2026-10-27T05:24:38Z에 squash병합했다. merge7922fa6의 전체tree가 검수head와 같다. PR23 모니터는 병합확인후종료했고 nextCheckUtc=null, Hermes/외부예약0이다. 후속 현지화 작업은 A/B 검토와 사용자 승인을 거쳐 구현·QA를 완료하고 [PR24](https://github.com/Ghyeok/TFTDataAnalyzer/pull/24) 검수 중이다. 다음 행동은 [현재 체크포인트](../2026-10-27-localized-catalog-storage/Checkpoint.md)를 따른다. 사용자최종결과승인은별도다.
 
 ## 보존·잔여
 

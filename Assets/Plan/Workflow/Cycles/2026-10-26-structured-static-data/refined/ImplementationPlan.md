@@ -4,7 +4,7 @@
 
 상태: 진행 중
 
-진행 결과: 사용자 승인 TODO1~5·CodeRabbit4의견 수정·독립 재검수/QA 통과. 최신 전체939건 중937통과·실패0·호스트2제외, 관련113건/UI227건·새8PNG. PR23 최신 수정 head 검수·병합 대기.
+진행 결과: 사용자 승인 TODO1~5·CodeRabbit4의견 수정·독립 재검수/QA 통과. 최신 전체939건 중937통과·실패0·호스트2제외, 관련113건/UI227건·새8PNG. PR23 최신6acc2a0검수·미해결0·main7922fa6병합/트리일치확인. 사용자최종결과승인은별도.
 
 **Goal:** 공개 정적 자료의 기물 능력치·스킬 수치 배열·시너지 활성 구간·아이템 제한 정보를 출처와 함께 보존하고 기존 카탈로그 탐색에서 읽게 한다.
 **Architecture:** schema4의 선택적 불변 구조를 실제 소스 어댑터→공식 우선 병합→검증→불변 게시→재로딩→탐색·패치 비교에 연결한다. 구 schema1/2/3은 바이트와 의미를 보존하고, 의미를 확인하지 못한 원본 필드는 출처가 있는 비실행 확장 자료로 격리한다.
@@ -103,7 +103,7 @@
 ### 6. 회귀·독립 검수·PR 통합
 - [x] 관련 tests GREEN 후 제품 소스를 동결하고 전체 EditMode1회와 Console/창/보호 파일 해시를 확인한다. 새 실패/변경 없이는 전체 suite 반복을 하지 않는다. 호스트 symlink 제외와 실제 실패를 구분한다.
 - [x] 동일 코드검수·QA 담당이 승인 TODO·diff·실행 증거를 검토한다. 필수 수정 시 같은 담당을 재사용한다. 실제 모델/추론/사용량 확인 불가 시 미확인으로 기록한다.
-- [ ] 문서/raw/meta·사용법·공급 한계·전체 서비스 잔여를 갱신해 커밋/PR. 최신 head CodeRabbit·미해결·CI·실행 증거를5분마다 확인해 승인 범위대로 병합한다. 사용자 최종 결과 승인은 별도이며 Hermes 예약은 등록하지 않는다.
+- [x] 문서/raw/meta·사용법·공급 한계·전체 서비스 잔여를 갱신해 커밋/PR. 최신 head CodeRabbit·미해결·CI·실행 증거를5분마다 확인해 승인 범위대로 병합한다. 사용자 최종 결과 승인은 별도이며 Hermes 예약은 등록하지 않는다.
 
 Unity 검증 명령: 기존 CLI 절대 경로로 `command run_tests --project-path C:/Unity/TFTDataAnalyzer --mode editor --filter_type testName --filter StructuredStatic --timeout 180 --format json`, 전체는 `--filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300`. 소스 변경 후 recompile 완료·실패0을 먼저 확인하고 단일 Unity 작업의 terminal 결과를 기다린다. 캡처 전 [창 정리 지침](../../../../../../docs/unity-editor-validation.md)을 따른다.
 
