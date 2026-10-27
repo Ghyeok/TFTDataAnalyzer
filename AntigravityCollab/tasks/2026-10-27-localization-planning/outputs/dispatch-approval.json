@@ -1,0 +1,17 @@
+{
+  "initialAttempt": "auto-review rejected before execution",
+  "reason": "specific user approval for new payload/destination missing",
+  "initialRequestSent": false,
+  "approvalQuestionId": "call_2c96c309ff154cf7b589f4f4727f2285",
+  "answer": "이 두 문서 전송·기획 검수 승인",
+  "approvedFiles": [
+    "inputs/implementation-plan.md",
+    "inputs/source-contract.md"
+  ],
+  "inputBytes": 16094,
+  "inputDigest": "eadd8516c28e796367d36944565fcc7f5e227caf38854779f9a7f408af732012",
+  "retryPath": "same require_escalated command; no workaround",
+  "retrySession": 18708,
+  "retryState": "terminal exit0/SUCCESS; protocol verified",
+  "runtime": "runtime.json"
+}

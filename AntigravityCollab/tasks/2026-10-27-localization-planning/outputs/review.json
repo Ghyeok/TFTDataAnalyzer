@@ -1,0 +1,11 @@
+{
+  "findings": [],
+  "inputDigest": "eadd8516c28e796367d36944565fcc7f5e227caf38854779f9a7f408af732012",
+  "taskId": "2026-10-27-localization-planning",
+  "unverified": [
+    "schema5 구현 코드 및 신규/회귀 EditMode 테스트 실제 실행 결과 (사용자 승인 전 기획 단계)",
+    "실제 API 연동, 실제 증강 분류 등록 0건 해소, 실제 n>=100 표본, 성급·장착 미공급 의미, KI-001, 사용자 최종 확인 (기존 잔여 범위)",
+    "실제 모델·추론·usage 메타데이터 (제공된 두 입력 문서에 포함되지 않음)"
+  ],
+  "verdict": "pass"
+}

@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-27-localization-planning",
+  "inputDigest": "eadd8516c28e796367d36944565fcc7f5e227caf38854779f9a7f408af732012",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.7",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 1476,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 11507,
+    "output_tokens": 2453,
+    "thinking_tokens": 2242,
+    "cache_read_tokens": 0,
+    "total_tokens": 13960
+  },
+  "responseSeconds": 30.9876934,
+  "exitCode": 0,
+  "durationSeconds": 39.046
+}
