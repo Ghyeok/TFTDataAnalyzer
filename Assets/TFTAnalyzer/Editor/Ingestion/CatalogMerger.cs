@@ -109,14 +109,16 @@ namespace TFTAnalyzer.Editor.Ingestion
                 official.Manifest.ValidationWarningCount,
                 official.Manifest.PreviousPatchSummary,
                 supplement.Manifest.CommunityDragonVersion);
-            if (official.Manifest.SchemaVersion == 3)
-                manifest = new PatchManifest(3, new CatalogIdentity(manifest.Patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
+            if (official.Manifest.SchemaVersion >= 3 || supplement.Manifest.SchemaVersion >= 4)
+                manifest = new PatchManifest(Math.Max(official.Manifest.SchemaVersion, supplement.Manifest.SchemaVersion), new CatalogIdentity(manifest.Patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
                     manifest.SetName, manifest.CreatedUtc, manifest.ContentHash, manifest.Sources, manifest.PolicyReviewDate,
                     manifest.PolicyUrls, manifest.ValidationErrorCount, manifest.ValidationWarningCount,
                     manifest.PreviousPatchSummary, manifest.CommunityDragonVersion);
             // Materialize values first: the existing merge decisions are produced during enumeration.
             var values = new StaticCatalog(manifest, units, traits, items, augments);
             var origins = MergeOrigins(official, supplement, decisions);
+            if (manifest.SchemaVersion >= 4)
+                return new MergeResult(StructuredCatalogMerge.Merge(official, supplement, values, origins, decisions), decisions);
             return new MergeResult(new StaticCatalog(manifest, values.Units, values.Traits, values.Items,
                 values.Augments, origins), decisions);
         }

@@ -21,7 +21,7 @@ namespace TFTAnalyzer.Editor.UI.Data
         { Kind = kind; StableId = id; Name = name; NameText = CatalogBrowserViewModel.Display(name); IconPath = icon; DetailsText = details; }
     }
 
-    public sealed class CatalogBrowserViewModel : IDisposable
+    public sealed partial class CatalogBrowserViewModel : IDisposable
     {
         public const int PageSize = 50;
         private StaticCatalog _catalog;
@@ -66,7 +66,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             if (_disposed) return;
             page = Math.Max(0, Math.Min(page, PageCount - 1));
             if (Page == page) return;
-            Page = page; Selected = null; Slice(); Changed?.Invoke();
+            Page = page; Selected = null; ResetStructured(); Slice(); Changed?.Invoke();
         }
 
         public void Select(string stableId)
@@ -74,7 +74,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             if (_disposed) return;
             var selected = Rows.FirstOrDefault(row => row.StableId == stableId);
             if (ReferenceEquals(Selected, selected)) return;
-            Selected = selected; Changed?.Invoke();
+            Selected = selected; BuildStructured(); Changed?.Invoke();
         }
 
         private void Filter()
@@ -82,7 +82,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             bool Contains(string value) => value.IndexOf(Search, StringComparison.OrdinalIgnoreCase) >= 0;
             _filtered = _all.Where(row => row.Kind == Kind && (Contains(row.StableId) || Contains(row.Name.KoKr) || Contains(row.Name.EnUs)))
                 .OrderBy(row => row.StableId, StringComparer.Ordinal).ToArray();
-            Page = 0; Selected = null; Slice(); Changed?.Invoke();
+            Page = 0; Selected = null; ResetStructured(); Slice(); Changed?.Invoke();
         }
 
         private void Slice() => Rows = Array.AsReadOnly(_filtered.Skip(Page * PageSize).Take(PageSize).ToArray());
@@ -96,6 +96,7 @@ namespace TFTAnalyzer.Editor.UI.Data
 
         private static IEnumerable<CatalogBrowserRecord> Project(StaticCatalog catalog)
         {
+            var byRecord = catalog.FieldOrigins.ToLookup(x => (x.RecordType, x.StableId));
             var names = catalog.Units.Select(x => (CatalogRecordKind.Unit, x.StableId, x.Name))
                 .Concat(catalog.Traits.Select(x => (CatalogRecordKind.Trait, x.StableId, x.Name)))
                 .Concat(catalog.Items.Select(x => (CatalogRecordKind.Item, x.StableId, x.Name)))
@@ -110,25 +111,25 @@ namespace TFTAnalyzer.Editor.UI.Data
                 }));
             }
             foreach (var x in catalog.Units)
-                yield return Create(catalog, CatalogRecordKind.Unit, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, byRecord[("unit", x.StableId)], CatalogRecordKind.Unit, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("비용", x.Cost.ToString(CultureInfo.InvariantCulture)), ("역할", x.Role), ("관계", Related(x.TraitIds, CatalogRecordKind.Trait)));
             foreach (var x in catalog.Traits)
-                yield return Create(catalog, CatalogRecordKind.Trait, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects);
+                yield return Create(catalog, byRecord[("trait", x.StableId)], CatalogRecordKind.Trait, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects);
             foreach (var x in catalog.Items)
-                yield return Create(catalog, CatalogRecordKind.Item, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, byRecord[("item", x.StableId)], CatalogRecordKind.Item, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("관계", Related(x.ComponentIds, CatalogRecordKind.Item)));
             foreach (var x in catalog.Augments)
-                yield return Create(catalog, CatalogRecordKind.Augment, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
+                yield return Create(catalog, byRecord[("augment", x.StableId)], CatalogRecordKind.Augment, x.StableId, x.Name, x.Description, x.IconPath, x.Sources, x.Effects,
                     ("등급", x.Tier), ("관계", Related(x.RelatedIds, null)));
         }
 
-        private static CatalogBrowserRecord Create(StaticCatalog catalog, CatalogRecordKind kind, string id, LocalizedText name, LocalizedText description,
+        private static CatalogBrowserRecord Create(StaticCatalog catalog, IEnumerable<FieldOrigin> recordOrigins, CatalogRecordKind kind, string id, LocalizedText name, LocalizedText description,
             string icon, IEnumerable<SourceStamp> sources, IReadOnlyDictionary<string, double> effects, params (string Label, string Value)[] extra)
         {
             var fields = new List<(string Label, string Value)>
             {
                 ("종류", KindName(kind)), ("안정 ID", id),
-                ("필드별 출처", FieldSources(catalog, kind, id)),
+                ("필드별 출처", FieldSources(catalog, recordOrigins)),
                 ("이름(한국어)", name.KoKr), ("이름(영어)", name.EnUs),
                 ("이름 표시", LanguageNotice(name)),
                 ("설명(한국어)", description.KoKr), ("설명(영어)", description.EnUs),
@@ -149,11 +150,10 @@ namespace TFTAnalyzer.Editor.UI.Data
             return new CatalogBrowserRecord(kind, id, name, icon, string.Join("\n\n", fields.Select(field => field.Label + ": " + Clip(field.Value))));
         }
 
-        private static string FieldSources(StaticCatalog catalog, CatalogRecordKind kind, string id)
+        private static string FieldSources(StaticCatalog catalog, IEnumerable<FieldOrigin> recordOrigins)
         {
             if (catalog.Manifest.SchemaVersion < 3) return "필드별 출처 정보 없음 — 기존 문서 단위 출처만 보존된 카탈로그입니다.";
-            var type = new[] { "unit", "trait", "item", "augment" }[(int)kind];
-            var origins = catalog.FieldOrigins.Where(x => x.RecordType == type && x.StableId == id)
+            var origins = recordOrigins
                 .OrderBy(x => x.Pointer, StringComparer.Ordinal).ToArray();
             if (origins.Length == 0) return "필드별 출처 기록 없음 — 검증이 필요합니다.";
             return string.Join("\n\n", origins.SelectMany(origin => origin.Sources.Select(source => (origin.Pointer, Source: source)))
@@ -175,6 +175,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             if (_disposed) return;
             _disposed = true; Changed = null; _catalog = null; Identity = null; Selected = null;
             _all = _filtered = Array.Empty<CatalogBrowserRecord>(); Rows = Array.Empty<CatalogBrowserRecord>();
+            ResetStructured();
         }
     }
 }

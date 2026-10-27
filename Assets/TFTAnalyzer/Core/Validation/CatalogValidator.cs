@@ -28,6 +28,7 @@ namespace TFTAnalyzer.Validation
             var issues = new List<ValidationIssue>();
             ValidatePatch(catalog, issues);
             ValidateFieldOrigins(catalog, issues);
+            ValidateStructuredValues(catalog, issues);
             ValidateDuplicates(catalog.Units.Select(value => value.StableId), "unit", issues);
             ValidateDuplicates(catalog.Traits.Select(value => value.StableId), "trait", issues);
             ValidateDuplicates(catalog.Items.Select(value => value.StableId), "item", issues);
@@ -111,16 +112,16 @@ namespace TFTAnalyzer.Validation
         private static void ValidateFieldOrigins(StaticCatalog catalog, ICollection<ValidationIssue> issues)
         {
             var schema = catalog.Manifest.SchemaVersion;
-            if (schema < 1 || schema > 3 || (schema < 3 && catalog.FieldOrigins.Count != 0))
+            if (schema < 1 || schema > 4 || (schema < 3 && catalog.FieldOrigins.Count != 0))
                 Error(issues, "invalid_field_origin_schema", "", "Unsupported schema or legacy field origins.");
-            if (schema != 3) return;
+            if (schema < 3 || schema > 4) return;
 
             string SourceKey(SourceStamp s) => $"{s.SourceName}\u001f{s.Url}\u001f{s.Sha256}\u001f{s.IsSupplemental}";
             var manifestSources = new HashSet<string>(catalog.Manifest.Sources.Select(SourceKey), StringComparer.Ordinal);
             var expected = new Dictionary<(string Type, string Id, string Pointer), IReadOnlyList<SourceStamp>>();
             void Record(string type, string id, object record, IReadOnlyList<SourceStamp> sources)
             {
-                foreach (var pointer in FieldOriginFields.Required(record)) expected[(type, id, pointer)] = sources;
+                foreach (var pointer in FieldOriginFields.Required(record, schema)) expected[(type, id, pointer)] = sources;
             }
             foreach (var r in catalog.Units) Record("unit", r.StableId, r, r.Sources);
             foreach (var r in catalog.Traits) Record("trait", r.StableId, r, r.Sources);
@@ -142,6 +143,46 @@ namespace TFTAnalyzer.Validation
             }
             foreach (var key in expected.Keys.Where(key => !seen.Contains(key)))
                 Error(issues, "missing_field_origin", key.Id, key.Pointer);
+            if (schema == 4)
+            {
+                void Extensions(string type, string id, IReadOnlyList<StaticExtensionField> values)
+                {
+                    for (var i = 0; i < values.Count; i++)
+                    {
+                        var origin = catalog.FieldOrigins.FirstOrDefault(x => x.RecordType == type && x.StableId == id && x.Pointer == "/extensions/" + i + "/canonicalJson");
+                        if (origin != null && origin.Sources.Any(x => x.SourceName != values[i].SourceName))
+                            Error(issues, "invalid_extension_origin_source", id, "Extension source name differs from its document origin.");
+                    }
+                }
+                foreach (var x in catalog.Units) Extensions("unit", x.StableId, x.Extensions);
+                foreach (var x in catalog.Traits) Extensions("trait", x.StableId, x.Extensions);
+                foreach (var x in catalog.Items) Extensions("item", x.StableId, x.Extensions);
+                foreach (var x in catalog.Augments) Extensions("augment", x.StableId, x.Extensions);
+            }
+        }
+
+        private static void ValidateStructuredValues(StaticCatalog catalog, ICollection<ValidationIssue> issues)
+        {
+            void Effects(string id, IReadOnlyDictionary<string, double> values)
+            {
+                if (values.Values.Any(x => double.IsNaN(x) || double.IsInfinity(x)))
+                    Error(issues, "invalid_static_effect", id, "Static effects must contain finite numeric values.");
+            }
+            foreach (var unit in catalog.Units)
+            {
+                Effects(unit.StableId, unit.Effects);
+                if (unit.AbilityVariables.Select(x => x.Name).Distinct(StringComparer.Ordinal).Count() != unit.AbilityVariables.Count)
+                    Error(issues, "duplicate_static_series", unit.StableId, "Source numeric series names must be unique.");
+            }
+            foreach (var trait in catalog.Traits)
+            {
+                Effects(trait.StableId, trait.Effects);
+                var known = trait.Breakpoints.Where(x => x.MinUnits.HasValue && x.MaxUnits.HasValue).ToArray();
+                if (known.Select(x => (x.MinUnits, x.MaxUnits)).Distinct().Count() != known.Length)
+                    Error(issues, "duplicate_trait_breakpoint", trait.StableId, "Known activation ranges must be unique.");
+            }
+            foreach (var item in catalog.Items) Effects(item.StableId, item.Effects);
+            foreach (var augment in catalog.Augments) Effects(augment.StableId, augment.Effects);
         }
 
         private static void ValidateDuplicates(

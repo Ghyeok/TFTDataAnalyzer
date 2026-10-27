@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-10-26-structured-static-planning",
+  "baseCommit": "f9974726021bb35edfdb3b5392904db42d1c270f",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/ImplementationPlan.md",
+      "sha256": "1c507d28ba5117deb1a8d7c01b545fafb200336664a2f9ee50a1fd5e1c1da844"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "root의 현재 코드·상위 설계·로컬 형식 조사 요약",
+      "sha256": "69842f27f12230aa3046a079ee93aa4da5a1acbabb943d650e7139e7e0e7d474"
+    }
+  ],
+  "inputDigest": "645b7a60a1a5be13f6f7776ef41d017864ad41654c1e4e3f296a888152f7b189",
+  "inputBytes": 28651
+}

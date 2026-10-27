@@ -102,11 +102,12 @@ namespace TFTAnalyzer.Editor.Ingestion
             var officialSnapshot = await _dataDragon.FetchAsync(
                 new DataDragonRequest(request.Patch),
                 token);
-            var official = _dataDragon.Parse(officialSnapshot, request.Patch);
+            var officialResult = _dataDragon.ParseWithDiagnostics(officialSnapshot, request.Patch);
+            var official = officialResult.Catalog;
             var responses = officialSnapshot.AllResponses.ToList();
-            if (!request.IncludeCommunityDragon)
+            if (!request.IncludeCommunityDragon || officialResult.Issues.Any(x => x.Severity == ValidationSeverity.Error))
             {
-                return new StaticSourceLoadResult(official, responses, null);
+                return new StaticSourceLoadResult(official, responses, null, officialResult.Issues);
             }
 
             var supplementSnapshot = await _communityDragon.FetchAsync(
@@ -119,8 +120,17 @@ namespace TFTAnalyzer.Editor.Ingestion
                 supplementSnapshot.KoKr.Utf8Body,
                 supplementSnapshot.EnUs.Utf8Body,
                 request.Patch, official);
-            var merge = _merger.Merge(official, supplement.Catalog);
-            return new StaticSourceLoadResult(merge.Catalog, responses, merge.Conflicts, supplement.Issues);
+            try
+            {
+                var merge = _merger.Merge(official, supplement.Catalog);
+                return new StaticSourceLoadResult(merge.Catalog, responses, merge.Conflicts, officialResult.Issues.Concat(supplement.Issues));
+            }
+            catch (StructuredExtensionBudgetException)
+            {
+                var issue = new ValidationIssue(ValidationSeverity.Error, StructuredExtensionBudgetException.Code, "",
+                    "공식·보완 원본 확장 자료의 합계가 레코드별 허용 용량을 초과했습니다. 게시하지 않았습니다.");
+                return new StaticSourceLoadResult(official, responses, null, officialResult.Issues.Concat(supplement.Issues).Concat(new[] { issue }));
+            }
         }
     }
 
@@ -175,6 +185,12 @@ namespace TFTAnalyzer.Editor.Ingestion
                 var loaded = await _source.LoadAsync(request, token);
                 token.ThrowIfCancellationRequested();
                 _writer.StoreRawSources(request.Identity, loaded.RawResponses);
+
+                // A failed official parse cannot acquire supplemental provenance. Report its
+                // real diagnostics before attempting identity promotion or publishing anything.
+                if (loaded.Issues.Any(x => x.Severity == ValidationSeverity.Error))
+                    return new StaticImportResult(false, false, finalDirectory, "", loaded.Catalog,
+                        new ValidationReport(_validator.Validate(loaded.Catalog).Issues.Concat(loaded.Issues)), loaded.MergeConflicts);
 
                 var catalog = PromoteManifest(loaded.Catalog, request.Identity);
 

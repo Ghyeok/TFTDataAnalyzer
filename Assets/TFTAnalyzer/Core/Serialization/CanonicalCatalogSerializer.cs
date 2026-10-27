@@ -26,6 +26,7 @@ namespace TFTAnalyzer.Serialization
             }
 
             var json = JsonConvert.SerializeObject(ToDto(catalog), Formatting.Indented, Settings);
+            if (catalog.Manifest.SchemaVersion == 4) return StructuredCatalogJson.Write(catalog, json);
             return json.Replace("\r\n", "\n") + "\n";
         }
 
@@ -42,19 +43,22 @@ namespace TFTAnalyzer.Serialization
                 throw new JsonSerializationException("Catalog manifest is required.");
             }
 
-            var root = Newtonsoft.Json.Linq.JObject.Parse(json);
-            if (dto.Manifest.SchemaVersion < 1 || dto.Manifest.SchemaVersion > 3 ||
+            var root = StructuredCatalogJson.ReadRoot(json);
+            if (dto.Manifest.SchemaVersion < 1 || dto.Manifest.SchemaVersion > 4 ||
                 (dto.Manifest.SchemaVersion < 3 && root.Properties().Any(x =>
                     string.Equals(x.Name, "fieldOrigins", StringComparison.OrdinalIgnoreCase))) ||
-                (dto.Manifest.SchemaVersion == 3 && !(root["fieldOrigins"] is Newtonsoft.Json.Linq.JArray)))
+                (dto.Manifest.SchemaVersion >= 3 && !(root["fieldOrigins"] is Newtonsoft.Json.Linq.JArray)))
                 throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");
-            return FromDto(dto);
+            StructuredCatalogJson.Guard(root, dto.Manifest.SchemaVersion);
+            try { return dto.Manifest.SchemaVersion == 4 ? StructuredCatalogJson.Attach(FromDto(dto), root) : FromDto(dto); }
+            catch (ArgumentException error) { throw new JsonSerializationException("Invalid structured static values.", error); }
         }
 
         private static CatalogDto ToDto(StaticCatalog catalog)
         {
-            if (catalog.Manifest.SchemaVersion < 1 || catalog.Manifest.SchemaVersion > 3 ||
-                (catalog.Manifest.SchemaVersion < 3 && catalog.FieldOrigins.Count > 0))
+            if (catalog.Manifest.SchemaVersion < 1 || catalog.Manifest.SchemaVersion > 4 ||
+                (catalog.Manifest.SchemaVersion < 3 && catalog.FieldOrigins.Count > 0) ||
+                (catalog.Manifest.SchemaVersion < 4 && StructuredCatalogJson.HasValues(catalog)))
                 throw new JsonSerializationException("Invalid schema or fieldOrigins contract.");
             return new CatalogDto
             {
@@ -63,7 +67,7 @@ namespace TFTAnalyzer.Serialization
                 Traits = Stable(catalog.Traits, value => value.StableId).Select(ToDto).ToList(),
                 Items = Stable(catalog.Items, value => value.StableId).Select(ToDto).ToList(),
                 Augments = Stable(catalog.Augments, value => value.StableId).Select(ToDto).ToList(),
-                FieldOrigins = catalog.Manifest.SchemaVersion == 3 ? catalog.FieldOrigins
+                FieldOrigins = catalog.Manifest.SchemaVersion >= 3 ? catalog.FieldOrigins
                     .OrderBy(x => x.RecordType, StringComparer.Ordinal).ThenBy(x => x.StableId, StringComparer.Ordinal)
                     .ThenBy(x => x.Pointer, StringComparer.Ordinal).Select(x => new FieldOriginDto
                     { RecordType = x.RecordType, StableId = x.StableId, Pointer = x.Pointer,

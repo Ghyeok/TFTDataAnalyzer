@@ -26,7 +26,7 @@ namespace TFTAnalyzer.Domain
     /// <summary>Fixed schema 3 required pointers, independent of the origins supplied by a producer.</summary>
     public static class FieldOriginFields
     {
-        public static IReadOnlyList<string> Required(object record)
+        public static IReadOnlyList<string> Required(object record, int schemaVersion = 3)
         {
             var fields = new List<string> { "/stableId" };
             void Text(string path, string text) { if (!string.IsNullOrWhiteSpace(text)) fields.Add(path); }
@@ -53,7 +53,40 @@ namespace TFTAnalyzer.Domain
                     Text("/tier", augment.Tier); List("/relatedIds", augment.RelatedIds); break;
                 default: throw new ArgumentException("Unknown catalog record.", nameof(record));
             }
+            if (schemaVersion >= 4) AddStructured(fields, record);
             return Array.AsReadOnly(fields.OrderBy(x => x, StringComparer.Ordinal).ToArray());
+        }
+
+        private static void AddStructured(List<string> fields, object record)
+        {
+            void Map(string path, IReadOnlyDictionary<string, double?> values) =>
+                fields.AddRange(values.Keys.Select(key => path + "/" + FieldOrigin.Escape(key)));
+            IReadOnlyList<StaticExtensionField> extensions;
+            switch (record)
+            {
+                case UnitRecord unit:
+                    Map("/baseStats", unit.BaseStats);
+                    for (var i = 0; i < unit.AbilityVariables.Count; i++)
+                    {
+                        fields.Add("/abilityVariables/" + i + "/name");
+                        for (var j = 0; j < unit.AbilityVariables[i].Values.Count; j++) fields.Add("/abilityVariables/" + i + "/values/" + j);
+                    }
+                    extensions = unit.Extensions; break;
+                case TraitRecord trait:
+                    for (var i = 0; i < trait.Breakpoints.Count; i++)
+                    {
+                        var path = "/breakpoints/" + i;
+                        fields.AddRange(new[] { path + "/minUnits", path + "/maxUnits", path + "/style" });
+                        Map(path + "/effects", trait.Breakpoints[i].Effects);
+                    }
+                    extensions = trait.Extensions; break;
+                case ItemRecord item:
+                    if (item.Unique.HasValue) fields.Add("/unique");
+                    extensions = item.Extensions; break;
+                case AugmentRecord augment: extensions = augment.Extensions; break;
+                default: throw new ArgumentException("Unknown catalog record.");
+            }
+            for (var i = 0; i < extensions.Count; i++) fields.Add("/extensions/" + i + "/canonicalJson");
         }
     }
 }

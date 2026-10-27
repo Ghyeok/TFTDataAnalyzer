@@ -31,7 +31,7 @@ namespace TFTAnalyzer.Tests.Persistence
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task FieldOriginPublication_PipelineReturnsActuallyStoredSchemaThreeAndOrigins(bool supplemental)
+        public async Task FieldOriginPublication_PipelineReturnsActuallyStoredCurrentSchemaAndOrigins(bool supplemental)
         {
             var c = supplemental ? new CatalogMerger().Merge(FieldOriginIngestionTests.Official(), FieldOriginIngestionTests.Supplemental()).Catalog
                 : FieldOriginIngestionTests.Official();
@@ -40,7 +40,7 @@ namespace TFTAnalyzer.Tests.Persistence
             var result = await p.RunAsync(new StaticImportRequest(c.Manifest.Identity), default);
             Assert.That(result.Published, Is.True);
             var disk = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(result.FinalDirectory, "catalog.json")));
-            Assert.That(disk.Manifest.SchemaVersion, Is.EqualTo(3));
+            Assert.That(disk.Manifest.SchemaVersion, Is.EqualTo(4));
             Assert.That(disk.FieldOrigins.Count, Is.EqualTo(c.FieldOrigins.Count));
             Assert.That(new CatalogValidator().Validate(disk).CanPublish, Is.True);
             Assert.That(result.Catalog.Manifest.SchemaVersion, Is.EqualTo(disk.Manifest.SchemaVersion));
@@ -77,7 +77,13 @@ namespace TFTAnalyzer.Tests.Persistence
                 : FieldOriginIngestionTests.Official(); var m = c.Manifest;
             var oldManifest = schema == 1 ? new PatchManifest(1, m.Patch, m.SetName, m.CreatedUtc, "", m.Sources, m.PolicyReviewDate,
                 m.PolicyUrls, 0, 0, "", "") : new PatchManifest(2, m.Identity, m.SetName, m.CreatedUtc, "", m.Sources, m.PolicyReviewDate, m.PolicyUrls, 0, 0, "", m.CommunityDragonVersion);
-            var old = new StaticCatalog(oldManifest, c.Units, c.Traits, c.Items, c.Augments);
+            // These are explicit old-format fixture values. Current adapters now return
+            // schema4 structures, which must not be smuggled into a schema1/2 fixture.
+            var old = new StaticCatalog(oldManifest,
+                c.Units.Select(x => new UnitRecord(x.StableId, x.Name, x.Cost, x.TraitIds, x.IconPath, x.Sources, x.Role, x.Description, x.Effects)),
+                c.Traits.Select(x => new TraitRecord(x.StableId, x.Name, x.Description, x.Effects, x.IconPath, x.Sources)),
+                c.Items.Select(x => new ItemRecord(x.StableId, x.Name, x.Description, x.ComponentIds, x.Effects, x.IconPath, x.Sources)),
+                c.Augments.Select(x => new AugmentRecord(x.StableId, x.Name, x.Tier, x.Description, x.RelatedIds, x.Effects, x.IconPath, x.Sources)));
             var writer = new CatalogAssetWriter(_paths); var staging = _paths.CreateStagingDirectory();
             var staged = writer.WriteStagedCatalog(old, new CatalogValidator().Validate(old), staging);
             var directory = schema == 1 ? _paths.LegacyFinalDirectory(m.Patch) : _paths.CanonicalFinalDirectory(m.Identity);

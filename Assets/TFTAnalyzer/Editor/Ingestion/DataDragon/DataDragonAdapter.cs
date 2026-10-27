@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Serialization;
+using TFTAnalyzer.Validation;
 
 namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 {
@@ -63,6 +64,29 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         public StaticCatalog Parse(DataDragonSnapshot snapshot, PatchKey patch)
         {
+            var result = ParseWithDiagnostics(snapshot, patch);
+            if (result.Issues.Any(x => x.Severity == ValidationSeverity.Error))
+                throw new JsonSerializationException("Data Dragon static document rejected.");
+            return result.Catalog;
+        }
+
+        public DataDragonParseResult ParseWithDiagnostics(DataDragonSnapshot snapshot, PatchKey patch)
+        {
+            if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+            if (patch == null) throw new ArgumentNullException(nameof(patch));
+            var issues = new List<ValidationIssue>();
+            try { return new DataDragonParseResult(ParseCore(snapshot, patch, issues), issues); }
+            catch (Exception error) when (error is JsonException || error is ArgumentException || error is OverflowException)
+            {
+                issues.Add(new ValidationIssue(ValidationSeverity.Error, "ddragon_invalid_static_data", "", "공식 정적 자료의 형식 또는 값이 잘못되어 가져오기를 중단했습니다."));
+                var manifest = new PatchManifest(4, new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly), "", DateTime.UnixEpoch, "",
+                    snapshot.AllResponses.Select(ToSourceStamp), PolicyReviewDate, PolicyUrls, 0, 0, "", "");
+                return new DataDragonParseResult(new StaticCatalog(manifest, null, null, null, null), issues);
+            }
+        }
+
+        private StaticCatalog ParseCore(DataDragonSnapshot snapshot, PatchKey patch, List<ValidationIssue> issues)
+        {
             if (snapshot == null)
             {
                 throw new ArgumentNullException(nameof(snapshot));
@@ -76,7 +100,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             var stamps = snapshot.AllResponses.Select(ToSourceStamp).ToArray();
             var createdUtc = snapshot.AllResponses.Max(response => response.RetrievedUtc);
             var manifest = new PatchManifest(
-                3,
+                4,
                 new CatalogIdentity(patch, CatalogSourceProfile.OfficialOnly),
                 "",
                 createdUtc,
@@ -93,10 +117,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             var origins = new List<FieldOrigin>();
             var catalog = new StaticCatalog(
                 manifest,
-                ParseUnits(origins, snapshot.Champions, patch, setPrefixes),
-                ParseTraits(origins, snapshot.Traits, patch, setPrefixes),
-                ParseItems(origins, snapshot.Items, patch, setPrefixes),
-                ParseAugments(origins, snapshot.Augments, patch, setPrefixes));
+                ParseUnits(origins, snapshot.Champions, patch, setPrefixes, issues),
+                ParseTraits(origins, snapshot.Traits, patch, setPrefixes, issues),
+                ParseItems(origins, snapshot.Items, patch, setPrefixes, issues),
+                ParseAugments(origins, snapshot.Augments, patch, setPrefixes, issues));
             return new StaticCatalog(catalog.Manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, origins);
         }
 
@@ -121,11 +145,12 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
-            IReadOnlyCollection<string> setPrefixes)
+            IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
             var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
+                var structured = StructuredStaticReader.Read("unit", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("unit", record.KoKr, record.EnUs, false));
                 var value = new UnitRecord(
                     record.Id,
                     record.Name,
@@ -135,8 +160,9 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     sources,
                     ReadString(record.Primary, "role"),
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
-                    ReadNumericBag(record.Primary, "stats", "effects"));
+                    ReadNumericBag(record.Primary, "stats", "effects"), structured.BaseStats, structured.AbilityVariables, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -145,19 +171,21 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
-            IReadOnlyCollection<string> setPrefixes)
+            IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
             var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
+                var structured = StructuredStaticReader.Read("trait", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("trait", record.KoKr, record.EnUs, false));
                 var value = new TraitRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record.KoKr, record.EnUs, "description", "desc"),
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Traits, record.Primary),
-                    sources);
+                    sources, structured.Breakpoints, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -166,11 +194,12 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
-            IReadOnlyCollection<string> setPrefixes)
+            IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
             var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
+                var structured = StructuredStaticReader.Read("item", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("item", record.KoKr, record.EnUs, false));
                 var value = new ItemRecord(
                     record.Id,
                     record.Name,
@@ -178,8 +207,9 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     ReadStringArray(record.Primary, "components"),
                     ReadNumericBag(record.Primary, "stats", "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Items, record.Primary),
-                    sources);
+                    sources, structured.Unique, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -188,11 +218,12 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             List<FieldOrigin> origins,
             DataDragonPayloadPair pair,
             PatchKey patch,
-            IReadOnlyCollection<string> setPrefixes)
+            IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
             var sources = PairSources(pair);
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
+                var structured = StructuredStaticReader.Read("augment", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("augment", record.KoKr, record.EnUs, false));
                 var value = new AugmentRecord(
                     record.Id,
                     record.Name,
@@ -201,8 +232,9 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                     null,
                     ReadNumericBag(record.Primary, "effects"),
                     ReadIcon(patch, DataDragonDocumentKind.Augments, record.Primary),
-                    sources);
+                    sources, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -243,7 +275,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static Dictionary<string, SourceRecord> ReadRecords(HttpResponseData response)
         {
-            var root = JObject.Parse(response.Utf8Body);
+            var root = StructuredStaticReader.ParseDocument(response.Utf8Body);
             var data = root["data"] as JObject;
             if (data == null)
             {

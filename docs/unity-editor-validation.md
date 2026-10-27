@@ -2,6 +2,8 @@
 
 ## 카탈로그 탐색 검증 도구
 
+2026-10-27 구조화 자료 확장: 같은 진입점에 `-StructuredStatic`을 지정하면 메모리의 창작 schema4/2만 사용한다. `-FieldOrigins`와 동시에 지정하지 않는다. 940/500px에서 기물 마지막 페이지·nullable 시너지·unique:false와 확장 원문 마지막 페이지·구 형식 안내의8PNG를 생성한다. `-StructuredStatic -ProbeInitializationFailure`와 `-StructuredStatic -ProbeFailure`로 표시 전/후 예외 정리를 각각 확인한다. 실행 JSON은 `structured-catalog-visual-*.json`, PNG는 `catalog-window-{940,500}-structured-*.png`다. 실제 파일·API·수집을 사용하지 않으며 기존 소유 ID/native frame/포커스 계약은 같다. 캡처 정상 종료와 픽셀 확인은 구분하고, 작은 창의 스크롤 밖 자료를 한 PNG에 모두 보인다고 기록하지 않는다.
+
 2026-10-22 필드 출처 확장: 같은 진입점에 `-FieldOrigins`를 지정하면 기존 로컬 팩을 읽는 기본 모드 대신 메모리의 창작 schema3/2를 사용한다. 원본 파일·인덱스·환경 변수·API는 변경하지 않는다. `-FieldOrigins -ProbeInitializationFailure`와 `-FieldOrigins -ProbeFailure`는 각각 표시 전/후 예외 정리를 확인한다. 기존 로컬 팩 읽기 모드는 그대로 유지한다. `field-origin-catalog-visual-*.json`과 `catalog-window-{940,500}-field-origins{,-legacy}.png`를 구분해 확인한다. 실패 시 생성한 창의 정확한 ID·고유이름·기존 프레임·포커스 보존을 먼저 확인하고 중첩 실행하지 않는다.
 
 이 사이클의 첫 합성 캡처는 InvalidOperationException/캡처0이었고 정리는 성공했다. 합성 상태의 값 존재 여부·행 수만 기록하는 제한 진단을 추가한 1회 재실행과 두 예외probe는 통과했다. 최초 원인은 미확정이며 시간 대기만 늘리거나 제품의 간헐 오류가 해결됐다고 주장하지 않는다. 최종4PNG는 각각 직접 확인했고 기존9창/native1·포커스 보존과 소유창0을 대조했다.

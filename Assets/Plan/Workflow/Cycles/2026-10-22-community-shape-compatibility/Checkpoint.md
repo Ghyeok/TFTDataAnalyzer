@@ -18,3 +18,6 @@
 
 
 최종QA는pass/필수0으로반환됐다. [QA보고](refined/QAReport.md), [사용법·한계](refined/FinalDocumentation.md), [실제원문](raw/FinalQA.md)에결과를보존한다. 최종문서상태는사용자결과승인대기이며사이클전체완료로표시하지않는다.
+
+
+최신통합: PR22 최신5902efe의CodeRabbit SUCCESS·미해결0·CLEAN/검토범위일치후UTC2026-10-26 09:25:32 mainf9974726021bb35edfdb3b5392904db42d1c270f로병합. 별도CI는없고문서주석커버리지warning은비차단으로남겼다. 검증head와병합전체트리같음. 직접PR조회종료, 외부예약/Hermes재등록0. 제품계획7/7완료·사용자최종결과승인은별도대기. 다음상위설계잔여의기획은별도branch codex/structured-static-data에서진행한다.
