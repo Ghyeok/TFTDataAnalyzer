@@ -5,7 +5,7 @@
 사용자 call_d5412b46c27542e99a05dffe990ea1c4가 통합 계획 구현을 명시 승인했다. 기준main7922fa6, 로컬기획265bdf1/branch codex/localized-catalog-storage, Unity20116/6000.3.8f1/port7800 ready를 실제확인했다. root executing-plans/TDD, 기존동일code-review/QA담당재사용·새agent/재위임0.
 
 Ruling: 이미 승인된 단일 연결 프로젝트의 전용브랜치에서 구현하며 새worktree/Editor를 만들지 않는다 — 기존 사용자창/Chrome보존과 정확한프로젝트경로를유지한다 — 잘못되면사용자변경혼입이므로명시파일stage/보호SHA를계속대조한다.
-Ruling: 계획의TODO/이개발기록/Checkpoint를단일실행ledger로사용한다 — 중복상태파일/새역할호출비용을줄인다 — 재개시실제job terminal과산출물로상태를확인한다.
+Ruling: 실행 순서와 TODO·검수 조건·QA 증거 및 체크 상태는 [통합 계획](ImplementationPlan.md)에서 관리한다. 이 개발 기록은 당시 실행 이력이고 [체크포인트](../Checkpoint.md)는 재개 위치 요약이다. 재개 시 실제 job 종료와 산출물을 확인한다.
 
 다음은제품변경전실제schema4serializer의네kind창작golden동결이다. 이전1~3golden을재생성하지않고비밀값·원본경기를읽지않는다. 실제모델·추론·root전체사용량은미확인이다.
 

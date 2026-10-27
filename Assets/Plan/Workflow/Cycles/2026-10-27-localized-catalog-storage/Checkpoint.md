@@ -2,7 +2,7 @@
 
 상태: 진행 중
 
-사용자 call_d5412b46c27542e99a05dffe990ea1c4가 [구현 계획](refined/ImplementationPlan.md)을 승인했다. 기준 main 7922fa6, 기획 커밋 265bdf1, 브랜치 codex/localized-catalog-storage다. TODO 1·2 구현 및 회귀, 독립 코드검수 수정과 재검수를 완료했고 독립 최종 QA도 필수 수정 없이 통과했다. 문서 점검과 PR 통합이 남았다. PR은 아직 생성하지 않았다.
+사용자 call_d5412b46c27542e99a05dffe990ea1c4가 [구현 계획](refined/ImplementationPlan.md)을 승인했다. 기준 main 7922fa6, 기획 커밋 265bdf1, 브랜치 codex/localized-catalog-storage다. TODO 1·2 구현 및 회귀, 독립 코드검수 수정과 재검수를 완료했고 독립 최종 QA도 필수 수정 없이 통과했다. 문서 점검과 PR 통합이 남았다. [PR24](https://github.com/Ghyeok/TFTDataAnalyzer/pull/24)의 최신 head CodeRabbit 검수 의견을 반영하고 재검수한다.
 
 schema4 원본 serializer로 제품 수정 전에 생성한 창작 golden의 SHA는 6152c706c5e36c459c81cb08bbd4d384c18141f0f69240d9ee734ebc7021cd7e다. 구 1~3 golden을 재생성하지 않았다. schema5 manifest 별칭 문제는 실제 2건 RED 후 수정하여 관련 60/60 GREEN과 동일 코드검수 담당의 delta pass를 받았다.
 
