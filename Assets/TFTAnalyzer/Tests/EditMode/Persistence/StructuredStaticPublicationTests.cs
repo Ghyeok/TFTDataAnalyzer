@@ -82,7 +82,8 @@ namespace TFTAnalyzer.Tests.Persistence
                 using (var browser = new CatalogBrowserViewModel())
                 {
                     browser.SetCatalog(row.Catalog, row.Identity); browser.SetFilter(CatalogRecordKind.Unit, "TFT_Shape_Unit_A"); browser.Select("TFT_Shape_Unit_A");
-                    Assert.That(browser.Selected.DetailsText, Does.Contain("/baseStats/hp"));
+                    Assert.That(browser.Selected.DetailsText, Does.Contain("/cost"));
+                    Assert.That(browser.StructuredRows.Single(x => x.Field == "/baseStats/hp").Sources.Single().IsSupplemental, Is.False);
                 }
                 if (supplement)
                 {

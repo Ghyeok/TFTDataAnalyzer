@@ -43,3 +43,14 @@ PID32384의 최종 환경은 기존9창/native1/focus0 보존·Console오류1/�
 
 
 최신: 기존 코드검수·최종QA 모두 pass/필수0. [결과와 사용법](refined/FinalDocumentation.md), [QA](refined/QAReport.md), raw 응답을 반영했다. 다음 첫 행동은 명시 소유 파일만 stage/검증/commit/PR 생성, 최신head CodeRabbit·미해결·CI를5분간격직접확인 후 승인범위병합이다. 현재 새PR0이므로 아직조회루프0. 최종결과사용자승인은별도.
+
+
+## PR23 CodeRabbit 보완 결과
+
+최초 e42e43b 검수4건을 현재상태문서2곳·실제공개prompt raw·정제문서허용상태·구상세출처잘림으로 분류해 모두 수용했다. 500개 구조화출처 때문에 기존 /cost와 /name/enUs가4096자에서 사라지는 실제RED1(pr23-field-sources-red.json)을 확보했다. schema4에서 구조화포인터만 구상세에서 제외하고 전용20행 출처 페이지는 유지했다. 기존 actualpipeline 시험은 구상세 /cost와 구조화행 /baseStats/hp의 공식출처를 각각 확인한다. 새 자료를 숨기거나 구1~3출처를 바꾸지 않았다.
+
+관련113/113, 최종 pr23-review-full-editmode.json **939개/937통과/실패0/호스트2제외(85.21초)** 및 UI227통과다. pr23-review-source-freeze.json227SHA·보호1389변경0. 새8PNG를 root와 동일QA 담당이 직접 확인했고 좌측overlay는 없으며500px하단은스크롤이필요하다. 새PID20116 정상캡처는 기존9창/native1·focus보존·소유0이다. 이전표시전/후예외probe는 변경없는도구의 이전실행증거로만 보존한다.
+
+현재Console1/0은 pr23-console-sanitized.json에서 `Unity.Pipeline`의 `/api/exec` 요청 `Thread was being aborted` 오류로 분류했고 제품/컴파일 언급은 false다. 도구 요청 중단의 발생 계기는 미확인이며 해결/로그삭제를 주장하지 않는다. 이전PID32384의 미확인오류1건과 같은오류로단정하지않는다. 독립코드검수delta와최종QA가모두pass/필수0을확인했다. 실제모델·추론·usage미확인,새agent0. 실제API·분류등록0·실제n100·성급/장착의미·KI-001·사용자최종승인은계속잔여다.
+
+다음 첫 행동: 이 수정본 commit/push 후 최신head를별도확인하고4의견을수정근거에따라해결처리한다. 최신head CodeRabbit·미해결0·CI·실행증거를5분간격확인한뒤승인범위main병합. 과거e42e43b check SUCCESS는새head통과로사용하지않는다.

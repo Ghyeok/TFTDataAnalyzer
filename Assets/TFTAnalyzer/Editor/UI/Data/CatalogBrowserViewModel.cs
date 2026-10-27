@@ -154,6 +154,7 @@ namespace TFTAnalyzer.Editor.UI.Data
         {
             if (catalog.Manifest.SchemaVersion < 3) return "필드별 출처 정보 없음 — 기존 문서 단위 출처만 보존된 카탈로그입니다.";
             var origins = recordOrigins
+                .Where(x => catalog.Manifest.SchemaVersion < 4 || !IsStructuredPointer(x.Pointer))
                 .OrderBy(x => x.Pointer, StringComparer.Ordinal).ToArray();
             if (origins.Length == 0) return "필드별 출처 기록 없음 — 검증이 필요합니다.";
             return string.Join("\n\n", origins.SelectMany(origin => origin.Sources.Select(source => (origin.Pointer, Source: source)))
@@ -169,6 +170,10 @@ namespace TFTAnalyzer.Editor.UI.Data
                         Clip(source.Url) + "\nSHA-256: " + Clip(source.Sha256) + "\n" + pointers;
                 }));
         }
+
+        private static bool IsStructuredPointer(string pointer) => pointer == "/unique" ||
+            new[] { "/baseStats/", "/abilityVariables/", "/breakpoints/", "/extensions/" }
+                .Any(prefix => pointer.StartsWith(prefix, StringComparison.Ordinal));
 
         public void Dispose()
         {

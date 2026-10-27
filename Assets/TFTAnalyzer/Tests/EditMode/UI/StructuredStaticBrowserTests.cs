@@ -117,6 +117,19 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [Test]
+        public void StructuredStatic_ManyStructuredOriginsDoNotClipLegacyFieldSources()
+        {
+            using (var vm = Browser(Catalog(count: 500, extensions: 0)))
+            {
+                Assert.That(vm.Selected.DetailsText, Does.Contain("/cost").And.Contain("/name/enUs"));
+                Assert.That(vm.Selected.DetailsText, Does.Not.Contain("/baseStats/"));
+                Call(vm, "SetStructuredPage", 24);
+                Assert.That((string)Property(Rows(vm, "StructuredRows").Last(), "Field"), Is.EqualTo("/baseStats/S99"));
+                Assert.That(((IEnumerable)Property(Rows(vm,"StructuredRows").Last(),"Sources")).Cast<SourceStamp>().Single().Sha256, Is.EqualTo("official"));
+            }
+        }
+
+        [Test]
         public void StructuredStatic_DisposedBrowserIgnoresLateDetailActions()
         {
             var vm = Browser(Catalog(longJson: true)); var changes = 0; vm.Changed += () => changes++;
