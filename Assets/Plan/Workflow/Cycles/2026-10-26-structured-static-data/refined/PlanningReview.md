@@ -2,7 +2,7 @@
 
 상태: 승인됨
 
-기준 main f9974726021bb35edfdb3b5392904db42d1c270f. [구현 계획](ImplementationPlan.md)의 마지막 통합 절까지 사용자 승인 대상이다. 원본 snapshot과 최초 기획 verdict를 덮어쓰지 않는다. [동결 자료와 실제 결과](../../../../../../AntigravityCollab/tasks/2026-10-26-structured-static-planning/result.md), [실제 요청·응답](../raw/Planning.md).
+기준 main f9974726021bb35edfdb3b5392904db42d1c270f. [구현 계획](ImplementationPlan.md)의 마지막 통합 절까지 사용자 명시 승인 범위다. 원본 snapshot과 최초 기획 verdict를 덮어쓰지 않는다. [동결 자료와 실제 결과](../../../../../../AntigravityCollab/tasks/2026-10-26-structured-static-planning/result.md), [실제 요청·응답](../raw/Planning.md).
 
 ## 결정
 
@@ -31,7 +31,7 @@ A는 agy1.4.7, requested/init model gemini-4-argon-medium 일치, requested effo
 
 ## 완료 조건과 잔여
 
-계획의6개 TODO가 구현·독립 검수·실제 RED/GREEN·전체 회귀·940/500px 화면/창 정리·PR 최신head 검수를 모두 충족해야 개발/통합을 완료한다. 현재 제품 변경·신규 테스트·Unity 실행은 미실행이다. 별도 워크플로 §3.1.6 ‘사용자의 명시적 승인을 기다린다.’에 따라 승인을 요청한다.
+승인 전 기록: 계획의6개 TODO가 구현·독립 검수·실제 RED/GREEN·전체 회귀·940/500px 화면/창 정리·PR 최신head 검수를 모두 충족해야 개발/통합을 완료한다. 당시 제품 변경·신규 테스트·Unity 실행은 미실행이었고, 워크플로 §3.1.6 ‘사용자의 명시적 승인을 기다린다.’에 따라 승인을 요청했다.
 
 실제 자료의 성급/장착 의미 확보, 실제 static 다운로드/Match API, 실제 증강 분류등록0·n100 입도, KI-001 기록, 사용자 최종 확인을 서비스 잔여에서 지우지 않는다. 이번 기획 검토는 전체 서비스 완료나 사용자 최종 승인 증거가 아니다.
 
