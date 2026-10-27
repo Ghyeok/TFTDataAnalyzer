@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-10-26-structured-static-planning",
+  "inputDigest": "645b7a60a1a5be13f6f7776ef41d017864ad41654c1e4e3f296a888152f7b189",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.7",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 20376,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 14262,
+    "output_tokens": 10928,
+    "thinking_tokens": 9309,
+    "cache_read_tokens": 0,
+    "total_tokens": 25190
+  },
+  "responseSeconds": 133.9052475,
+  "exitCode": 0,
+  "durationSeconds": 144.241
+}

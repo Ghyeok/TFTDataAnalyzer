@@ -1,0 +1,20 @@
+{
+  "taskId": "2026-10-26-structured-static-planning",
+  "inputDigest": "645b7a60a1a5be13f6f7776ef41d017864ad41654c1e4e3f296a888152f7b189",
+  "verdict": "revise",
+  "findings": [
+    {
+      "severity": "P2",
+      "reference": "inputs/implementation-plan.md:34,39 — 데이터·형식 계약 2·7",
+      "impact": "TraitBreakpoint의 MinUnits/MaxUnits/Style은 nullable이지만 원본 키 누락과 명시적 null의 처리·필수 출처 규칙이 없습니다. 예를 들어 minUnits가 없는 항목과 minUnits:null인 항목이 모두 MinUnits=null로 저장되면, 재로딩한 validator는 출처가 정당하게 없는지 삭제됐는지 독립적으로 판별할 수 없습니다. 모든 null에 출처를 요구하면 누락 필드의 출처를 만들어내게 되고, 요구하지 않으면 실제 null의 출처 삭제를 놓칩니다.",
+      "action": "각 구간 scalar의 키 누락·명시적 null 정책과 필수 origin 집합을 승인 전에 고정하세요. 최소 방안은 구간 scalar 키를 필수로 두되 명시적 null을 허용하고 해당 origin을 항상 요구하는 것입니다. 누락도 허용해야 한다면 원본 존재 여부를 보존할 표현을 정하세요. 키 누락, 명시적 null, null의 origin 제거를 실제 어댑터→직렬화→재로딩 검증으로 구분하는 완료 조건을 추가하세요.",
+      "inScope": true
+    }
+  ],
+  "unverified": [
+    "지정된 입력 2개의 SHA256이 manifest와 일치함을 확인했습니다. request-b와 manifest 외 추가 자료는 열람하지 않았습니다.",
+    "제품 코드·Unity 실행·네트워크·상대 기획 결과는 확인하지 않았습니다. 구현 가능성 검토이며 제품 검증이나 사용자 승인을 대체하지 않습니다.",
+    "실제 원본의 성급·제한 토큰 의미와 캐시의 버전·locale 인증은 미확인입니다.",
+    "실제 실행 모델·추론 설정·사용량은 미확인입니다."
+  ]
+}

@@ -13,6 +13,9 @@ namespace TFTAnalyzer.Domain
         public string Role { get; }
         public LocalizedText Description { get; }
         public IReadOnlyDictionary<string, double> Effects { get; }
+        public IReadOnlyDictionary<string, double?> BaseStats { get; }
+        public IReadOnlyList<StaticNumericSeries> AbilityVariables { get; }
+        public IReadOnlyList<StaticExtensionField> Extensions { get; }
 
         public UnitRecord(
             string stableId,
@@ -23,7 +26,10 @@ namespace TFTAnalyzer.Domain
             IEnumerable<SourceStamp> sources,
             string role = "",
             LocalizedText description = null,
-            IReadOnlyDictionary<string, double> effects = null)
+            IReadOnlyDictionary<string, double> effects = null,
+            IReadOnlyDictionary<string, double?> baseStats = null,
+            IEnumerable<StaticNumericSeries> abilityVariables = null,
+            IEnumerable<StaticExtensionField> extensions = null)
         {
             StableId = DomainValues.RequireStable(stableId, nameof(stableId));
             Name = name ?? LocalizedText.Empty;
@@ -31,6 +37,9 @@ namespace TFTAnalyzer.Domain
             TraitIds = DomainValues.Copy(traitIds);
             IconPath = iconPath ?? "";
             Sources = DomainValues.Copy(sources);
+            BaseStats = DomainValues.CopyNullableEffects(baseStats);
+            AbilityVariables = DomainValues.Copy(abilityVariables);
+            Extensions = DomainValues.CopyExtensions(extensions);
             Role = role ?? "";
             Description = description ?? LocalizedText.Empty;
             Effects = DomainValues.CopyEffects(effects);

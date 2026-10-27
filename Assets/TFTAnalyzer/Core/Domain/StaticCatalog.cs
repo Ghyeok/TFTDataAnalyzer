@@ -67,5 +67,31 @@ namespace TFTAnalyzer.Domain
         {
             return value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
         }
+
+        public static void RequireFinite(double? value)
+        {
+            if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)))
+                throw new ArgumentException("Static numeric values must be finite.");
+        }
+
+        public static IReadOnlyDictionary<string, double?> CopyNullableEffects(IReadOnlyDictionary<string, double?> values)
+        {
+            var copy = new SortedDictionary<string, double?>(StringComparer.Ordinal);
+            if (values != null) foreach (var pair in values)
+            {
+                if (string.IsNullOrWhiteSpace(pair.Key)) throw new ArgumentException("Static value key is required.");
+                RequireFinite(pair.Value); copy.Add(pair.Key, pair.Value);
+            }
+            return new ReadOnlyDictionary<string, double?>(copy);
+        }
+
+        public static IReadOnlyList<StaticExtensionField> CopyExtensions(IEnumerable<StaticExtensionField> values)
+        {
+            var result = Copy(values);
+            if (result.Any(x => x == null) || result.Select(x => (x.SourceName, x.Locale, x.Pointer)).Distinct().Count() != result.Count ||
+                result.Sum(x => (long)System.Text.Encoding.UTF8.GetByteCount(x.SourceName + x.Locale + x.Pointer + x.CanonicalJson)) > 65536)
+                throw new ArgumentException("Duplicate or oversized source extensions.");
+            return result;
+        }
     }
 }

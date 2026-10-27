@@ -117,7 +117,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     value.Sources,
                     value.Role,
                     value.Description,
-                    value.Effects));
+                    value.Effects, value.BaseStats, value.AbilityVariables, value.Extensions));
             }
 
             var traits = new List<TraitRecord>();
@@ -129,7 +129,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     value.Description,
                     value.Effects,
                     await Stage(value.IconPath),
-                    value.Sources));
+                    value.Sources, value.Breakpoints, value.Extensions));
             }
 
             var items = new List<ItemRecord>();
@@ -142,7 +142,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     value.ComponentIds,
                     value.Effects,
                     await Stage(value.IconPath),
-                    value.Sources));
+                    value.Sources, value.Unique, value.Extensions));
             }
 
             var augments = new List<AugmentRecord>();
@@ -156,7 +156,7 @@ namespace TFTAnalyzer.Editor.Persistence
                     value.RelatedIds,
                     value.Effects,
                     await Stage(value.IconPath),
-                    value.Sources));
+                    value.Sources, value.Extensions));
             }
 
             return new StaticCatalog(catalog.Manifest, units, traits, items, augments, catalog.FieldOrigins);
@@ -232,7 +232,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 // that pack's own schema, instead of claiming schema 3 metadata was stored there.
                 var existingSchema = JObject.Parse(File.ReadAllText(Path.Combine(finalDirectory, "manifest.json"))).Value<int>("schemaVersion");
                 var incoming = CanonicalCatalogSerializer.Deserialize(File.ReadAllText(Path.Combine(staged.PatchDirectory, "catalog.json")));
-                if (incoming.Manifest.SchemaVersion == 3 && existingSchema < 3)
+                if (incoming.Manifest.SchemaVersion >= 3 && existingSchema < incoming.Manifest.SchemaVersion)
                     expectedHash = ContentHasher.Sha256Hex(CanonicalCatalogSerializer.Serialize(
                         NormalizeForContentSnapshot(AsSchema(incoming, existingSchema))));
                 if (!string.Equals(existingHash, expectedHash, StringComparison.OrdinalIgnoreCase))
@@ -334,7 +334,7 @@ namespace TFTAnalyzer.Editor.Persistence
             var manifest = JObject.Parse(File.ReadAllText(manifestPath));
             if (expectedIdentity != null &&
                 ((compatibleLegacy ? manifest.Value<int?>("schemaVersion") != 1 :
-                    manifest.Value<int?>("schemaVersion") != 2 && manifest.Value<int?>("schemaVersion") != 3) ||
+                    manifest.Value<int?>("schemaVersion") != 2 && manifest.Value<int?>("schemaVersion") != 3 && manifest.Value<int?>("schemaVersion") != 4) ||
                  !string.Equals(manifest.Value<string>("setId"), expectedIdentity.Patch.SetId, StringComparison.Ordinal) ||
                  manifest.Value<int?>("setNumber") != expectedIdentity.Patch.SetNumber ||
                  !string.Equals(manifest.Value<string>("patchId"), expectedIdentity.Patch.PatchId, StringComparison.Ordinal) ||
@@ -474,14 +474,14 @@ namespace TFTAnalyzer.Editor.Persistence
                 value.Sources.Select(NormalizeSource),
                 value.Role,
                 value.Description,
-                value.Effects));
+                value.Effects, value.BaseStats, value.AbilityVariables, value.Extensions));
             var traits = catalog.Traits.Select(value => new TraitRecord(
                 value.StableId,
                 value.Name,
                 value.Description,
                 value.Effects,
                 value.IconPath,
-                value.Sources.Select(NormalizeSource)));
+                value.Sources.Select(NormalizeSource), value.Breakpoints, value.Extensions));
             var items = catalog.Items.Select(value => new ItemRecord(
                 value.StableId,
                 value.Name,
@@ -489,7 +489,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 value.ComponentIds,
                 value.Effects,
                 value.IconPath,
-                value.Sources.Select(NormalizeSource)));
+                value.Sources.Select(NormalizeSource), value.Unique, value.Extensions));
             var augments = catalog.Augments.Select(value => new AugmentRecord(
                 value.StableId,
                 value.Name,
@@ -498,7 +498,7 @@ namespace TFTAnalyzer.Editor.Persistence
                 value.RelatedIds,
                 value.Effects,
                 value.IconPath,
-                value.Sources.Select(NormalizeSource)));
+                value.Sources.Select(NormalizeSource), value.Extensions));
             return new StaticCatalog(manifest, units, traits, items, augments,
                 catalog.FieldOrigins.Select(origin => new FieldOrigin(origin.RecordType, origin.StableId,
                     origin.Pointer, origin.Sources.Select(NormalizeSource))));
@@ -510,18 +510,31 @@ namespace TFTAnalyzer.Editor.Persistence
         private static StaticCatalog AsSchema(StaticCatalog catalog, int schema)
         {
             var source = catalog.Manifest;
-            if (schema != 1 && schema != 2) throw new ArgumentOutOfRangeException(nameof(schema));
+            if (schema < 1 || schema > 3) throw new ArgumentOutOfRangeException(nameof(schema));
             if (schema == 1 && source.Identity?.IncludesCommunityDragon == true)
                 throw new InvalidOperationException("Supplemental catalog cannot be projected to legacy official schema.");
             var manifest = schema == 1 ? new PatchManifest(1, source.Patch, source.SetName, source.CreatedUtc,
                 source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
                 source.ValidationErrorCount, source.ValidationWarningCount,
                 source.PreviousPatchSummary, source.CommunityDragonVersion) :
-                new PatchManifest(2, source.Identity, source.SetName, source.CreatedUtc,
+                new PatchManifest(schema, source.Identity, source.SetName, source.CreatedUtc,
                     source.ContentHash, source.Sources, source.PolicyReviewDate, source.PolicyUrls,
                     source.ValidationErrorCount, source.ValidationWarningCount,
                     source.PreviousPatchSummary, source.CommunityDragonVersion);
-            return new StaticCatalog(manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments);
+            // Drop only the schema4 structures. Document Sources and schema3 selected
+            // lineage are old semantic content and must never be recomputed or pruned.
+            var units = catalog.Units.Select(x => new UnitRecord(x.StableId, x.Name, x.Cost, x.TraitIds, x.IconPath, x.Sources, x.Role, x.Description, x.Effects)).ToArray();
+            var traits = catalog.Traits.Select(x => new TraitRecord(x.StableId, x.Name, x.Description, x.Effects, x.IconPath, x.Sources)).ToArray();
+            var items = catalog.Items.Select(x => new ItemRecord(x.StableId, x.Name, x.Description, x.ComponentIds, x.Effects, x.IconPath, x.Sources)).ToArray();
+            var augments = catalog.Augments.Select(x => new AugmentRecord(x.StableId, x.Name, x.Tier, x.Description, x.RelatedIds, x.Effects, x.IconPath, x.Sources)).ToArray();
+            var known = new HashSet<(string, string, string)>();
+            void Record(string type, string id, object value) { foreach (var path in FieldOriginFields.Required(value, 3)) known.Add((type, id, path)); }
+            foreach (var x in units) Record("unit", x.StableId, x);
+            foreach (var x in traits) Record("trait", x.StableId, x);
+            foreach (var x in items) Record("item", x.StableId, x);
+            foreach (var x in augments) Record("augment", x.StableId, x);
+            return new StaticCatalog(manifest, units, traits, items, augments,
+                schema == 3 ? catalog.FieldOrigins.Where(x => known.Contains((x.RecordType, x.StableId, x.Pointer))) : null);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace TFTAnalyzer.Domain
         public IReadOnlyDictionary<string, double> Effects { get; }
         public string IconPath { get; }
         public IReadOnlyList<SourceStamp> Sources { get; }
+        public IReadOnlyList<StaticExtensionField> Extensions { get; }
 
         public AugmentRecord(
             string stableId,
@@ -21,7 +22,8 @@ namespace TFTAnalyzer.Domain
             IEnumerable<string> relatedIds,
             IReadOnlyDictionary<string, double> effects,
             string iconPath,
-            IEnumerable<SourceStamp> sources)
+            IEnumerable<SourceStamp> sources,
+            IEnumerable<StaticExtensionField> extensions = null)
         {
             StableId = DomainValues.RequireStable(stableId, nameof(stableId));
             Name = name ?? LocalizedText.Empty;
@@ -31,6 +33,7 @@ namespace TFTAnalyzer.Domain
             Effects = DomainValues.CopyEffects(effects);
             IconPath = iconPath ?? "";
             Sources = DomainValues.Copy(sources);
+            Extensions = DomainValues.CopyExtensions(extensions);
         }
     }
 }

@@ -83,6 +83,7 @@ namespace TFTAnalyzer.Diff
             result["role"] = value.Role;
             AddText(result, "description", value.Description);
             result["effects"] = Effects(value.Effects);
+            AddStructured(result, value);
             return result;
         }
 
@@ -91,6 +92,7 @@ namespace TFTAnalyzer.Diff
             var result = Common(value.Name, value.IconPath, value.Sources);
             AddText(result, "description", value.Description);
             result["effects"] = Effects(value.Effects);
+            AddStructured(result, value);
             return result;
         }
 
@@ -100,6 +102,7 @@ namespace TFTAnalyzer.Diff
             AddText(result, "description", value.Description);
             result["componentIds"] = StableList(value.ComponentIds);
             result["effects"] = Effects(value.Effects);
+            AddStructured(result, value);
             return result;
         }
 
@@ -110,7 +113,27 @@ namespace TFTAnalyzer.Diff
             AddText(result, "description", value.Description);
             result["relatedIds"] = StableList(value.RelatedIds);
             result["effects"] = Effects(value.Effects);
+            AddStructured(result, value);
             return result;
+        }
+
+        private static void AddStructured(SortedDictionary<string, string> fields, object value)
+        {
+            string Json(object item) => Newtonsoft.Json.JsonConvert.SerializeObject(item);
+            IReadOnlyList<StaticExtensionField> extensions;
+            switch (value)
+            {
+                case UnitRecord unit:
+                    fields["/baseStats"] = Json(unit.BaseStats); fields["/abilityVariables"] = Json(unit.AbilityVariables); extensions = unit.Extensions; break;
+                case TraitRecord trait:
+                    fields["/breakpoints"] = Json(trait.Breakpoints); extensions = trait.Extensions; break;
+                case ItemRecord item:
+                    fields["/unique"] = Json(item.Unique); extensions = item.Extensions; break;
+                case AugmentRecord augment: extensions = augment.Extensions; break;
+                default: throw new ArgumentException("Unknown static record.");
+            }
+            fields["/extensions"] = Json(extensions.OrderBy(x => x.SourceName, StringComparer.Ordinal).ThenBy(x => x.Locale, StringComparer.Ordinal)
+                .ThenBy(x => x.Pointer, StringComparer.Ordinal).ToArray());
         }
 
         private static SortedDictionary<string, string> Common(

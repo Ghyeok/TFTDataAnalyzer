@@ -2,7 +2,8 @@ param(
     [string]$UnityPath = (Join-Path $env:LOCALAPPDATA 'Unity\bin\unity.exe'),
     [switch]$ProbeFailure,
     [switch]$ProbeInitializationFailure,
-    [switch]$FieldOrigins
+    [switch]$FieldOrigins,
+    [switch]$StructuredStatic
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,14 +18,21 @@ if ($FieldOrigins) {
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunFieldOriginFailureProbe' }
         else { 'CatalogScopedVisualValidation.RunFieldOrigins' }
 }
+if ($FieldOrigins -and $StructuredStatic) { throw 'Choose one synthetic mode.' }
+if ($StructuredStatic) {
+    $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunStructuredInitializationFailureProbe' }
+        elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunStructuredFailureProbe' }
+        else { 'CatalogScopedVisualValidation.RunStructured' }
+}
 $resultFileName = if ($ProbeInitializationFailure) { 'catalog-visual-initialization-failure-command.json' }
     elseif ($ProbeFailure) { 'catalog-visual-failure-command.json' } else { 'catalog-visual-command.json' }
+if ($StructuredStatic) { $resultFileName = 'structured-' + $resultFileName }
 $resultPath = Join-Path $outputRoot $resultFileName
 $cleanupPath = Join-Path $outputRoot 'catalog-visual-fallback-cleanup.json'
 $validationFailure = $null
 
 try {
-    & $UnityPath command run_script --project-path $projectRoot --file 'AgentScripts/TftAnalyzerCatalogVisualValidation.cs' --entry $entry --timeout_ms 15000 --format json |
+    & $UnityPath command run_script --project-path $projectRoot --file 'AgentScripts/TftAnalyzerCatalogVisualValidation.cs' --entry $entry --timeout_ms 30000 --format json |
         Set-Content -LiteralPath $resultPath
     $commandExit = $LASTEXITCODE
     $report = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json

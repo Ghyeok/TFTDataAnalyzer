@@ -20,6 +20,8 @@
 
 ## Global Constraints
 
+2026-10-26 최신: PR22는 main f997472에 병합했고 최신 검수 head와 전체 트리가 같다. 다음 [구조화 정적 데이터 계획](../Workflow/Cycles/2026-10-26-structured-static-data/Checkpoint.md)은 schema4의 기물 수치·시너지 구간·아이템 제한·비실행 확장 자료와 구 schema1/2/3 불변 보존을 기획한다. 아직 제품 구현 미승인이며 아래 이전 ‘PR통합단계’는 당시 기록이다. 실제API·분류등록0·실제n100/입도·KI-001·사용자 최종 확인의 잔여를 유지한다.
+
 2026-10-26 현재: 필드별 출처 기록은PR21/main5a67afb에병합됐다. [보완 정적 자료 형식 호환](../Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은새기획A/B·사용자승인후구현·독립코드검수·전체826/824P0F/호스트2제외와최종QA통과를확인했고PR통합단계다. 같은요청official catalog로global범위를검증하며제외ID경고도bounded표본으로보존한다. 새능력치/시너지구간/아이템제한구조모델과실제API·분류등록·n100은여전히잔여다. 아래이전날짜의현재표시는각시점이력이다.
 
 2026-10-22 현재 사이클: 정적 가져오기 보고서는 PR20/mainf005879에 병합했다. [필드별 출처 기록](../Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 A/B 검토·사용자 명시 승인 후 구현·코드검수를 마쳤으며 전체796/794P0F/호스트2제외와4PNG·소유창0·보호1399불변을 확인했다. 최종QA·PR 최신head 검수/병합은 별도 진행한다. 구schema1/2를 변경하지 않으며 실제 API 수집은 계속 미룬다.
@@ -71,3 +73,9 @@ Run the full EditMode suite:
 ```
 
 Success requires `success: true`, completed test status, zero failed tests, and no compiler errors in the fresh command output.
+
+
+2026-10-27 현재: 구조화 정적 데이터는 사용자 승인 후 schema4 모델·실제 adapter·공식우선 병합·불변 게시/loader·차이 비교·20행 탐색/4096자 원문까지 구현했다. 관련112/UI226·실제8PNG·정상과예외창정리를 확인했고 최종 코드검수·회귀·QA를 통과했고 PR23 통합을 진행한다. 구schema1/2/3은 자동변환하지 않는다. 실제API·분류등록0·실제n100사용성·성급/장착의 미공급 의미·KI-001·사용자 최종 확인은 계속 잔여다.
+
+
+2026-10-27 PR23 최신 보완: CodeRabbit4의견은 실제prompt/문서상태와schema4 구상세출처잘림을수정했다. 독립재검수·QA통과, 최신939/937P0F/호스트2제외·관련113/UI227·새8PNG·동결227/보호1389변경0을확인했다. 최신수정head 검수와병합은별도이며 미완료서비스항목은그대로다.

@@ -6,6 +6,8 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 ## 개발 현황
 
+[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 최신 CodeRabbit·미해결0·실행 증거 확인 후 [PR #22](https://github.com/Ghyeok/TFTDataAnalyzer/pull/22)로 main f997472에 병합했습니다. 다음 [구조화 정적 데이터 계획](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/ImplementationPlan.md)은 기물 능력치·스킬 수치·시너지 구간·아이템 제한과 비실행 확장 자료를 다룹니다. 사용자 승인 후 실제 어댑터부터 schema4 저장·차이 비교·구조화 탐색까지 구현·독립 코드검수·QA를 통과했습니다. 최신939개 중937통과·실패0·호스트2제외, 관련113건·UI227건·최신8PNG 및 창 정리를 확인했고 PR23의 수정 head 검수·통합을 진행합니다. [사용법과 제한](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/FinalDocumentation.md)을 확인하세요. 원본에 없는 성급/장착 규칙은 추정하지 않습니다.
+
 [필드별 출처 기록](Assets/Plan/Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 사용자 승인 후 구현·코드검수를 마쳤고 최신 전체797개 중795통과·실패0·호스트제약2제외와 실제4PNG를 확인했습니다. 새 가져오기는 schema3에 값별 공식/보완 출처를 보존하고 탐색 상세에 표시합니다. 기존schema1/2의 파일·해시는 유지하며 같은 내용의 구 팩을 재사용하면 실제 구 형식을 반환하고 ‘필드별 출처 정보 없음’을 안내합니다. 독립 최종QA와 최신 커밋 검수 통과 후 PR #21/main5a67afb에 병합됐습니다.
 
 [정적 가져오기 보고서](Assets/Plan/Workflow/Cycles/2026-10-21-static-import-report/Checkpoint.md)는 사용자 승인 후 구현·코드검수·전체 765개 중 763개 통과/실패 0개/호스트 제약 2개 제외와 실제 PNG 4장 검증을 마쳤고, 최종 QA와 최신 커밋 검수 통과 후 [PR #20](https://github.com/Ghyeok/TFTDataAnalyzer/pull/20)으로 main에 병합됐습니다. 데이터 관리의 ‘최근 가져오기 보고서’에서 요청 조건과 검증 오류·경고, 공식/보완 값과 선택 결과를 읽습니다. 각 상세는 200행까지 보유해 20행씩 넘기며 창을 닫으면 사라집니다. 실제 API 설정과 수집 검증은 사용자 요청으로 미뤘고, 실제 분류 등록과 n100 검증은 별도 미완료입니다.
@@ -33,7 +35,7 @@ Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한
 
 ## 핵심 설계
 
-[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 승인 후 구현·독립 코드검수·전체826개 중824통과/실패0/호스트제약2제외와 최종QA 통과를 확인했고 PR 통합 단계입니다. 선택 세트의 기물·시너지를 읽고, 전역 아이템·증강은 같은 요청의 공식 ID 범위로 제한합니다. 중첩 설명과 관계를 기존 탐색에 공급하고, 제외·미지원 구조·손상은 최근 가져오기 보고서에 표시합니다. 기물 능력치·스킬 변수와 시너지 활성 구간의 새 구조 모델은 이번 범위 밖이며 경고로 알립니다. 기존 같은 식별자의 팩과 새 값이 다르면 덮어쓰지 않습니다. 실제 다운로드나 통계 분류 허용은 추가하지 않았습니다.
+[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 승인 후 구현·독립 코드검수·전체826개 중824통과/실패0/호스트제약2제외와 최종QA 통과를 확인했고 PR22로 병합했습니다. 선택 세트의 기물·시너지를 읽고, 전역 아이템·증강은 같은 요청의 공식 ID 범위로 제한합니다. 중첩 설명과 관계를 기존 탐색에 공급하고, 제외·미지원 구조·손상은 최근 가져오기 보고서에 표시합니다. 해당 사이클에서 제외했던 기물 능력치·스킬 변수와 시너지 구간은 승인된 구조화 자료 사이클에서 후속 구현했습니다. 기존 같은 식별자의 팩과 새 값이 다르면 덮어쓰지 않습니다. 실제 다운로드나 통계 분류 허용은 추가하지 않았습니다.
 
 ### 데이터 출처와 병합
 

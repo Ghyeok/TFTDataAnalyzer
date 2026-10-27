@@ -124,6 +124,32 @@
     min-width: 0;
 }
 
+.tft-structured-row {
+    padding-top: 6px;
+    padding-bottom: 8px;
+    margin-bottom: 5px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(72, 72, 72);
+    flex-shrink: 0;
+}
+
+.tft-structured-value {
+    -unity-font-style: bold;
+    white-space: normal;
+    flex-shrink: 0;
+}
+
+.tft-extension-text {
+    height: 180px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.tft-extension-text .unity-text-field__input {
+    white-space: normal;
+    -unity-text-align: upper-left;
+}
+
 .tft-compliance-confirmation .unity-toggle__label {
     white-space: normal;
     flex-shrink: 1;

@@ -36,7 +36,7 @@ namespace TFTAnalyzer.Tests.Ingestion
             var result = await Pipeline(transport, paths).RunAsync(Request(), default);
             var report = StaticImportReportViewModel.FromResult(Request().Identity, true, DateTimeOffset.UnixEpoch, result);
             Assert.That(result.Published, Is.EqualTo(!damaged));
-            Assert.That(report.ValidationRows.Any(x => x.Contains(damaged ? "cdragon_record_kind_conflict" : "cdragon_unsupported_trait_tiers")), Is.True);
+            Assert.That(report.ValidationRows.Any(x => x.Contains(damaged ? "cdragon_record_kind_conflict" : "cdragon_excluded_global_records")), Is.True);
             if (damaged) Assert.That(Directory.Exists(result.FinalDirectory), Is.False);
             else
             {
@@ -44,6 +44,8 @@ namespace TFTAnalyzer.Tests.Ingestion
                 Assert.That(metadata.Value<int>("validationWarningCount"), Is.EqualTo(result.Validation.WarningCount));
                 Assert.That(result.Catalog.Units.Single().Cost, Is.EqualTo(1));
                 Assert.That(result.Catalog.Units.Single().Description.EnUs, Is.EqualTo("Nested description"));
+                Assert.That(result.Catalog.Units.Single().BaseStats["hp"], Is.EqualTo(600));
+                Assert.That(result.Catalog.Traits.Single().Breakpoints.Single().MinUnits, Is.EqualTo(2));
             }
         }
 

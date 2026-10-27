@@ -80,7 +80,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                 Source(version, "en_us", enJson)
             };
             PatchManifest Manifest(string setName) => new PatchManifest(
-                3,
+                4,
                 new CatalogIdentity(patch, CatalogSourceProfile.OfficialPlusCommunityDragon),
                 setName,
                 DateTime.UnixEpoch,
@@ -99,8 +99,8 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
             var excludedUnitIds = new List<string>();
             try
             {
-                var koRoot = JObject.Parse(koJson);
-                var enRoot = JObject.Parse(enJson);
+                var koRoot = StructuredStaticReader.ParseDocument(koJson);
+                var enRoot = StructuredStaticReader.ParseDocument(enJson);
                 var koSet = SelectSet(koRoot, patch.SetNumber);
                 var enSet = SelectSet(enRoot, patch.SetNumber);
                 manifest = Manifest(ReadString(enSet, "name"));
@@ -127,13 +127,11 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                 var origins = new List<FieldOrigin>();
                 var catalog = new StaticCatalog(manifest,
                     ParseUnits(origins, Records(koRoot, koSet, "champions"), Records(enRoot, enSet, "champions"),
-                        koTraits, enTraits, patch, sources, version, official, warnings, excludedUnitIds),
-                    ParseTraits(origins, koTraits, enTraits, patch, sources, version),
-                    ParseItems(origins, koItems, enItems, patch, sources, version),
-                    ParseAugments(origins, koAugments, enAugments, patch, sources, version));
+                        koTraits, enTraits, patch, sources, version, official, warnings, excludedUnitIds, issues),
+                    ParseTraits(origins, koTraits, enTraits, patch, sources, version, issues),
+                    ParseItems(origins, koItems, enItems, patch, sources, version, issues),
+                    ParseAugments(origins, koAugments, enAugments, patch, sources, version, issues));
                 var units = Records(koRoot, koSet, "champions").Concat(Records(enRoot, enSet, "champions")).OfType<JObject>();
-                Warn(warnings, "unsupported_unit_structure", units.Count(x => x["stats"] != null || x["ability"] is JObject ability && ability["variables"] != null));
-                Warn(warnings, "unsupported_trait_tiers", koTraits.Concat(enTraits).OfType<JObject>().Count(x => x["effects"] is JArray));
                 if (catalog.Units.Count + catalog.Traits.Count + catalog.Items.Count + catalog.Augments.Count == 0)
                     throw new JsonSerializationException("no_supported_records");
                 AddWarnings(issues, warnings, excludedUnitIds);
@@ -188,7 +186,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
             string version,
             StaticCatalog official,
             Dictionary<string, int> warnings,
-            List<string> excludedUnitIds)
+            List<string> excludedUnitIds, List<ValidationIssue> issues)
         {
             foreach (var record in Join(ko, en, patch))
             {
@@ -201,6 +199,7 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     if (excludedUnitIds.Count < 5) excludedUnitIds.Add(DiagnosticId(record.Id));
                     continue;
                 }
+                var structured = StructuredStaticReader.Read("unit", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("unit", record.KoKr, record.EnUs, true));
                 var value = new UnitRecord(
                     record.Id,
                     record.Name,
@@ -210,8 +209,9 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     sources,
                     ReadString(record.Primary, "role"),
                     new LocalizedText(UnitDescription(record.KoKr), UnitDescription(record.EnUs)),
-                    ReadEffects(record.Primary));
+                    ReadEffects(record.Primary), structured.BaseStats, structured.AbilityVariables, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "unit", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -326,18 +326,20 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
             JArray en,
             PatchKey patch,
             IReadOnlyList<SourceStamp> sources,
-            string version)
+            string version, List<ValidationIssue> issues)
         {
             foreach (var record in Join(ko, en, patch))
             {
+                var structured = StructuredStaticReader.Read("trait", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("trait", record.KoKr, record.EnUs, true));
                 var value = new TraitRecord(
                     record.Id,
                     record.Name,
                     ReadLocalized(record, "desc", "description"),
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
-                    sources);
+                    sources, structured.Breakpoints, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "trait", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -348,10 +350,11 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
             JArray en,
             PatchKey patch,
             IReadOnlyList<SourceStamp> sources,
-            string version)
+            string version, List<ValidationIssue> issues)
         {
             foreach (var record in Join(ko, en, patch))
             {
+                var structured = StructuredStaticReader.Read("item", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("item", record.KoKr, record.EnUs, true));
                 var value = new ItemRecord(
                     record.Id,
                     record.Name,
@@ -359,8 +362,9 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     ReadStringArray(record.Primary, true, "components", "composition"),
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
-                    sources);
+                    sources, structured.Unique, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "item", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }
@@ -371,10 +375,11 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
             JArray en,
             PatchKey patch,
             IReadOnlyList<SourceStamp> sources,
-            string version)
+            string version, List<ValidationIssue> issues)
         {
             foreach (var record in Join(ko, en, patch))
             {
+                var structured = StructuredStaticReader.Read("augment", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("augment", record.KoKr, record.EnUs, true));
                 var value = new AugmentRecord(
                     record.Id,
                     record.Name,
@@ -383,8 +388,9 @@ namespace TFTAnalyzer.Editor.Ingestion.CommunityDragon
                     ReadStringArray(record.Primary, false, "related", "relatedIds"),
                     ReadEffects(record.Primary),
                     Icon(version, ReadString(record.Primary, "icon")),
-                    sources);
+                    sources, structured.Extensions);
                 ParsedFieldOrigins.Add(origins, "augment", value, record.KoKr, record.EnUs, sources[0], sources[1]);
+                origins.AddRange(structured.Origins); issues.AddRange(structured.Issues);
                 yield return value;
             }
         }

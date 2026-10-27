@@ -10,6 +10,8 @@ namespace TFTAnalyzer.Domain
         public IReadOnlyDictionary<string, double> Effects { get; }
         public string IconPath { get; }
         public IReadOnlyList<SourceStamp> Sources { get; }
+        public IReadOnlyList<TraitBreakpoint> Breakpoints { get; }
+        public IReadOnlyList<StaticExtensionField> Extensions { get; }
 
         public TraitRecord(
             string stableId,
@@ -17,7 +19,9 @@ namespace TFTAnalyzer.Domain
             LocalizedText description,
             IReadOnlyDictionary<string, double> effects,
             string iconPath,
-            IEnumerable<SourceStamp> sources)
+            IEnumerable<SourceStamp> sources,
+            IEnumerable<TraitBreakpoint> breakpoints = null,
+            IEnumerable<StaticExtensionField> extensions = null)
         {
             StableId = DomainValues.RequireStable(stableId, nameof(stableId));
             Name = name ?? LocalizedText.Empty;
@@ -25,6 +29,8 @@ namespace TFTAnalyzer.Domain
             Effects = DomainValues.CopyEffects(effects);
             IconPath = iconPath ?? "";
             Sources = DomainValues.Copy(sources);
+            Breakpoints = DomainValues.Copy(breakpoints);
+            Extensions = DomainValues.CopyExtensions(extensions);
         }
     }
 }
