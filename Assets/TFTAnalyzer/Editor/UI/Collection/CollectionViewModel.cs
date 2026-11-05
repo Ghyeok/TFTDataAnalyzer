@@ -142,6 +142,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 StatusText = "입력 조건이 갖춰졌습니다. '조건 확인 후 수집'을 눌러 주세요.";
         }
 
+        /// <summary>Captures approved inputs, isolates run progress, and preserves committed outcomes across cancellation or safe failure fallbacks.</summary>
         public async Task StartAsync(Func<string, bool> confirm)
         {
             if (_disposed || IsBusy) return;
@@ -209,30 +210,28 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 acceptsProgress = false;
                 if (!_disposed)
                 {
-                    Progress = new CollectionProgressViewModel(new MatchCollectionSummary(Progress.Requested,
-                        Progress.Fetched, Progress.Stored, Progress.Duplicate, Progress.Filtered, Progress.Failed,
-                        true, Progress.IdPages, Progress.ScanLimitReached, 0, Progress.RetryAfterUtc,
-                        Progress.Quarantined, Progress.QuarantineReportSaved, Progress.QuarantineReportFailed,
-                        Progress.QuarantineReportTruncated));
+                    Progress = new CollectionProgressViewModel(Snapshot(true, retryAfterUtc: Progress.RetryAfterUtc));
                     SetStatus(CollectionState.Cancelled, "수집을 취소했습니다. 이미 저장한 익명 관측은 보존됩니다.");
                 }
             }
             catch (RiotApiException error)
             {
                 acceptsProgress = false;
-                if (!_disposed) ApplyResult(new MatchCollectionSummary(Progress.Requested, Progress.Fetched,
-                    Progress.Stored, Progress.Duplicate, Progress.Filtered, Progress.Failed + 1, false,
-                    Progress.IdPages, false, error.StatusCode >= 100 && error.StatusCode <= 599 ? (int)error.StatusCode : 0,
-                    error.RetryAfterUtc, Progress.Quarantined, Progress.QuarantineReportSaved,
-                    Progress.QuarantineReportFailed, Progress.QuarantineReportTruncated));
+                if (!_disposed) ApplyResult(Snapshot(false, 1, 1,
+                    error.StatusCode >= 100 && error.StatusCode <= 599 ? (int)error.StatusCode : 0, error.RetryAfterUtc));
             }
             catch (Exception)
             {
                 acceptsProgress = false;
-                if (!_disposed) SetStatus(CollectionState.Failed,
+                if (!_disposed)
+                {
+                    if (started) Progress = new CollectionProgressViewModel(Snapshot(false, 1,
+                        retryAfterUtc: Progress.RetryAfterUtc));
+                    SetStatus(CollectionState.Failed,
                     started ? "수집을 완료하지 못했습니다. 저장한 익명 관측은 보존됩니다. 설정과 연결을 확인하고 수동으로 다시 시도해 주세요."
                         : "수집 조건 확인을 완료하지 못했습니다. 조건을 확인한 뒤 다시 시작해 주세요.",
-                    started ? "CollectionFailed" : "ConfirmationFailed");
+                        started ? "CollectionFailed" : "ConfirmationFailed");
+                }
             }
             finally
             {
@@ -245,6 +244,16 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 Notify();
             }
         }
+
+        /// <summary>Preserves reported counters and quarantine state while appending only a newly observed fallback failure.</summary>
+        private MatchCollectionSummary Snapshot(bool cancelled, int additionalFailures = 0, int additionalApiFailures = 0,
+            int statusCode = 0, DateTimeOffset? retryAfterUtc = null) => new MatchCollectionSummary(
+                Progress.Requested, Progress.Fetched, Progress.Stored, Progress.Duplicate, Progress.Filtered,
+                Progress.Failed + additionalFailures, cancelled, Progress.IdPages, Progress.ScanLimitReached,
+                statusCode, retryAfterUtc, Progress.Quarantined, Progress.QuarantineReportSaved,
+                Progress.QuarantineReportFailed, Progress.QuarantineReportTruncated, Progress.FailedUnsupportedVersion,
+                Progress.FailedGameVersion, Progress.FailedAugments, Progress.FailedPayload,
+                Progress.FailedApi + additionalApiFailures);
 
         private void ApplyResult(MatchCollectionSummary result)
         {

@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-02-match-failure-planning",
+  "baseCommit": "6a6f787d5ec5346f92bfdd5c605715d4df6e97e6",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "작업 기획 초안 및 현재 코드·진단 결과의 비식별 요약",
+      "sha256": "3b1d7f5719199407d50783d7aca5fa9b03866879c3b3b12072e77c74b205cfdc"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "작업 기획 초안 및 현재 코드·진단 결과의 비식별 요약",
+      "sha256": "f15da77efa88a384d2e6c5d580a4b3016a4f163fb3dc02eb6f0729abfcd28a2e"
+    }
+  ],
+  "inputDigest": "f7d0eedd31d3c907f4910854611a477bfa7ceb02098e309a93920ef3097ea12f",
+  "inputBytes": 4909
+}

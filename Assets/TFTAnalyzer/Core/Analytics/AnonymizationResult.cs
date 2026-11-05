@@ -38,15 +38,27 @@ namespace TFTAnalyzer.Analytics
         }
     }
 
-    public enum MatchPayloadFailure { InvalidPayload, CatalogMismatch, UnsupportedVersion }
+    public enum MatchPayloadFailure
+    {
+        InvalidPayload, CatalogMismatch, UnsupportedVersion, GameVersionUnavailable,
+        AugmentsMissing, AugmentsNull, AugmentsInvalidFormat
+    }
 
     /// <summary>Controlled diagnostics without raw JSON, identifying paths or inner parser exceptions.</summary>
     public sealed class MatchPayloadException : Exception
     {
         public string Code { get; }
+        public string ReasonCode { get; }
 
         /// <summary>Maps a closed failure category to a safe public code.</summary>
-        public MatchPayloadException(MatchPayloadFailure failure) : base(CodeFor(failure)) { Code = Message; }
+        public MatchPayloadException(MatchPayloadFailure failure) : base(CodeFor(failure))
+        {
+            Code = Message;
+            ReasonCode = failure == MatchPayloadFailure.GameVersionUnavailable ? "unavailable_match_game_version" :
+                failure == MatchPayloadFailure.AugmentsMissing ? "missing_match_augments" :
+                failure == MatchPayloadFailure.AugmentsNull ? "null_match_augments" :
+                failure == MatchPayloadFailure.AugmentsInvalidFormat ? "invalid_match_augments_format" : Code;
+        }
 
         /// <summary>Provides constant errors even for an unknown enum value.</summary>
         private static string CodeFor(MatchPayloadFailure failure)

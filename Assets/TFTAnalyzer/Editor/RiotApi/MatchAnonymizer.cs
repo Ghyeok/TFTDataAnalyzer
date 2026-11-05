@@ -65,6 +65,10 @@ namespace TFTAnalyzer.Editor.RiotApi
                     serializer.Populate(reader, payload);
                     if (payload?.Metadata == null || payload.Info == null || reader.Read()) throw Invalid();
                 }
+                // Missing fields have no token. Diagnose them only after other required DTO validation succeeds.
+                foreach (var participant in payload.Info.Participants)
+                    if (participant != null && !participant.HasAugments)
+                        throw new MatchPayloadException(MatchPayloadFailure.AugmentsMissing);
                 return Project(payload, region, tierBucket);
             }
             catch (MatchPayloadException) { throw; }
@@ -79,7 +83,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             if (payload.Metadata.DataVersion != "2") throw new MatchPayloadException(MatchPayloadFailure.UnsupportedVersion);
             if (string.IsNullOrWhiteSpace(payload.Metadata.MatchId) || info.QueueId <= 0 || info.GameDatetime < 0 ||
                 info.Participants == null || info.Participants.Length != 8) throw Invalid();
-            var version = NumericVersion(info.GameVersion);
+            var version = NumericVersion(info.GameVersion, MatchPayloadFailure.GameVersionUnavailable);
             if (info.SetNumber != _identity.Patch.SetNumber || Release(version) != _release)
                 throw new MatchPayloadException(MatchPayloadFailure.CatalogMismatch);
             var placements = info.Participants.Select(value => value?.Placement).ToArray();
@@ -126,10 +130,10 @@ namespace TFTAnalyzer.Editor.RiotApi
         }
 
         /// <summary>Retains only a numeric build prefix, discarding free-form version annotations.</summary>
-        private static string NumericVersion(string value)
+        private static string NumericVersion(string value, MatchPayloadFailure failure = MatchPayloadFailure.InvalidPayload)
         {
             var match = Regex.Match(value ?? "", @"\A(?:Version )?([0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,10}(?:\.[0-9]{1,10})?)(?:\s[^\r\n]*)?\z", RegexOptions.CultureInvariant);
-            if (!match.Success) throw Invalid();
+            if (!match.Success) throw new MatchPayloadException(failure);
             return match.Groups[1].Value;
         }
         /// <summary>Extracts the source game release independently of the product's TFT patch label.</summary>

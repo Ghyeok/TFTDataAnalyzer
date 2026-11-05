@@ -127,6 +127,7 @@
                         </ui:VisualElement>
                         <ui:Label name="collection-status" class="tft-data-status tft-wrapped-text" />
                         <ui:Label name="collection-counts" class="tft-wrapped-text" />
+                        <ui:Label name="collection-failure-reasons" class="tft-wrapped-text" />
                         <ui:Label name="collection-rate-limit" class="tft-wrapped-text" />
                         <ui:Label name="collection-cancellation" class="tft-wrapped-text" />
                         <ui:Label name="collection-scan-limit" class="tft-wrapped-text" />

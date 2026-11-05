@@ -50,6 +50,43 @@ namespace TFTAnalyzer.Tests.UI
             }
         }
 
+        /// <summary>Keeps settled failure counts visible through readiness checks and removes them when a new successful run completes.</summary>
+        [UnityTest]
+        public IEnumerator FailureReasonsRenderConfirmedEventsAndClearForNextRun()
+        {
+            _approve = true;
+            _service.Run = token => Task.FromResult(CollectionFakeService.Summary(3, 2, 1, failed: 2));
+            Submit("collection-start");
+            yield return CollectionUITestSupport.WaitForSettled(_vm);
+            var label = _tree.Q<Label>("collection-failure-reasons");
+            Assert.That(label, Is.Not.Null);
+            Assert.That(label.text, Does.Contain("저장·처리 오류 2").And.Contain("이번 수집").And.Contain("확인"));
+            Assert.That(label.text, Does.Not.Contain("FAKE-PUUID").And.Not.Contain("secret-key"));
+            Submit("collection-configuration-check");
+            yield return CollectionUITestSupport.WaitForRender();
+            Assert.That(label.text, Does.Contain("저장·처리 오류 2"));
+            _service.Run = token => Task.FromResult(CollectionFakeService.Summary(1, 1, 1));
+            Submit("collection-start");
+            yield return CollectionUITestSupport.WaitForSettled(_vm);
+            Assert.That(label.text, Does.Contain("보고된 실패 없음").And.Not.Contain("오류 2"));
+        }
+
+        /// <summary>Checks distinct counts for all six categories and the notice that other causes may remain unconfirmed.</summary>
+        [UnityTest]
+        public IEnumerator AllFailureCategoriesRenderTheirOwnCountsWithoutInferringOtherCauses()
+        {
+            _approve = true;
+            _service.Run = token => Task.FromResult(new MatchCollectionSummary(21, 20, 0, 0, 0, 21,
+                false, 1, false, 0, null, 0, false, false, false, 1, 2, 3, 4, 5));
+            Submit("collection-start");
+            yield return CollectionUITestSupport.WaitForSettled(_vm);
+            var text = _tree.Q<Label>("collection-failure-reasons").text;
+            foreach (var expected in new[] { "지원하지 않는 데이터 버전 1", "게임 버전 확인 불가 2",
+                "증강 정보 확인 실패 3", "기타 경기 형식 오류 4", "API 오류 5", "저장·처리 오류 6" })
+                Assert.That(text, Does.Contain(expected));
+            Assert.That(text, Does.Contain("목록 요청").And.Contain("다른 원인은 확인되지 않았을 수"));
+        }
+
         [UnityTest]
         public IEnumerator QuarantineMessagesDistinguishSavedFailedTruncatedAndPendingRuns()
         {

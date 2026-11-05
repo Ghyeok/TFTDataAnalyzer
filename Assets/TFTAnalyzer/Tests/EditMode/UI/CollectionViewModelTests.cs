@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.UI.Collection;
@@ -28,6 +29,65 @@ namespace TFTAnalyzer.Tests.UI
 
         [TearDown]
         public void TearDown() => _vm.Dispose();
+
+        /// <summary>Preserves prior failures across cancellation or exception fallbacks and rejects stale callbacks after reset.</summary>
+        [TestCase("cancel", 2, 2, 0)]
+        [TestCase("api", 3, 2, 1)]
+        [TestCase("processing", 3, 3, 0)]
+        public async Task FailureReasonFallbackPreservesPriorEventsAndCountsOnlyNewFailure(string ending,
+            int failed, int processing, int api)
+        {
+            _vm.Dispose();
+            _vm = new CollectionViewModel(_service);
+            _vm.SetCatalog(DataManagerTestSupport.Catalog(DataManagerTestSupport.Identity()));
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            var oldProgress = _service.LastProgress;
+            oldProgress.Report(new CollectionProgress(CollectionFakeService.Summary(3, 2, 1, failed: 2)));
+            pending.SetException(ending == "cancel" ? new OperationCanceledException() :
+                ending == "api" ? new RiotApiException(RiotApiFailure.HttpError, 503) :
+                new InvalidOperationException(FabricatedKey + FabricatedSeed));
+            await run;
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(failed));
+            var json = JObject.FromObject(_vm.Progress);
+            Assert.That(json.Value<int?>("FailedProcessing"), Is.EqualTo(processing));
+            Assert.That(json.Value<int?>("FailedApi"), Is.EqualTo(api));
+            AssertPublicTextIsSafe();
+            _vm.RefreshConfiguration();
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(failed));
+            pending = new TaskCompletionSource<MatchCollectionSummary>();
+            var next = _vm.StartAsync(summary => true);
+            oldProgress.Report(new CollectionProgress(CollectionFakeService.Summary(failed: 99)));
+            Assert.That(_vm.Progress.Failed, Is.Zero);
+            Assert.That(JObject.FromObject(_vm.Progress).Value<int?>("FailedProcessing"), Is.Zero);
+            pending.SetResult(CollectionFakeService.Summary(1, 1, 1));
+            await next;
+        }
+
+        /// <summary>Preserves every classified counter while appending only a new API failure when cancellation did not end the run.</summary>
+        [TestCase(false)] [TestCase(true)]
+        public async Task ClassifiedFailureReasonsSurviveCancellationAndApiFallback(bool cancelled)
+        {
+            _vm.Dispose();
+            _vm = new CollectionViewModel(_service);
+            _vm.SetCatalog(DataManagerTestSupport.Catalog(DataManagerTestSupport.Identity()));
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            _service.LastProgress.Report(new CollectionProgress(new MatchCollectionSummary(6, 5, 0, 0, 0, 6,
+                false, 1, false, 0, null, 0, false, false, false, 1, 1, 1, 1, 1)));
+            pending.SetException(cancelled ? new OperationCanceledException() : new RiotApiException(RiotApiFailure.HttpError, 503));
+            await run;
+            var result = _vm.Progress;
+            Assert.That(result.Failed, Is.EqualTo(cancelled ? 6 : 7));
+            Assert.That(result.FailedUnsupportedVersion, Is.EqualTo(1));
+            Assert.That(result.FailedGameVersion, Is.EqualTo(1));
+            Assert.That(result.FailedAugments, Is.EqualTo(1));
+            Assert.That(result.FailedPayload, Is.EqualTo(1));
+            Assert.That(result.FailedApi, Is.EqualTo(cancelled ? 1 : 2));
+            Assert.That(result.FailedProcessing, Is.EqualTo(1));
+        }
 
         /// <summary>Retains terminal report status during readiness edits and clears it only for a newly started run.</summary>
         [TestCase(true, false, false)] [TestCase(false, true, false)] [TestCase(true, false, true)]

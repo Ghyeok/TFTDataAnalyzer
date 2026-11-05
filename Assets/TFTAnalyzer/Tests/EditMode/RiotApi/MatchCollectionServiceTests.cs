@@ -186,6 +186,91 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertSafe(summary);
         }
 
+        /// <summary>Separates five failure categories from existing filters and clears all categories for the next run.</summary>
+        [Test]
+        public async Task FailureReasonsCountEachEventOnceAndResetForNextRun()
+        {
+            var transport = new Transport
+            {
+                Ids = (seed, start) => new[] { "M1", "M2", "M3", "M4", "M5", "M6", "M7" },
+                Body = id =>
+                {
+                    var body = JObject.Parse(Body(id));
+                    if (id == "M1") body["metadata"]["data_version"] = "999";
+                    if (id == "M2") body["info"]["game_version"] = "FakePlayer FAKE-PUUID";
+                    if (id == "M3") ((JObject)body["info"]["participants"][0]).Property("augments").Remove();
+                    if (id == "M4") ((JObject)body["info"]).Property("queue_id").Remove();
+                    if (id == "M6") body["info"]["tft_set_number"] = 17;
+                    if (id == "M7") body["info"]["queue_id"] = 1090;
+                    return body.ToString();
+                },
+                ResponseStatus = uri => uri.AbsolutePath.EndsWith("/M5", StringComparison.Ordinal) ? 503 : 200
+            };
+            var service = Service(transport);
+            var summary = await service.CollectAsync(Request(), Progress(), default);
+            Assert.That(summary.Failed, Is.EqualTo(5));
+            Assert.That(summary.Filtered, Is.EqualTo(2));
+            AssertReasons(summary, 1, 1, 1, 1, 1, 0);
+            foreach (var value in _progress) AssertReasonTotal(value.Summary);
+            AssertSafe(summary);
+            transport.Ids = (seed, start) => new[] { "M8" };
+            var next = await service.CollectAsync(Request(), null, default);
+            Assert.That(next.Stored, Is.EqualTo(1));
+            AssertReasons(next, 0, 0, 0, 0, 0, 0);
+        }
+
+        /// <summary>Counts list-request API and seed-provider failures once in their respective safe categories.</summary>
+        [Test]
+        public async Task ListApiAndTopLevelProcessingFailuresHaveOneReason()
+        {
+            var api = await Service(new Transport { Status = 503 }).CollectAsync(Request(), null, default);
+            Assert.That(api.Requested, Is.Zero);
+            AssertReasons(api, 0, 0, 0, 0, 1, 0);
+            var processing = await Service(new Transport(), seedRead: () => throw new Exception("FAKE-PUUID secret-key"))
+                .CollectAsync(Request(), null, default);
+            AssertReasons(processing, 0, 0, 0, 0, 0, 1);
+            AssertSafe(api);
+            AssertSafe(processing);
+        }
+
+        /// <summary>Retains a committed observation and stops further downloads after one stream-cleanup processing failure.</summary>
+        [Test]
+        public async Task StreamCleanupFailureStopsRunAndCountsOneProcessingFailure()
+        {
+            var transport = new Transport
+            {
+                Ids = (seed, start) => new[] { "M1", "M2" },
+                OnDetailDispose = () => throw new IOException("FAKE-PUUID secret-key")
+            };
+            var summary = await Service(transport).CollectAsync(Request(), Progress(), default);
+            Assert.That(summary.Stored, Is.EqualTo(1));
+            Assert.That(summary.Failed, Is.EqualTo(1));
+            AssertReasons(summary, 0, 0, 0, 0, 0, 1);
+            Assert.That(transport.Details, Is.EqualTo(new[] { "M1" }));
+            Assert.That((await Observations()).Count, Is.EqualTo(1));
+            AssertSafe(summary);
+        }
+
+        /// <summary>Checks each published category against independent expectations and verifies their total.</summary>
+        private static void AssertReasons(MatchCollectionSummary summary, int unsupported, int version,
+            int augments, int payload, int api, int processing)
+        {
+            var json = JObject.FromObject(summary);
+            var names = new[] { "FailedUnsupportedVersion", "FailedGameVersion", "FailedAugments", "FailedPayload", "FailedApi", "FailedProcessing" };
+            var expected = new[] { unsupported, version, augments, payload, api, processing };
+            for (var i = 0; i < names.Length; i++)
+                Assert.That(json.Value<int?>(names[i]), Is.EqualTo(expected[i]), names[i]);
+            AssertReasonTotal(summary);
+        }
+
+        /// <summary>Requires all six published counters to exist and sum to the reported failure event count.</summary>
+        private static void AssertReasonTotal(MatchCollectionSummary summary)
+        {
+            var json = JObject.FromObject(summary);
+            var names = new[] { "FailedUnsupportedVersion", "FailedGameVersion", "FailedAugments", "FailedPayload", "FailedApi", "FailedProcessing" };
+            Assert.That(names.Sum(name => json.Value<int?>(name) ?? -1000), Is.EqualTo(summary.Failed));
+        }
+
         /// <summary>Stops before the next request and explicitly reports omitted diagnostics at the unique-entry cap.</summary>
         [Test]
         public async Task QuarantineLimitStopsBeforeNextRequestAndPublishes4096SafePairs()
@@ -378,6 +463,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             var service = Service(transport);
             var failed = await service.CollectAsync(Request(), null, default);
             Assert.That(failed.Failed, Is.EqualTo(1));
+            AssertReasons(failed, 0, 0, 0, 0, 0, 1);
             Assert.That(transport.Details, Is.EqualTo(new[] { "M1" }));
             Assert.That(Directory.GetFiles(_paths.ObservationsDirectory, "*.ndjson")
                 .Sum(file => File.ReadAllLines(file).Length), Is.EqualTo(1));
@@ -495,6 +581,7 @@ namespace TFTAnalyzer.Tests.RiotApi
         /// <summary>Checks output and disk for fabricated sensitive markers.</summary>
         private static void AssertSafe(object value)
         {
+            if (value is MatchCollectionSummary summary) AssertReasonTotal(summary);
             var text = value as string ?? JsonConvert.SerializeObject(value);
             foreach (var forbidden in new[] { "seed-a", "seed-b", "secret-key", "FAKE-PUUID", "FakePlayer", "FAKE-TAG", "FAKE-BUILD-NOTE", "M1", "M2", "M3" })
                 Assert.That(text, Does.Not.Contain(forbidden));
@@ -512,7 +599,9 @@ namespace TFTAnalyzer.Tests.RiotApi
             internal Func<string, int, string[]> Ids = (seed, start) => new[] { "M1" };
             internal Func<string, string> Body = id => MatchCollectionServiceTests.Body(id);
             internal Action OnDetailRead;
+            internal Action OnDetailDispose;
             internal int Status = 200;
+            internal Func<Uri, int> ResponseStatus;
             internal readonly List<string> Seeds = new List<string>();
             internal readonly List<int> Starts = new List<int>();
             internal readonly List<string> Details = new List<string>();
@@ -534,18 +623,20 @@ namespace TFTAnalyzer.Tests.RiotApi
                     var id = Uri.UnescapeDataString(uri.Segments.Last());
                     Details.Add(id); body = Body(id);
                 }
-                var stream = new TrackedStream(body, isIds ? null : OnDetailRead);
+                var stream = new TrackedStream(body, isIds ? null : OnDetailRead, isIds ? null : OnDetailDispose);
                 Streams.Add(stream);
-                return Task.FromResult(new RiotApiResponse(Status, stream,
+                return Task.FromResult(new RiotApiResponse(ResponseStatus?.Invoke(uri) ?? Status, stream,
                     new Dictionary<string, string> { ["Retry-After"] = "30" }));
             }
         }
         private sealed class TrackedStream : MemoryStream
         {
             private Action _onRead;
+            private Action _onDispose;
             internal bool Disposed;
             /// <summary>Creates a bounded in-memory response with optional cancellation during parsing.</summary>
-            internal TrackedStream(string body, Action onRead) : base(Encoding.UTF8.GetBytes(body), false) { _onRead = onRead; }
+            internal TrackedStream(string body, Action onRead, Action onDispose = null) : base(Encoding.UTF8.GetBytes(body), false)
+            { _onRead = onRead; _onDispose = onDispose; }
             /// <summary>Triggers the cancellation probe only on the first read.</summary>
             public override int Read(byte[] buffer, int offset, int count)
             {
@@ -553,7 +644,11 @@ namespace TFTAnalyzer.Tests.RiotApi
                 return base.Read(buffer, offset, count);
             }
             /// <summary>Records ownership release even when parsing is interrupted.</summary>
-            protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
+            protected override void Dispose(bool disposing)
+            {
+                Disposed = true; base.Dispose(disposing);
+                var callback = _onDispose; _onDispose = null; callback?.Invoke();
+            }
         }
     }
 }

@@ -132,6 +132,78 @@ namespace TFTAnalyzer.Tests.Analytics
             Reject(json.ToString(), code);
         }
 
+        /// <summary>Requires controlled reasons for missing, null and non-array augment fields without changing the public error code.</summary>
+        [TestCase("missing", "missing_match_augments")]
+        [TestCase("null", "null_match_augments")]
+        [TestCase("object", "invalid_match_augments_format")]
+        [TestCase("string", "invalid_match_augments_format")]
+        [TestCase("number", "invalid_match_augments_format")]
+        public void AugmentFieldFailuresHaveControlledReasons(string shape, string code)
+        {
+            var json = Fixture();
+            var participant = (JObject)json["info"]["participants"][0];
+            if (shape == "missing") participant.Property("augments").Remove();
+            else participant["augments"] = shape == "null" ? JValue.CreateNull() :
+                shape == "object" ? (JToken)new JObject { ["FAKE-PUUID"] = "FakePlayer" } :
+                shape == "number" ? new JValue(42) : new JValue("FakePlayer");
+            Reject(json.ToString(), reasonCode: code);
+        }
+
+        /// <summary>Classifies an unusable numeric version without returning its fabricated identifying text.</summary>
+        [Test]
+        public void UnreadableNumericGameVersionHasControlledReason()
+        {
+            var json = Fixture();
+            json["info"]["game_version"] = "FakePlayer FAKE-PUUID";
+            Reject(json.ToString(), reasonCode: "unavailable_match_game_version");
+        }
+
+        /// <summary>Preserves valid empty augment arrays and general rejection of unsafe or malformed array elements.</summary>
+        [Test]
+        public void EmptyAugmentsRemainAcceptedAndInvalidElementsStayGeneral()
+        {
+            var json = Fixture();
+            json["info"]["participants"][0]["augments"] = new JArray();
+            Assert.That(Read(json).IsAccepted, Is.True);
+            foreach (var element in new JToken[] { JValue.CreateNull(), new JValue(42), new JObject(), new JValue(" ") })
+            {
+                json["info"]["participants"][0]["augments"] = new JArray(element);
+                Reject(json.ToString());
+            }
+        }
+
+        /// <summary>Keeps early required-field errors general and reports only the first version validation actually reached.</summary>
+        [Test]
+        public void EarlyParseFailureDoesNotGuessUnreachedVersions()
+        {
+            var json = Fixture();
+            json["metadata"]["data_version"] = "999";
+            json["info"]["game_version"] = "FakePlayer";
+            ((JObject)json["info"]["participants"][0]).Property("units").Remove();
+            Reject(json.ToString());
+            json = Fixture();
+            json["metadata"]["data_version"] = "999";
+            json["info"]["game_version"] = "FakePlayer";
+            Reject(json.ToString(), "unsupported_match_version");
+        }
+
+        /// <summary>Checks that finer diagnostics retain duplicate, trailing-content, array-limit and required-version rejection.</summary>
+        [Test]
+        public void AugmentDiagnosticsPreserveDuplicateSyntaxAndCollectionLimits()
+        {
+            var json = Fixture();
+            json["info"]["participants"][0]["augments"] = new JArray();
+            var text = json.ToString(Formatting.None);
+            Reject(text.Replace("\"augments\":[]", "\"augments\":[],\"augments\":[]"));
+            Reject(text + "{}");
+            json["info"]["participants"][0]["augments"] = new JArray(Enumerable.Repeat("TEST_AUGMENT", 17));
+            Reject(json.ToString());
+            json = Fixture();
+            json["info"]["game_version"] = JValue.CreateNull();
+            json["metadata"]["data_version"] = "999";
+            Reject(json.ToString());
+        }
+
         /// <summary>Syntax errors, extra content and duplicate fields never expose parser paths or payload fragments.</summary>
         [TestCase("{\"FakePlayer-FAKE-PUUID\":")]
         [TestCase("null")]
@@ -251,12 +323,18 @@ namespace TFTAnalyzer.Tests.Analytics
                 return Parser().Read(input, "asia", "MASTER+");
         }
         /// <summary>Asserts a controlled payload error without retaining an identifying parser exception.</summary>
-        private static void Reject(string payload, string code = "invalid_match_payload")
+        private static void Reject(string payload, string code = "invalid_match_payload", string reasonCode = null)
         {
             using (var input = new MemoryStream(Encoding.UTF8.GetBytes(payload)))
             {
                 var error = Assert.Throws<MatchPayloadException>(() => Parser().Read(input, "asia", "MASTER+"));
                 Assert.That(error.Code, Is.EqualTo(code));
+                if (reasonCode != null)
+                {
+                    var property = error.GetType().GetProperty("ReasonCode");
+                    Assert.That(property, Is.Not.Null, "Failures must expose an allowlisted reason separately from the compatible public Code.");
+                    Assert.That(property.GetValue(error), Is.EqualTo(reasonCode));
+                }
                 Assert.That(error.InnerException, Is.Null);
                 AssertSafe(error.ToString());
                 Assert.That(input.CanRead, Is.True);

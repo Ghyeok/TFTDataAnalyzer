@@ -1,0 +1,47 @@
+{
+  "findings": [
+    {
+      "action": "진단 단계와 실제 코드 수정/PR 단계를 분리한다. 먼저 합성 fixture로 검증된 인메모리 고정 범주형 안전 진단(또는 전체 DTO 파싱 전 최소 메타데이터/헤더 선행 확인)을 통해 경기의 세트/릴리스/모드·data_version 범주·augments 상태(누락/null/비배열)를 식별한 뒤, 비대상 경기 선행 필터링(catalog_mismatch 등)인지 정식 지원 스키마 수정인지 결정한다.",
+      "impact": "현재 단일 최신 경기 진단(DataVersionOther=true, Augments=false)만으로는 해당 경기가 비대상(타 세트/릴리스/특수 모드)인지 지원 대상 경기인지 판별할 근거가 부족하다. MatchAnonymizer.Read가 전체 RiotMatchDto를 먼저 Populate하여 invalid_match_payload로 통합 실패 처리하므로 카탈로그/버전 불일치 판정에 도달하지 못하며, 원인 확정 없이 수정·PR까지 한 번에 진행하면 오진이나 불필요한 스키마 변경이 발생할 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (진단/제안), inputs/source-contract.md (MatchAnonymizer.Read, RiotMatchDto 선행 Populate)",
+      "severity": "P1"
+    },
+    {
+      "action": "공식 TFT Match API 규격과 안전 진단을 통해 실제 지원해야 하는 세트/모드 및 스키마 계약임이 입증되기 전까지 임의의 data_version 허용 추가와 미검증 augments(누락/null)의 빈 배열([]) 추정 완화를 금지하고, 기존 unknown ID·Legend·n100 등 안전 가드를 유지한다.",
+      "impact": "구체적 근거 없이 data_version 허용 범위를 넓히거나 누락/null/비배열 augments를 빈 배열로 추정해 통과시키면 비대상 경기나 손상된 페이로드가 정상 수집 데이터로 오염되고 기존 익명화·검증 무결성이 훼손된다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (제안: data_version 및 빈 증강 추정 금지), inputs/source-contract.md (Project data_version 2 계약, participant.augments 필수 배열)",
+      "severity": "P1"
+    },
+    {
+      "action": "실데이터 재조회 전 합성 응답(fixture)으로 진단 출력의 비노출·오작동·종료 조건을 먼저 검증하고, 실데이터 수동 API 진단은 사용자 승인 하에 허용 조회 횟수·대상 범위를 명시하여 수행하되 비결정·동일 오류 반복·401/403/429 발생 시 즉시 중단하고 보고한다.",
+      "impact": "사전 합성 검증과 조회 상한 없이 실데이터 호출을 반복하면 동일한 실패(5 fetched / 5 failed)를 근거 없이 되풀이하고 불필요한 API 호출 및 실데이터 노출 위험을 초래한다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (목표/제안: 반복 중단 및 승인 범위 명시), inputs/source-contract.md (CollectOne 예외 처리 및 401/403/429 중단)",
+      "severity": "P1"
+    },
+    {
+      "action": "키 문서 본문 열람과 API 키·PUUID·Match ID·원본 응답·원문 필드값·임의 예외 문구의 로그/협업/저장소 기록을 전면 금지하고 인메모리 고정 불리언/범주 출력만 허용하며, 기존 schema1~5 카탈로그/데이터·미커밋 변경(AGENTS, README, 체크포인트, Volume, 키 문서)과 사용자 창/포커스/Chrome 상태를 그대로 보존한다.",
+      "impact": "진단 또는 디버깅 중 민감 식별자·원문 응답이 외부나 저장소에 유출되거나 기존 미커밋 작업물·보존 데이터 및 사용자 작업 창 환경이 훼손될 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (목표/검증: 개인정보 비노출 및 창 보호), inputs/source-contract.md (키 문서 열람 금지, 미커밋 변경 및 schema1~5 보존, Chrome/창 비간섭)",
+      "severity": "P2"
+    },
+    {
+      "action": "최신 경기 1건의 진단 결과를 과거 실패 5건 전체의 원인으로 단정하지 않도록 명시하고, 완료 기준에서 '합성 fixture 기반 재현·최소 수정·회귀 GREEN'과 '사용자 허용 범위 내 실제 경기 수집·저장 성공 검증(미검증 시 별도 표시)'을 구분해 보고한다.",
+      "impact": "단일 최신 경기 진단을 5건 전체 실패나 일반 저장 예외와 동일시하거나, 실제 저장 검증 없이 수정 완료로 처리하면 미확인 실패 원인이 남을 수 있다.",
+      "inScope": true,
+      "reference": "inputs/implementation-plan.md (목표/검증: 5건 일반화 금지 및 실제 저장 미검증 표시), inputs/source-contract.md (5 fetched/5 failed 해석 주의)",
+      "severity": "P2"
+    }
+  ],
+  "inputDigest": "f7d0eedd31d3c907f4910854611a477bfa7ceb02098e309a93920ef3097ea12f",
+  "taskId": "2026-11-02-match-failure-planning",
+  "unverified": [
+    "실제 접근 차단(저장소·네트워크·키 문서·외부 환경 차단)의 시스템적 작동 여부는 제공된 텍스트만으로 검토하여 별도 미검증",
+    "과거 실패한 실제 경기 5건 각각의 개별 원인, 진단 간 동일 경기 여부, 실제 경기의 세트/릴리스/모드와 현재 정적 카탈로그(18.2) 일치 여부",
+    "향후 수정 적용 후 실제 경기 응답에 대한 수집·익명화·저장 성공 여부"
+  ],
+  "verdict": "revise"
+}

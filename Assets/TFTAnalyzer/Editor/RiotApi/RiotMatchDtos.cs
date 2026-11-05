@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using TFTAnalyzer.Analytics;
 
 namespace TFTAnalyzer.Editor.RiotApi
 {
@@ -61,7 +62,32 @@ namespace TFTAnalyzer.Editor.RiotApi
         [JsonProperty("last_round", Required = Required.Always)] public int? LastRound;
         [JsonProperty("units", Required = Required.Always)] public RiotMatchUnit[] Units;
         [JsonProperty("traits", Required = Required.Always)] public RiotMatchTrait[] Traits;
-        [JsonProperty("augments", Required = Required.Always)] public string[] Augments;
+        private string[] _augments;
+        internal bool HasAugments;
+        /// <summary>Tracks explicit field presence so a missing array is distinguishable from a valid empty array.</summary>
+        [JsonProperty("augments"), JsonConverter(typeof(AugmentsConverter))]
+        public string[] Augments
+        {
+            get => _augments;
+            set { HasAugments = true; _augments = value; }
+        }
+    }
+
+    /// <summary>Diagnoses only the field envelope; untrusted array elements retain general validation.</summary>
+    internal sealed class AugmentsConverter : JsonConverter
+    {
+        public override bool CanWrite => false;
+        /// <summary>Limits envelope diagnostics to the participant's augment string array.</summary>
+        public override bool CanConvert(Type type) => type == typeof(string[]);
+        /// <summary>Rejects null and non-array envelopes with fixed reasons while preserving strict element validation.</summary>
+        public override object ReadJson(JsonReader reader, Type type, object existing, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) throw new MatchPayloadException(MatchPayloadFailure.AugmentsNull);
+            if (reader.TokenType != JsonToken.StartArray) throw new MatchPayloadException(MatchPayloadFailure.AugmentsInvalidFormat);
+            return serializer.Deserialize<string[]>(reader);
+        }
+        /// <summary>Prohibits writing raw augment DTO data through this read-only converter.</summary>
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
     }
     [JsonObject(MemberSerialization.OptIn)]
     internal sealed class RiotMatchUnit
