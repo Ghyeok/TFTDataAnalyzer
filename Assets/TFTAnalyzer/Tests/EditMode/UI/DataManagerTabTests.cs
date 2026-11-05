@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Ingestion;
+using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Data;
+using TFTAnalyzer.Serialization;
+using TFTAnalyzer.Validation;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -180,6 +183,126 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(diff.Query<Foldout>().ToList(), Is.Not.Empty);
             Assert.That(text, Does.Contain("name.enUs").And.Contain("Before").And.Contain("After"));
             Assert.That(_vm.Diff.Units.Changed, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>Preserves tagged identity and before/after values while requiring their actual labels to render plain text.</summary>
+        [UnityTest]
+        public IEnumerator ComparisonIdentityAndFieldValuesRenderLiteralMarkup()
+        {
+            var rows = UseTaggedComparisonRows();
+            Submit("compare-button");
+            yield return WaitForEditorRender();
+            var labels = _tree.Q("catalog-diff").Query<Label>().ToList();
+            var identities = labels.Where(label => label.text == "이전: " + rows[0].DisplayIdentity ||
+                label.text == "이후: " + rows[1].DisplayIdentity).ToList();
+            Assert.That(identities, Has.Count.EqualTo(2));
+            foreach (var kind in new[] { "Unit", "Trait", "Item", "Augment" })
+            {
+                var text = "name.enUs\n이전: <color=#00000000>Before " + kind + "</color>\n이후: <b>After " + kind + "</b>";
+                var field = labels.Single(label => label.text == text);
+                Assert.That(field.enableRichText, Is.False, kind + " before/after values must retain literal tags.");
+            }
+            foreach (var identity in identities)
+                Assert.That(identity.enableRichText, Is.False, "Catalog identity markup must also remain literal.");
+        }
+
+        /// <summary>Checks tagged added/removed IDs and the real Toggle/Label hierarchy of changed-record Foldout titles.</summary>
+        [UnityTest]
+        public IEnumerator ComparisonIdsAndFoldoutToggleLabelsDisableRichText()
+        {
+            UseTaggedComparisonRows();
+            Submit("compare-button");
+            yield return WaitForEditorRender();
+            var diff = _tree.Q("catalog-diff");
+            var labels = diff.Query<Label>().ToList();
+            var foldouts = diff.Query<Foldout>().ToList();
+            Assert.That(foldouts, Has.Count.EqualTo(8), "Each of four categories has one changed-record Foldout.");
+            foreach (var kind in new[] { "Unit", "Trait", "Item", "Augment" })
+            {
+                var added = labels.Single(label => label.text == "추가: TEST18_<color=#00000000>Added_" + kind + "</color>");
+                var removed = labels.Single(label => label.text == "삭제: TEST18_<b>Removed_" + kind + "</b>");
+                Assert.That(added.enableRichText, Is.False, "Added ID markup must remain literal.");
+                Assert.That(removed.enableRichText, Is.False, "Removed ID markup must remain literal.");
+                Assert.That(foldouts.Any(foldout => foldout.text == "TEST18_<b>Changed_" + kind + "</b>"), Is.True);
+            }
+            foreach (var foldout in foldouts)
+            {
+                var toggle = foldout.Q<Toggle>();
+                Assert.That(toggle, Is.Not.Null);
+                var titleLabels = toggle.Query<Label>().ToList();
+                Assert.That(titleLabels.Any(label => label.text == foldout.text), Is.True,
+                    "The actual Foldout Toggle must retain the unmodified title.");
+                foreach (var title in titleLabels)
+                    Assert.That(title.enableRichText, Is.False, "Foldout Toggle title labels must disable markup interpretation.");
+            }
+        }
+
+        /// <summary>Reverses and repeats real comparisons without changing catalog bytes or restoring rich text on rebuilt elements.</summary>
+        [UnityTest]
+        public IEnumerator ComparisonDirectionAndRecreatedTreePreserveCatalogsAndPlainText()
+        {
+            var rows = UseTaggedComparisonRows();
+            var originals = rows.Select(row => CanonicalCatalogSerializer.Serialize(row.Catalog)).ToArray();
+            for (var iteration = 0; iteration < 3; iteration++)
+            {
+                var reverse = iteration == 1;
+                _tree.Q<DropdownField>("diff-before").index = reverse ? 1 : 0;
+                _tree.Q<DropdownField>("diff-after").index = reverse ? 0 : 1;
+                Submit("compare-button");
+                yield return WaitForEditorRender();
+                var field = _vm.Diff.Units.Changed.Single().Fields.Single(value => value.FieldName == "name.enUs");
+                Assert.That(field.Before, Is.EqualTo(reverse ? "<b>After Unit</b>" : "<color=#00000000>Before Unit</color>"));
+                Assert.That(field.After, Is.EqualTo(reverse ? "<color=#00000000>Before Unit</color>" : "<b>After Unit</b>"));
+                foreach (var category in new[] { _vm.Diff.Units, _vm.Diff.Traits, _vm.Diff.Items, _vm.Diff.Augments })
+                {
+                    Assert.That(category.AddedIds, Has.Count.EqualTo(1));
+                    Assert.That(category.RemovedIds, Has.Count.EqualTo(1));
+                    Assert.That(category.Changed, Has.Count.EqualTo(1));
+                }
+                if (iteration == 1) Rebuild();
+                for (var row = 0; row < rows.Length; row++)
+                    Assert.That(CanonicalCatalogSerializer.Serialize(rows[row].Catalog), Is.EqualTo(originals[row]));
+            }
+            var finalLabels = _tree.Q("catalog-diff").Query<Label>().ToList();
+            Assert.That(finalLabels, Is.Not.Empty);
+            foreach (var label in finalLabels)
+                Assert.That(label.enableRichText, Is.False, "Rebuilt comparison labels must remain plain text: " + label.text);
+            Assert.That(_service.Imports, Is.Empty);
+            Assert.That(_service.VersionCalls, Is.Zero);
+        }
+
+        /// <summary>Injects validator-accepted memory catalogs containing markup in all four record categories and identity text.</summary>
+        private PatchRowViewModel[] UseTaggedComparisonRows()
+        {
+            _binding.Dispose();
+            _vm.Dispose();
+            var rows = new[] { TaggedComparisonRow(false), TaggedComparisonRow(true) };
+            _service.Rows = rows;
+            _vm = new DataManagerViewModel(_service);
+            Rebuild();
+            return rows;
+        }
+
+        /// <summary>Creates a fabricated catalog with one changed and one side-specific record per category without loading files.</summary>
+        private static PatchRowViewModel TaggedComparisonRow(bool after)
+        {
+            var identity = new CatalogIdentity(new PatchKey("<b>TFTSet18</b>", 18, "18.2",
+                after ? "16.18.2" : "16.18.1"), CatalogSourceProfile.OfficialOnly);
+            var manifest = DataManagerTestSupport.Catalog(identity).Manifest;
+            Func<string, string[]> ids = kind => new[] { "TEST18_<b>Changed_" + kind + "</b>",
+                after ? "TEST18_<color=#00000000>Added_" + kind + "</color>" : "TEST18_<b>Removed_" + kind + "</b>" };
+            Func<string, LocalizedText> name = kind => new LocalizedText("정상 이름",
+                after ? "<b>After " + kind + "</b>" : "<color=#00000000>Before " + kind + "</color>");
+            var catalog = new StaticCatalog(manifest,
+                ids("Unit").Select(id => new UnitRecord(id, name("Unit"), 1, null, "", manifest.Sources)),
+                ids("Trait").Select(id => new TraitRecord(id, name("Trait"), null, null, "", manifest.Sources)),
+                ids("Item").Select(id => new ItemRecord(id, name("Item"), null, null, null, "", manifest.Sources)),
+                ids("Augment").Select(id => new AugmentRecord(id, name("Augment"), "Gold", null, null, null, "", manifest.Sources)));
+            var validation = new CatalogValidator().Validate(catalog);
+            Assert.That(validation.ErrorCount, Is.Zero, "The markup fixture must remain valid catalog input.");
+            return new PatchRowViewModel(new CatalogIndexEntry(identity, new string('a', 64), "test/tagged-catalog.json"),
+                identity, "test/memory-only", catalog, DataManagerTestSupport.RetrievedUtc,
+                validation.ErrorCount, validation.WarningCount, "");
         }
 
         [UnityTest]
