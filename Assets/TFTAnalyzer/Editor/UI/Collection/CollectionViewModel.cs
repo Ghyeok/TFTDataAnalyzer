@@ -142,6 +142,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 StatusText = "입력 조건이 갖춰졌습니다. '조건 확인 후 수집'을 눌러 주세요.";
         }
 
+        /// <summary>Captures approved inputs, isolates run progress, and preserves committed outcomes across cancellation or safe failure fallbacks.</summary>
         public async Task StartAsync(Func<string, bool> confirm)
         {
             if (_disposed || IsBusy) return;
@@ -244,6 +245,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
             }
         }
 
+        /// <summary>Preserves reported counters and quarantine state while appending only a newly observed fallback failure.</summary>
         private MatchCollectionSummary Snapshot(bool cancelled, int additionalFailures = 0, int additionalApiFailures = 0,
             int statusCode = 0, DateTimeOffset? retryAfterUtc = null) => new MatchCollectionSummary(
                 Progress.Requested, Progress.Fetched, Progress.Stored, Progress.Duplicate, Progress.Filtered,

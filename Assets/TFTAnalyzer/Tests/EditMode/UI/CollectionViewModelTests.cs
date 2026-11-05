@@ -30,6 +30,7 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        /// <summary>Preserves prior failures across cancellation or exception fallbacks and rejects stale callbacks after reset.</summary>
         [TestCase("cancel", 2, 2, 0)]
         [TestCase("api", 3, 2, 1)]
         [TestCase("processing", 3, 3, 0)]
@@ -64,6 +65,7 @@ namespace TFTAnalyzer.Tests.UI
             await next;
         }
 
+        /// <summary>Preserves every classified counter while appending only a new API failure when cancellation did not end the run.</summary>
         [TestCase(false)] [TestCase(true)]
         public async Task ClassifiedFailureReasonsSurviveCancellationAndApiFallback(bool cancelled)
         {

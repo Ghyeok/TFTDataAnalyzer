@@ -77,6 +77,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
             if (!_disposed) Render();
         }
 
+        /// <summary>Renders current readiness, numeric outcomes, failure categories and terminal diagnostics without initiating collection.</summary>
         private void Render()
         {
             var busy = _vm.IsBusy;
@@ -105,6 +106,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 (progress.QuarantineReportTruncated ? " · 격리 진단 상한 도달로 일부 누락 · 수집 중단" : "");
         }
 
+        /// <summary>Formats reported category counts and states that additional causes may remain unconfirmed.</summary>
         private static string DescribeFailures(CollectionProgressViewModel progress)
         {
             if (progress.Failed == 0) return "이번 수집에서 보고된 실패 없음";

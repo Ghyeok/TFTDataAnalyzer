@@ -64,6 +64,7 @@ namespace TFTAnalyzer.Editor.RiotApi
         [JsonProperty("traits", Required = Required.Always)] public RiotMatchTrait[] Traits;
         private string[] _augments;
         internal bool HasAugments;
+        /// <summary>Tracks explicit field presence so a missing array is distinguishable from a valid empty array.</summary>
         [JsonProperty("augments"), JsonConverter(typeof(AugmentsConverter))]
         public string[] Augments
         {
@@ -76,13 +77,16 @@ namespace TFTAnalyzer.Editor.RiotApi
     internal sealed class AugmentsConverter : JsonConverter
     {
         public override bool CanWrite => false;
+        /// <summary>Limits envelope diagnostics to the participant's augment string array.</summary>
         public override bool CanConvert(Type type) => type == typeof(string[]);
+        /// <summary>Rejects null and non-array envelopes with fixed reasons while preserving strict element validation.</summary>
         public override object ReadJson(JsonReader reader, Type type, object existing, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) throw new MatchPayloadException(MatchPayloadFailure.AugmentsNull);
             if (reader.TokenType != JsonToken.StartArray) throw new MatchPayloadException(MatchPayloadFailure.AugmentsInvalidFormat);
             return serializer.Deserialize<string[]>(reader);
         }
+        /// <summary>Prohibits writing raw augment DTO data through this read-only converter.</summary>
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
     }
     [JsonObject(MemberSerialization.OptIn)]

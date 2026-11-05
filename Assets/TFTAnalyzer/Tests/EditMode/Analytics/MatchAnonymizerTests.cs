@@ -132,6 +132,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Reject(json.ToString(), code);
         }
 
+        /// <summary>Requires controlled reasons for missing, null and non-array augment fields without changing the public error code.</summary>
         [TestCase("missing", "missing_match_augments")]
         [TestCase("null", "null_match_augments")]
         [TestCase("object", "invalid_match_augments_format")]
@@ -148,6 +149,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Reject(json.ToString(), reasonCode: code);
         }
 
+        /// <summary>Classifies an unusable numeric version without returning its fabricated identifying text.</summary>
         [Test]
         public void UnreadableNumericGameVersionHasControlledReason()
         {
@@ -156,6 +158,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Reject(json.ToString(), reasonCode: "unavailable_match_game_version");
         }
 
+        /// <summary>Preserves valid empty augment arrays and general rejection of unsafe or malformed array elements.</summary>
         [Test]
         public void EmptyAugmentsRemainAcceptedAndInvalidElementsStayGeneral()
         {
@@ -169,6 +172,7 @@ namespace TFTAnalyzer.Tests.Analytics
             }
         }
 
+        /// <summary>Keeps early required-field errors general and reports only the first version validation actually reached.</summary>
         [Test]
         public void EarlyParseFailureDoesNotGuessUnreachedVersions()
         {
@@ -183,6 +187,7 @@ namespace TFTAnalyzer.Tests.Analytics
             Reject(json.ToString(), "unsupported_match_version");
         }
 
+        /// <summary>Checks that finer diagnostics retain duplicate, trailing-content, array-limit and required-version rejection.</summary>
         [Test]
         public void AugmentDiagnosticsPreserveDuplicateSyntaxAndCollectionLimits()
         {

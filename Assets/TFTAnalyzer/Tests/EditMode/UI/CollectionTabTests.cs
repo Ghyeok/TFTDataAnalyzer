@@ -50,6 +50,7 @@ namespace TFTAnalyzer.Tests.UI
             }
         }
 
+        /// <summary>Keeps settled failure counts visible through readiness checks and removes them when a new successful run completes.</summary>
         [UnityTest]
         public IEnumerator FailureReasonsRenderConfirmedEventsAndClearForNextRun()
         {
@@ -70,6 +71,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(label.text, Does.Contain("보고된 실패 없음").And.Not.Contain("오류 2"));
         }
 
+        /// <summary>Checks distinct counts for all six categories and the notice that other causes may remain unconfirmed.</summary>
         [UnityTest]
         public IEnumerator AllFailureCategoriesRenderTheirOwnCountsWithoutInferringOtherCauses()
         {

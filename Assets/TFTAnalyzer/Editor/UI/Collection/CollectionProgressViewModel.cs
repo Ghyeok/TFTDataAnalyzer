@@ -26,6 +26,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
         public bool QuarantineReportFailed { get; }
         public bool QuarantineReportTruncated { get; }
 
+        /// <summary>Copies an immutable numeric snapshot, or initializes empty counters for a new collection run.</summary>
         internal CollectionProgressViewModel(MatchCollectionSummary summary = null)
         {
             if (summary == null) return;

@@ -21,6 +21,7 @@ public static class CollectionScopedVisualValidation
     public static Task<object> RunFailureProbe() => Execute(true);
     public static Task<object> RunInitializationFailureProbe() => Execute(true, true);
     public static Task<object> RunQuarantine() => Execute(false, false, true);
+    /// <summary>Captures six fabricated failure categories at both supported widths without calling the API.</summary>
     public static Task<object> RunFailures() => Execute(false, false, false, true);
 
     public static object CleanupLastOwned()
@@ -39,6 +40,7 @@ public static class CollectionScopedVisualValidation
             value.GetInstanceID()==id && value.name==name)};
     }
 
+    /// <summary>Owns one bounded capture run, closes its exact window, and verifies existing windows, frames and focus.</summary>
     private static async Task<object> Execute(bool failAfterOpen, bool failBeforeShow=false, bool quarantine=false, bool failures=false)
     {
         var previousFocus = EditorWindow.focusedWindow;
@@ -165,6 +167,7 @@ public static class CollectionScopedVisualValidation
         finally { if (owned!=null) UnityEngine.Object.DestroyImmediate(owned); }
     }
 
+    /// <summary>Saves current window pixels and checks catalog text plus visibility of the requested diagnostic labels.</summary>
     private static object Capture(TftDataAnalyzerWindow window, string root, string scenario=null)
     {
         var rect=window.position;
@@ -220,9 +223,11 @@ public static class CollectionScopedVisualValidation
         private readonly bool _failures;
         internal string Scenario;
         internal int Calls;
+        /// <summary>Enables only the synthetic collection mode selected for this isolated validation host.</summary>
         internal OfflineStatus(bool quarantine=false, bool failures=false) { _quarantine=quarantine; _failures=failures; }
         public bool ApiKeyConfigured=>_quarantine || _failures;
         public bool SeedConfigured=>_quarantine || _failures;
+        /// <summary>Returns fabricated numeric failure or quarantine outcomes without reading credentials or sending requests.</summary>
         public Task<MatchCollectionSummary> CollectAsync(StaticCatalog catalog,MatchCollectionRequest request,
             IProgress<CollectionProgress> progress,CancellationToken token)
         {

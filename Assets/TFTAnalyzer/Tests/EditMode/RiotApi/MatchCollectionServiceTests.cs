@@ -186,6 +186,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertSafe(summary);
         }
 
+        /// <summary>Separates five failure categories from existing filters and clears all categories for the next run.</summary>
         [Test]
         public async Task FailureReasonsCountEachEventOnceAndResetForNextRun()
         {
@@ -218,6 +219,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertReasons(next, 0, 0, 0, 0, 0, 0);
         }
 
+        /// <summary>Counts list-request API and seed-provider failures once in their respective safe categories.</summary>
         [Test]
         public async Task ListApiAndTopLevelProcessingFailuresHaveOneReason()
         {
@@ -231,6 +233,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertSafe(processing);
         }
 
+        /// <summary>Retains a committed observation and stops further downloads after one stream-cleanup processing failure.</summary>
         [Test]
         public async Task StreamCleanupFailureStopsRunAndCountsOneProcessingFailure()
         {
@@ -248,6 +251,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertSafe(summary);
         }
 
+        /// <summary>Checks each published category against independent expectations and verifies their total.</summary>
         private static void AssertReasons(MatchCollectionSummary summary, int unsupported, int version,
             int augments, int payload, int api, int processing)
         {
@@ -259,6 +263,7 @@ namespace TFTAnalyzer.Tests.RiotApi
             AssertReasonTotal(summary);
         }
 
+        /// <summary>Requires all six published counters to exist and sum to the reported failure event count.</summary>
         private static void AssertReasonTotal(MatchCollectionSummary summary)
         {
             var json = JObject.FromObject(summary);

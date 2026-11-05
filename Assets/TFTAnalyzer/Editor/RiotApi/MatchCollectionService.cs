@@ -209,6 +209,7 @@ namespace TFTAnalyzer.Editor.RiotApi
                        error.StatusCode == 401 || error.StatusCode == 403;
             }
 
+            /// <summary>Counts one failure in its controlled category, using processing for unspecified or unknown reasons.</summary>
             internal void RecordFailure(string reasonCode = null)
             {
                 switch (reasonCode)
