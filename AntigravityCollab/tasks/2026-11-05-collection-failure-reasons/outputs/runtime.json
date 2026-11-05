@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-05-collection-failure-reasons",
+  "inputDigest": "889a203f711eeac0cea68ba3588363940ba10109f51b42309eafd80da5f2db0e",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.1",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 40340,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8140,
+    "output_tokens": 2211,
+    "thinking_tokens": 1107,
+    "cache_read_tokens": 0,
+    "total_tokens": 10351
+  },
+  "responseSeconds": 41.8165774,
+  "exitCode": 0,
+  "durationSeconds": 48.785
+}

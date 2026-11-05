@@ -11,6 +11,12 @@ namespace TFTAnalyzer.Editor.UI.Collection
         public int Duplicate { get; }
         public int Filtered { get; }
         public int Failed { get; }
+        public int FailedUnsupportedVersion { get; }
+        public int FailedGameVersion { get; }
+        public int FailedAugments { get; }
+        public int FailedPayload { get; }
+        public int FailedApi { get; }
+        public int FailedProcessing { get; }
         public int IdPages { get; }
         public bool Cancelled { get; }
         public bool ScanLimitReached { get; }
@@ -29,6 +35,12 @@ namespace TFTAnalyzer.Editor.UI.Collection
             Duplicate = summary.Duplicate;
             Filtered = summary.Filtered;
             Failed = summary.Failed;
+            FailedUnsupportedVersion = summary.FailedUnsupportedVersion;
+            FailedGameVersion = summary.FailedGameVersion;
+            FailedAugments = summary.FailedAugments;
+            FailedPayload = summary.FailedPayload;
+            FailedApi = summary.FailedApi;
+            FailedProcessing = summary.FailedProcessing;
             IdPages = summary.IdPages;
             Cancelled = summary.Cancelled;
             ScanLimitReached = summary.ScanLimitReached;

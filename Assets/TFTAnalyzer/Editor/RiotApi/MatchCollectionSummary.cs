@@ -11,6 +11,12 @@ namespace TFTAnalyzer.Editor.RiotApi
         public int Duplicate { get; }
         public int Filtered { get; }
         public int Failed { get; }
+        public int FailedUnsupportedVersion { get; }
+        public int FailedGameVersion { get; }
+        public int FailedAugments { get; }
+        public int FailedPayload { get; }
+        public int FailedApi { get; }
+        public int FailedProcessing { get; }
         public bool Cancelled { get; }
         public int IdPages { get; }
         public bool ScanLimitReached { get; }
@@ -25,8 +31,15 @@ namespace TFTAnalyzer.Editor.RiotApi
         internal MatchCollectionSummary(int requested, int fetched, int stored, int duplicate, int filtered, int failed,
             bool cancelled, int idPages, bool scanLimitReached, int statusCode, DateTimeOffset? retryAfterUtc,
             int quarantined = 0, bool quarantineReportSaved = false, bool quarantineReportFailed = false,
-            bool quarantineReportTruncated = false)
+            bool quarantineReportTruncated = false, int failedUnsupportedVersion = 0, int failedGameVersion = 0,
+            int failedAugments = 0, int failedPayload = 0, int failedApi = 0)
         {
+            var classified = (long)failedUnsupportedVersion + failedGameVersion + failedAugments + failedPayload + failedApi;
+            if (failed < 0 || failedUnsupportedVersion < 0 || failedGameVersion < 0 || failedAugments < 0 ||
+                failedPayload < 0 || failedApi < 0 || classified > failed) throw new ArgumentOutOfRangeException(nameof(failed));
+            FailedUnsupportedVersion = failedUnsupportedVersion; FailedGameVersion = failedGameVersion;
+            FailedAugments = failedAugments; FailedPayload = failedPayload; FailedApi = failedApi;
+            FailedProcessing = failed - (int)classified;
             Requested = requested; Fetched = fetched; Stored = stored; Duplicate = duplicate;
             Filtered = filtered; Failed = failed; Cancelled = cancelled; IdPages = idPages;
             ScanLimitReached = scanLimitReached; StatusCode = statusCode; RetryAfterUtc = retryAfterUtc;

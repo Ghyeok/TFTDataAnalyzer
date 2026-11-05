@@ -2,21 +2,25 @@ param(
     [string]$UnityPath = (Join-Path $env:LOCALAPPDATA 'Unity\bin\unity.exe'),
     [switch]$ProbeFailure,
     [switch]$ProbeInitializationFailure,
-    [switch]$QuarantineReport
+    [switch]$QuarantineReport,
+    [switch]$FailureReasons
 )
 
 $ErrorActionPreference = 'Stop'
 if ($ProbeFailure -and $ProbeInitializationFailure) { throw 'Choose one cleanup failure probe per invocation.' }
 if ($QuarantineReport -and ($ProbeFailure -or $ProbeInitializationFailure)) { throw 'Choose quarantine captures or one cleanup probe.' }
+if ($FailureReasons -and ($QuarantineReport -or $ProbeFailure -or $ProbeInitializationFailure)) { throw 'Choose failure reason captures or another validation mode.' }
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $outputRoot = Join-Path $projectRoot 'Library\TftAnalyzerValidation'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $entry = if ($ProbeInitializationFailure) { 'CollectionScopedVisualValidation.RunInitializationFailureProbe' }
     elseif ($ProbeFailure) { 'CollectionScopedVisualValidation.RunFailureProbe' }
-    elseif ($QuarantineReport) { 'CollectionScopedVisualValidation.RunQuarantine' } else { 'CollectionScopedVisualValidation.Run' }
+    elseif ($QuarantineReport) { 'CollectionScopedVisualValidation.RunQuarantine' }
+    elseif ($FailureReasons) { 'CollectionScopedVisualValidation.RunFailures' } else { 'CollectionScopedVisualValidation.Run' }
 $resultFileName = if ($ProbeInitializationFailure) { 'collection-visual-initialization-failure-command.json' }
     elseif ($ProbeFailure) { 'collection-visual-failure-command.json' }
-    elseif ($QuarantineReport) { 'collection-quarantine-visual-command.json' } else { 'collection-visual-command.json' }
+    elseif ($QuarantineReport) { 'collection-quarantine-visual-command.json' }
+    elseif ($FailureReasons) { 'collection-failure-reasons-visual-command.json' } else { 'collection-visual-command.json' }
 $resultPath = Join-Path $outputRoot $resultFileName
 
 try {

@@ -91,6 +91,7 @@ namespace TFTAnalyzer.Editor.UI.Collection
             var progress = _vm.Progress;
             _tab.Q<Label>("collection-counts").text = $"상세 시도 {progress.Requested} · 가져옴 {progress.Fetched} · 저장 {progress.Stored}\n" +
                 $"중복 {progress.Duplicate} · 필터 제외 {progress.Filtered} · 실패 {progress.Failed}";
+            _tab.Q<Label>("collection-failure-reasons").text = DescribeFailures(progress);
             _tab.Q<Label>("collection-rate-limit").text = progress.RetryAfterUtc.HasValue
                 ? "요청 제한: " + progress.RetryAfterUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) + " 이후 수동 재시도"
                 : "요청 제한 대기: 보고된 대기 없음";
@@ -102,6 +103,20 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 (progress.QuarantineReportSaved ? "보고서 저장됨" : progress.QuarantineReportFailed ? "보고서 저장 실패" :
                     progress.Quarantined == 0 ? "이번 보고서 없음" : busy ? "보고서 저장 대기" : "보고서 저장 확인 안 됨") +
                 (progress.QuarantineReportTruncated ? " · 격리 진단 상한 도달로 일부 누락 · 수집 중단" : "");
+        }
+
+        private static string DescribeFailures(CollectionProgressViewModel progress)
+        {
+            if (progress.Failed == 0) return "이번 수집에서 보고된 실패 없음";
+            var reasons = new List<string>();
+            if (progress.FailedUnsupportedVersion > 0) reasons.Add($"지원하지 않는 데이터 버전 {progress.FailedUnsupportedVersion}");
+            if (progress.FailedGameVersion > 0) reasons.Add($"게임 버전 확인 불가 {progress.FailedGameVersion}");
+            if (progress.FailedAugments > 0) reasons.Add($"증강 정보 확인 실패 {progress.FailedAugments}");
+            if (progress.FailedPayload > 0) reasons.Add($"기타 경기 형식 오류 {progress.FailedPayload}");
+            if (progress.FailedApi > 0) reasons.Add($"API 오류 {progress.FailedApi}");
+            if (progress.FailedProcessing > 0) reasons.Add($"저장·처리 오류 {progress.FailedProcessing}");
+            return "이번 수집에서 확인한 실패 이유(목록 요청·처리 포함)\n" + string.Join("\n", reasons) +
+                "\n실패마다 먼저 확인한 이유 하나만 표시합니다. 다른 원인은 확인되지 않았을 수 있습니다.";
         }
 
         private static string DescribeCatalog(CatalogIdentity identity)

@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-05-collection-failure-reasons",
+  "baseCommit": "6a6f787d5ec5346f92bfdd5c605715d4df6e97e6",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "현재 범위 및 코드 계약의 비식별 요약",
+      "sha256": "d31c12e36ad8c0c74d6a0092fd92035082df6927ccc80374d21cf1a65c5698d4"
+    },
+    {
+      "copy": "inputs/code-contract.md",
+      "source": "현재 범위 및 코드 계약의 비식별 요약",
+      "sha256": "ae29b0a8fc27a94406db2f4542d6e72b286a91c57eede5a4556d5a1d50e55ef1"
+    }
+  ],
+  "inputDigest": "889a203f711eeac0cea68ba3588363940ba10109f51b42309eafd80da5f2db0e",
+  "inputBytes": 2945
+}

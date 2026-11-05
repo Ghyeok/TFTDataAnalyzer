@@ -48,7 +48,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             var context = CollectionQuarantineReport.ContextHash(_catalog, request);
             try { await CollectCoreAsync(request, anonymizer, state, progress, token); }
             catch (OperationCanceledException) { state.Cancelled = true; }
-            catch { if (token.IsCancellationRequested) state.Cancelled = true; else state.Failed++; }
+            catch { if (token.IsCancellationRequested) state.Cancelled = true; else state.RecordFailure(); }
             finally
             {
                 if (state.Quarantine.QuarantinedMatches > 0)
@@ -143,7 +143,7 @@ namespace TFTAnalyzer.Editor.RiotApi
                     var observation = result.Observation;
                     if (!string.Equals(observation.MatchHash, ContentHasher.Sha256Hex("match-v1|" + id), StringComparison.Ordinal))
                     {
-                        state.Failed++;
+                        state.RecordFailure("invalid_match_payload");
                         return false;
                     }
                     if (observation.Scope.QueueId != request.QueueId.ToString(CultureInfo.InvariantCulture))
@@ -160,7 +160,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             catch (MatchPayloadException error)
             {
                 token.ThrowIfCancellationRequested();
-                if (error.Code == "catalog_mismatch") state.Filtered++; else state.Failed++;
+                if (error.Code == "catalog_mismatch") state.Filtered++; else state.RecordFailure(error.ReasonCode);
                 return false;
             }
             catch (RiotApiException error)
@@ -171,7 +171,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             catch
             {
                 token.ThrowIfCancellationRequested();
-                state.Failed++;
+                state.RecordFailure();
                 // Storage or cleanup failures stop the run; never keep writing into an uncertain store.
                 return true;
             }
@@ -191,7 +191,9 @@ namespace TFTAnalyzer.Editor.RiotApi
 
         private sealed class Counts
         {
-            internal int Requested, Fetched, Stored, Duplicate, Filtered, Failed, IdPages, StatusCode;
+            internal int Requested, Fetched, Stored, Duplicate, Filtered, IdPages, StatusCode;
+            private int _unsupportedVersion, _gameVersion, _augments, _payload, _api, _processing;
+            private int Failed => _unsupportedVersion + _gameVersion + _augments + _payload + _api + _processing;
             internal bool Cancelled, ScanLimitReached;
             internal DateTimeOffset? RetryAfterUtc;
             internal readonly CollectionQuarantineAccumulator Quarantine = new CollectionQuarantineAccumulator();
@@ -200,17 +202,32 @@ namespace TFTAnalyzer.Editor.RiotApi
             /// <summary>Retains controlled HTTP diagnostics and stops on credential, authorization or quota failures.</summary>
             internal bool Record(RiotApiException error)
             {
-                Failed++;
+                _api++;
                 StatusCode = error.StatusCode >= 100 && error.StatusCode <= 599 ? (int)error.StatusCode : 0;
                 RetryAfterUtc = error.RetryAfterUtc;
                 return error.Code == "api_key_unavailable" || error.Code == "rate_limited" ||
                        error.StatusCode == 401 || error.StatusCode == 403;
             }
 
+            internal void RecordFailure(string reasonCode = null)
+            {
+                switch (reasonCode)
+                {
+                    case "unsupported_match_version": _unsupportedVersion++; break;
+                    case "unavailable_match_game_version": _gameVersion++; break;
+                    case "missing_match_augments":
+                    case "null_match_augments":
+                    case "invalid_match_augments_format": _augments++; break;
+                    case "invalid_match_payload": _payload++; break;
+                    default: _processing++; break;
+                }
+            }
+
             /// <summary>Copies counters without raw identifiers or mutable references.</summary>
             internal MatchCollectionSummary Snapshot() => new MatchCollectionSummary(Requested, Fetched, Stored,
                 Duplicate, Filtered, Failed, Cancelled, IdPages, ScanLimitReached, StatusCode, RetryAfterUtc,
-                Quarantine.QuarantinedMatches, ReportSaved, ReportFailed, Quarantine.Truncated);
+                Quarantine.QuarantinedMatches, ReportSaved, ReportFailed, Quarantine.Truncated,
+                _unsupportedVersion, _gameVersion, _augments, _payload, _api);
         }
     }
 }

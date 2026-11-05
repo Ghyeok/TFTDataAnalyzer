@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-02-match-failure-planning",
+  "inputDigest": "f7d0eedd31d3c907f4910854611a477bfa7ceb02098e309a93920ef3097ea12f",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.4.11",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 28980,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8515,
+    "output_tokens": 3078,
+    "thinking_tokens": 1748,
+    "cache_read_tokens": 0,
+    "total_tokens": 11593
+  },
+  "responseSeconds": 41.8395325,
+  "exitCode": 0,
+  "durationSeconds": 52.127
+}
