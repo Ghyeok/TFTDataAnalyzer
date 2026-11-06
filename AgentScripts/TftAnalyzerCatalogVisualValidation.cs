@@ -91,6 +91,7 @@ public static class CatalogScopedVisualValidation
         };
     }
 
+    /// <summary>Runs one scoped visual scenario and reports owned-window cleanup for success or failure.</summary>
     private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
     {
         Directory.CreateDirectory(Root);
@@ -236,6 +237,7 @@ public static class CatalogScopedVisualValidation
         return report;
     }
 
+    /// <summary>Checks literal comparison labels and captures their visible titles and values at both supported widths.</summary>
     private static async Task CaptureComparison(TftDataAnalyzerWindow window, DataManagerViewModel data,
         int id, string name, CancellationToken token, List<object> captures)
     {
@@ -389,6 +391,7 @@ public static class CatalogScopedVisualValidation
         return false;
     }
 
+    /// <summary>Captures comparison pixels only after verifying the requested targets are inside the viewport.</summary>
     private static object CaptureComparisonPixels(TftDataAnalyzerWindow window, int width, string area, VisualElement[] targets, string mode = "comparison")
     {
         var root = window.rootVisualElement;
@@ -480,6 +483,7 @@ public static class CatalogScopedVisualValidation
         return rows.AsReadOnly();
     }
 
+    /// <summary>Builds a long tagged example containing supplementary Unicode characters for visual verification.</summary>
     private static string ComparisonDescription(bool after)
     {
         // Long enough to exercise multiple lines at 500px while keeping the complete before/after field capturable.
@@ -489,6 +493,7 @@ public static class CatalogScopedVisualValidation
             (after ? "<i>AFTER-END 🚀</i>" : "<i>BEFORE-END 😀</i>");
     }
 
+    /// <summary>Creates two validator-checked synthetic catalogs with a directional text comparison.</summary>
     private static IReadOnlyList<PatchRowViewModel> ComparisonCatalogRows()
     {
         var rows = new List<PatchRowViewModel>();
@@ -785,6 +790,7 @@ public static class CatalogScopedVisualValidation
         public int ForbiddenServiceCalls;
         public LocalCatalogs(bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
         { _synthetic = synthetic; _structured = structured; _comparison = comparison; _collision = collision; }
+        /// <summary>Returns the selected synthetic fixture or reads the existing local catalogs for validation.</summary>
         public IReadOnlyList<PatchRowViewModel> LoadLocalCatalogs()
         {
             if (_collision) return CollisionCatalogRows();
