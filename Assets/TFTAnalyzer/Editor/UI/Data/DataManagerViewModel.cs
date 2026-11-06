@@ -182,6 +182,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             return true;
         }
 
+        /// <summary>Compares two selectable catalogs and retains their original rows so later selection changes cannot reinterpret the result.</summary>
         public bool Compare(CatalogIdentity before, CatalogIdentity after)
         {
             if (_disposed || IsBusy) return false;
@@ -200,6 +201,7 @@ namespace TFTAnalyzer.Editor.UI.Data
         private PatchRowViewModel Find(CatalogIdentity identity) =>
             identity == null ? null : Rows.FirstOrDefault(row => row.IsSelectable && row.Identity.Equals(identity));
 
+        /// <summary>Reloads local catalogs, drops an unavailable active selection, and clears the prior diff and its retained source rows.</summary>
         private bool ReloadRows()
         {
             var loaded = true;

@@ -14,12 +14,14 @@ namespace TFTAnalyzer.Editor.UI.Data
         internal string Before { get; }
         internal string After { get; }
 
+        /// <summary>Builds directional display values from the original records without changing the public field strings.</summary>
         internal CatalogDiffFieldDisplay(FieldChange field, object before, object after)
         {
             Before = Format(field.FieldName, before, field.Before);
             After = Format(field.FieldName, after, field.After);
         }
 
+        /// <summary>Quotes sorted relationship, effect, and source structures, or reports missing originals without guessing their contents.</summary>
         private static string Format(string field, object record, string ordinary)
         {
             if (field != "traitIds" && field != "componentIds" && field != "relatedIds" &&
@@ -57,7 +59,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             return Unavailable;
         }
 
-        // JSON string quoting keeps control characters distinct from literal backslash sequences.
+        /// <summary>Quotes JSON strings with distinct control and backslash escapes while preserving valid surrogate pairs.</summary>
         private static string Quote(string value)
         {
             if (value == null) return "null";

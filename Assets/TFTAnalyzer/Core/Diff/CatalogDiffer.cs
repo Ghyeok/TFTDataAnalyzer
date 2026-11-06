@@ -27,6 +27,7 @@ namespace TFTAnalyzer.Diff
                 Compare(previous.Augments, current.Augments, value => value.StableId, AugmentFields));
         }
 
+        /// <summary>Compares records by stable ID and reports added, removed and changed fields.</summary>
         private static EntityDiff Compare<T>(
             IEnumerable<T> previous,
             IEnumerable<T> current,
@@ -54,6 +55,7 @@ namespace TFTAnalyzer.Diff
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         }
 
+        /// <summary>Uses structural field equivalence while preserving the legacy displayed values.</summary>
         private static RecordChange Change(
             string stableId,
             SortedDictionary<string, ComparedField> before,
@@ -75,6 +77,7 @@ namespace TFTAnalyzer.Diff
             return new RecordChange(stableId, changes);
         }
 
+        /// <summary>Builds the comparable fields for a unit.</summary>
         private static SortedDictionary<string, ComparedField> UnitFields(UnitRecord value)
         {
             var result = Common(value.Name, value.IconPath, value.Sources);
@@ -87,6 +90,7 @@ namespace TFTAnalyzer.Diff
             return result;
         }
 
+        /// <summary>Builds the comparable fields for a trait.</summary>
         private static SortedDictionary<string, ComparedField> TraitFields(TraitRecord value)
         {
             var result = Common(value.Name, value.IconPath, value.Sources);
@@ -96,6 +100,7 @@ namespace TFTAnalyzer.Diff
             return result;
         }
 
+        /// <summary>Builds the comparable fields for an item.</summary>
         private static SortedDictionary<string, ComparedField> ItemFields(ItemRecord value)
         {
             var result = Common(value.Name, value.IconPath, value.Sources);
@@ -106,6 +111,7 @@ namespace TFTAnalyzer.Diff
             return result;
         }
 
+        /// <summary>Builds the comparable fields for an augment.</summary>
         private static SortedDictionary<string, ComparedField> AugmentFields(AugmentRecord value)
         {
             var result = Common(value.Name, value.IconPath, value.Sources);
@@ -117,6 +123,7 @@ namespace TFTAnalyzer.Diff
             return result;
         }
 
+        /// <summary>Adds structured fields and deterministically ordered extension data for the record type.</summary>
         private static void AddStructured(SortedDictionary<string, ComparedField> fields, object value)
         {
             string Json(object item) => Newtonsoft.Json.JsonConvert.SerializeObject(item);
@@ -136,6 +143,7 @@ namespace TFTAnalyzer.Diff
                 .ThenBy(x => x.Pointer, StringComparer.Ordinal).ToArray());
         }
 
+        /// <summary>Compares source components individually in stable name and URL order.</summary>
         private static SortedDictionary<string, ComparedField> Common(
             LocalizedText name,
             string iconPath,
@@ -170,12 +178,14 @@ namespace TFTAnalyzer.Diff
             values[$"{prefix}.enUs"] = text.EnUs;
         }
 
+        /// <summary>Ignores relationship order while retaining duplicate elements and their boundaries.</summary>
         private static ComparedField StableList(IEnumerable<string> values)
         {
             var parts = values.OrderBy(value => value, StringComparer.Ordinal).ToArray();
             return new ComparedField(string.Join("\u001f", parts), parts);
         }
 
+        /// <summary>Compares ordinal effect keys and invariant round-trip values without joining their boundaries.</summary>
         private static ComparedField Effects(IEnumerable<KeyValuePair<string, double>> values)
         {
             var parts = values
@@ -198,6 +208,7 @@ namespace TFTAnalyzer.Diff
                 _parts = (parts ?? new[] { value }).ToArray();
             }
 
+            /// <summary>Checks each stored component using ordinal string equality.</summary>
             public bool EquivalentTo(ComparedField other)
             {
                 return other != null && _parts.SequenceEqual(other._parts, StringComparer.Ordinal);

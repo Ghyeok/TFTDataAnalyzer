@@ -41,6 +41,7 @@ namespace TFTAnalyzer.Tests.Diff
             Assert.That(diff.Units.Changed, Is.Empty);
         }
 
+        /// <summary>Detects distinct effect maps whose legacy display strings collide in both directions.</summary>
         [Test]
         public void Compare_DetectsEffectsCollision(
             [Values("unit", "trait", "item", "augment")] string kind,
@@ -52,6 +53,7 @@ namespace TFTAnalyzer.Tests.Diff
             AssertCollision(kind, previous, current, "effects", "A=1\u001fB=2", reverse);
         }
 
+        /// <summary>Detects distinct relationship lists whose legacy display strings collide in both directions.</summary>
         [Test]
         public void Compare_DetectsRelationsCollision(
             [Values("unit", "item", "augment")] string kind,
@@ -63,6 +65,7 @@ namespace TFTAnalyzer.Tests.Diff
             AssertCollision(kind, previous, current, RelationField(kind), "A\u001fB", reverse);
         }
 
+        /// <summary>Detects distinct source components whose legacy display strings collide in both directions.</summary>
         [Test]
         public void Compare_DetectsSourcesCollision(
             [Values("unit", "trait", "item", "augment")] string kind,
@@ -75,6 +78,7 @@ namespace TFTAnalyzer.Tests.Diff
                 "Source\u001fhttps://example.test/data.json\u001fa\u001fb\u001fc\u001f0", reverse);
         }
 
+        /// <summary>Ignores relationship order while detecting a change in duplicate count.</summary>
         [Test]
         public void Compare_IgnoresRelationshipOrderButPreservesDuplicateCounts(
             [Values("unit", "item", "augment")] string kind)
@@ -88,6 +92,7 @@ namespace TFTAnalyzer.Tests.Diff
                 RelationField(kind), "A\u001fA\u001fa", "A\u001fa");
         }
 
+        /// <summary>Preserves ordinal key order and round-trip values across culture changes.</summary>
         [Test]
         public void Compare_EffectsKeepOrdinalKeysRoundTripValuesAndInvariantCulture(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -110,6 +115,7 @@ namespace TFTAnalyzer.Tests.Diff
             }
         }
 
+        /// <summary>Detects case-sensitive changes to effect keys.</summary>
         [Test]
         public void Compare_DetectsEffectKeyChanges(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -120,6 +126,7 @@ namespace TFTAnalyzer.Tests.Diff
             AssertField(Entity(new CatalogDiffer().Compare(previous, current), kind), "effects", "A=1", "a=1");
         }
 
+        /// <summary>Ignores source retrieval time and sorts by name then URL.</summary>
         [Test]
         public void Compare_SortsSourcesByNameThenUrlAndIgnoresRetrievalTime(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -140,6 +147,7 @@ namespace TFTAnalyzer.Tests.Diff
             Assert.That(Entity(new CatalogDiffer().Compare(current, previous), kind).Changed, Is.Empty);
         }
 
+        /// <summary>Detects changes to each compared source field.</summary>
         [Test]
         public void Compare_DetectsEachSourceFieldChange(
             [Values("name", "url", "etag", "hash", "supplemental")] string field)
@@ -161,6 +169,7 @@ namespace TFTAnalyzer.Tests.Diff
             Assert.That(changed.Changed[0].Fields[0].After, Is.Not.EqualTo(changed.Changed[0].Fields[0].Before));
         }
 
+        /// <summary>Preserves input order when source name and URL are equal.</summary>
         [Test]
         public void Compare_PreservesSourceInputOrderForEqualNameAndUrl(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -173,6 +182,7 @@ namespace TFTAnalyzer.Tests.Diff
                 "Source\u001fhttps://example.test/data.json\u001fb\u001fhash\u001f0\u001eSource\u001fhttps://example.test/data.json\u001fa\u001fhash\u001f0");
         }
 
+        /// <summary>Detects a change in the number of duplicate sources.</summary>
         [Test]
         public void Compare_PreservesSourceDuplicateCounts(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -185,6 +195,7 @@ namespace TFTAnalyzer.Tests.Diff
                 "Source\u001fhttps://example.test/data.json\u001fetag\u001fhash\u001f0");
         }
 
+        /// <summary>Treats missing and empty collections consistently.</summary>
         [Test]
         public void Compare_TreatsNullAndEmptyCollectionsEqually(
             [Values("unit", "trait", "item", "augment")] string kind)
@@ -196,6 +207,7 @@ namespace TFTAnalyzer.Tests.Diff
             Assert.That(Entity(new CatalogDiffer().Compare(previous, current), kind).Changed, Is.Empty);
         }
 
+        /// <summary>Preserves added, removed and ordinary text changes in both directions.</summary>
         [Test]
         public void Compare_PreservesAddedRemovedAndOrdinaryTextInBothDirections(
             [Values("unit", "trait", "item", "augment")] string kind,
@@ -210,6 +222,7 @@ namespace TFTAnalyzer.Tests.Diff
             AssertField(diff, "name.enUs", reverse ? "After" : "Before", reverse ? "Before" : "After");
         }
 
+        /// <summary>Retains the existing first-record policy for duplicate stable IDs.</summary>
         [Test]
         public void Compare_UsesFirstRecordForDuplicateIds()
         {

@@ -306,6 +306,7 @@ namespace TFTAnalyzer.Tests.UI
                 validation.ErrorCount, validation.WarningCount, "");
         }
 
+        /// <summary>Checks structured collision display and source preservation in both directions.</summary>
         [UnityTest]
         public IEnumerator CollisionComparisonDisplaysOriginalStructuresInBothDirections()
         {
@@ -360,6 +361,7 @@ namespace TFTAnalyzer.Tests.UI
             }
         }
 
+        /// <summary>Distinguishes control characters from literal escape sequences in displayed values.</summary>
         [UnityTest]
         public IEnumerator StructuredComparisonEscapesControlsSeparatelyFromLiteralBackslashes()
         {
@@ -376,6 +378,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(field.enableRichText, Is.False);
         }
 
+        /// <summary>Checks bounded read-only pages retain long Unicode values without splitting surrogate pairs.</summary>
         [UnityTest]
         public IEnumerator LongStructuredComparisonProvidesBoundedReadOnlyPagesWithoutSplittingSurrogates()
         {
@@ -414,6 +417,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(text.value, Is.EqualTo(pages[pages.Count - 2]));
         }
 
+        /// <summary>Uses the same first-duplicate record policy as the comparison engine.</summary>
         [UnityTest]
         public IEnumerator StructuredComparisonUsesFirstDuplicateIdLikeTheDiffer()
         {
@@ -429,6 +433,7 @@ namespace TFTAnalyzer.Tests.UI
                 Does.Not.Contain("SECOND_DUPLICATE"));
         }
 
+        /// <summary>Shows a fixed notice when the compared source record is unavailable.</summary>
         [Test]
         public void MissingStructuredComparisonRecordUsesNoticeInsteadOfGuessingLegacyValue()
         {
@@ -452,6 +457,7 @@ namespace TFTAnalyzer.Tests.UI
         private static string[] DisplayedValues(Label label) => label.text.Substring(label.text.IndexOf("\n이전: ",
             StringComparison.Ordinal) + 5).Split(new[] { "\n이후: " }, StringSplitOptions.None);
 
+        /// <summary>Creates and selects synthetic rows for structured comparison UI checks.</summary>
         private PatchRowViewModel[] UseStructuredComparisonRows(IReadOnlyDictionary<string, double> beforeEffects = null,
             bool duplicateFirst = false)
         {
@@ -465,6 +471,7 @@ namespace TFTAnalyzer.Tests.UI
             return rows;
         }
 
+        /// <summary>Builds a synthetic catalog row with controlled structured values.</summary>
         private static PatchRowViewModel StructuredComparisonRow(bool after, IReadOnlyDictionary<string, double> beforeEffects,
             bool duplicateFirst)
         {
@@ -586,6 +593,7 @@ namespace TFTAnalyzer.Tests.UI
             SubmitButton(button);
         }
 
+        /// <summary>Submits a UI button using the same event path as a keyboard activation.</summary>
         private static void SubmitButton(Button button)
         {
             button.Focus();

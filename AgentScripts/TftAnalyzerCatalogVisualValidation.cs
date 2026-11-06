@@ -91,7 +91,7 @@ public static class CatalogScopedVisualValidation
         };
     }
 
-    /// <summary>Runs one scoped visual scenario and reports owned-window cleanup for success or failure.</summary>
+    /// <summary>Runs the selected capture or failure probe in one owned window, then reports cleanup, preserved editor state, and forbidden service calls.</summary>
     private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
     {
         Directory.CreateDirectory(Root);
@@ -279,6 +279,7 @@ public static class CatalogScopedVisualValidation
         }
     }
 
+    /// <summary>Checks three legacy-string collisions and distinct structured displays, then captures both widths and the first and last Unicode-safe full-value pages.</summary>
     private static async Task CaptureCollisionComparison(TftDataAnalyzerWindow window, DataManagerViewModel data,
         int id, string name, CancellationToken token, List<object> captures)
     {
@@ -378,6 +379,7 @@ public static class CatalogScopedVisualValidation
         }
     }
 
+    /// <summary>Detects isolated UTF-16 surrogate code units without rejecting valid supplementary-character pairs.</summary>
     private static bool HasUnpairedSurrogate(string value)
     {
         for (var index = 0; index < value.Length; index++)
@@ -435,10 +437,11 @@ public static class CatalogScopedVisualValidation
     private const string CollisionSourcesId = "COLLISION_<b>sources</b>";
     private const string CollisionLongId = "COLLISION_<b>long 😀🚀</b>";
 
+    /// <summary>Builds tagged text with literal escapes, controls, end markers, and a surrogate pair crossing the nominal 4096-unit boundary.</summary>
     private static string CollisionLongKey(bool after)
     {
         var prefix = (after ? "AFTER-BEGIN 😀🚀" : "BEFORE-BEGIN 😀🚀") + " <b>literal</b> actual:\u001f literal:\\u001f newline:\n literal:\\n quote:\" slash:\\ ";
-        // The JSON object's opening brace and key quote place this pair across the 4096-unit page boundary.
+        // The JSON object's opening brace and key quote place this pair across the nominal 4096-unit boundary.
         var padding = 4095 - JsonConvert.SerializeObject(prefix).Length;
         return prefix + new string('x', padding) + "😀 " + new string('z', 80) + (after ? " AFTER-END 🚀" : " BEFORE-END 🚀");
     }
@@ -447,12 +450,14 @@ public static class CatalogScopedVisualValidation
         "https://ddragon.leagueoflegends.com/validation.json", DateTime.UnixEpoch,
         after ? "a" : "a\u001fb", after ? "b\u001fc" : "c");
 
+    /// <summary>Builds the expected source display from its five compared fields, excluding retrieval time.</summary>
     private static string CollisionSourceDisplay(bool after)
     {
         var source = CollisionSource(after);
         return JsonConvert.SerializeObject(new[] { new { source.SourceName, source.Url, source.ETag, source.Sha256, source.IsSupplemental } });
     }
 
+    /// <summary>Creates two validated in-memory catalogs containing effects, relations, and sources collisions plus a long paginated effects key.</summary>
     private static IReadOnlyList<PatchRowViewModel> CollisionCatalogRows()
     {
         var rows = new List<PatchRowViewModel>();
@@ -800,7 +805,9 @@ public static class CatalogScopedVisualValidation
             var paths = new StaticCatalogPaths(Path.GetDirectoryName(Application.dataPath));
             return new PublishedCatalogLoader(paths).Load(AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath));
         }
-        public string ResolveDestination(StaticImportRequest request) => throw new InvalidOperationException("ValidationNeverImports");
+        /// <summary>Counts and rejects destination resolution so an import attempt is recorded before any import service call.</summary>
+        public string ResolveDestination(StaticImportRequest request)
+        { ForbiddenServiceCalls++; throw new InvalidOperationException("ValidationNeverImports"); }
         public Task<IReadOnlyList<string>> FetchVersionsAsync(CancellationToken token)
         { ForbiddenServiceCalls++; throw new InvalidOperationException("ValidationNeverRequestsVersions"); }
         public Task<StaticImportResult> ImportAsync(StaticImportRequest request, CancellationToken token)

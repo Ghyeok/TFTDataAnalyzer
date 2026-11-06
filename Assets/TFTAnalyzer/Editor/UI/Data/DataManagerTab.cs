@@ -269,7 +269,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             element.Q<Label>("directory").text = "위치: " + (string.IsNullOrEmpty(row.Directory) ? "확인 불가" : row.Directory);
         }
 
-        /// <summary>Renders the directional comparison as literal text, including labels inside Foldout title toggles.</summary>
+        /// <summary>Renders the retained comparison records and identities as literal text, including Foldout titles and paged values.</summary>
         private void RenderDiff()
         {
             _renderedDiff = _vm.Diff;
@@ -287,6 +287,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             PlainText(container);
         }
 
+        /// <summary>Uses the first record for each stable ID to display directional changes with previews and access to complete values.</summary>
         private static void AddEntityDiff<T>(VisualElement container, string name, EntityDiff diff,
             IReadOnlyList<T> previous, IReadOnlyList<T> current, Func<T, string> stableId) where T : class
         {
@@ -324,6 +325,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             container.Add(details);
         }
 
+        /// <summary>Limits the original-value preview prefix to 1024 UTF-16 units without splitting a surrogate pair and marks omitted text.</summary>
         private static string Preview(string value)
         {
             if (value.Length <= 1024) return value;
@@ -332,6 +334,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             return value.Substring(0, length) + "… (일부 생략 · 전체 값에서 확인)";
         }
 
+        /// <summary>Creates read-only, copyable pages of at most 4096 UTF-16 units with intact surrogate pairs and plain-text navigation.</summary>
         private static VisualElement FullValue(string title, string name, string value)
         {
             var root = new VisualElement { name = name };
@@ -371,6 +374,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             return root;
         }
 
+        /// <summary>Disables rich-text interpretation throughout generated labels, Foldout titles, and text-field content.</summary>
         private static void PlainText(VisualElement root)
         {
             foreach (var element in root.Query<TextElement>().ToList()) element.enableRichText = false;
