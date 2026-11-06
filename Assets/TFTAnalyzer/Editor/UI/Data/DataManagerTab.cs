@@ -276,30 +276,104 @@ namespace TFTAnalyzer.Editor.UI.Data
             var container = _tab.Q("catalog-diff");
             container.Clear();
             if (_vm.Diff == null) return;
-            var before = _vm.Rows.First(row => row.IsSelectable && row.Identity.Equals(_vm.DiffBeforeIdentity));
-            var after = _vm.Rows.First(row => row.IsSelectable && row.Identity.Equals(_vm.DiffAfterIdentity));
-            container.Add(new Label("이전: " + before.DisplayIdentity));
-            container.Add(new Label("이후: " + after.DisplayIdentity));
-            AddEntityDiff(container, "기물", _vm.Diff.Units);
-            AddEntityDiff(container, "시너지", _vm.Diff.Traits);
-            AddEntityDiff(container, "아이템", _vm.Diff.Items);
-            AddEntityDiff(container, "증강", _vm.Diff.Augments);
-            foreach (var label in container.Query<Label>().ToList()) label.enableRichText = false;
+            var before = _vm.DiffBeforeRow;
+            var after = _vm.DiffAfterRow;
+            container.Add(new Label("이전: " + (before?.DisplayIdentity ?? CatalogDiffFieldDisplay.Unavailable)));
+            container.Add(new Label("이후: " + (after?.DisplayIdentity ?? CatalogDiffFieldDisplay.Unavailable)));
+            AddEntityDiff(container, "기물", _vm.Diff.Units, before?.Catalog.Units, after?.Catalog.Units, x => x.StableId);
+            AddEntityDiff(container, "시너지", _vm.Diff.Traits, before?.Catalog.Traits, after?.Catalog.Traits, x => x.StableId);
+            AddEntityDiff(container, "아이템", _vm.Diff.Items, before?.Catalog.Items, after?.Catalog.Items, x => x.StableId);
+            AddEntityDiff(container, "증강", _vm.Diff.Augments, before?.Catalog.Augments, after?.Catalog.Augments, x => x.StableId);
+            PlainText(container);
         }
 
-        private static void AddEntityDiff(VisualElement container, string name, EntityDiff diff)
+        private static void AddEntityDiff<T>(VisualElement container, string name, EntityDiff diff,
+            IReadOnlyList<T> previous, IReadOnlyList<T> current, Func<T, string> stableId) where T : class
         {
+            var before = (previous ?? Array.Empty<T>()).GroupBy(stableId, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var after = (current ?? Array.Empty<T>()).GroupBy(stableId, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             var details = new Foldout { text = $"{name} · 추가 {diff.AddedIds.Count} · 삭제 {diff.RemovedIds.Count} · 변경 {diff.Changed.Count}", value = false };
             foreach (var id in diff.AddedIds) details.Add(new Label("추가: " + id));
             foreach (var id in diff.RemovedIds) details.Add(new Label("삭제: " + id));
             foreach (var change in diff.Changed)
             {
                 var record = new Foldout { text = change.StableId, value = false };
+                before.TryGetValue(change.StableId, out var oldRecord);
+                after.TryGetValue(change.StableId, out var newRecord);
                 foreach (var field in change.Fields)
-                    record.Add(new Label($"{field.FieldName}\n이전: {field.Before}\n이후: {field.After}"));
+                {
+                    var fieldRoot = new VisualElement { name = "diff-field-" + field.FieldName };
+                    var display = new CatalogDiffFieldDisplay(field, oldRecord, newRecord);
+                    var label = new Label($"{field.FieldName}\n이전: {Preview(display.Before)}\n이후: {Preview(display.After)}")
+                        { name = "diff-field-summary" };
+                    label.AddToClassList("tft-wrapped-text");
+                    fieldRoot.Add(label);
+                    if (display.Before.Length > 1024 || display.After.Length > 1024)
+                    {
+                        var full = new Foldout { name = "diff-field-full", text = "전체 값 · 읽기 전용 페이지에서 선택·복사", value = false };
+                        full.Add(FullValue("이전", "diff-before-full", display.Before));
+                        full.Add(FullValue("이후", "diff-after-full", display.After));
+                        fieldRoot.Add(full);
+                    }
+                    record.Add(fieldRoot);
+                }
                 details.Add(record);
             }
             container.Add(details);
+        }
+
+        private static string Preview(string value)
+        {
+            if (value.Length <= 1024) return value;
+            var length = 1024;
+            if (char.IsHighSurrogate(value[length - 1]) && char.IsLowSurrogate(value[length])) length--;
+            return value.Substring(0, length) + "… (일부 생략 · 전체 값에서 확인)";
+        }
+
+        private static VisualElement FullValue(string title, string name, string value)
+        {
+            var root = new VisualElement { name = name };
+            root.Add(new Label(title));
+            var text = new TextField { name = "diff-value-text", multiline = true, isReadOnly = true,
+                verticalScrollerVisibility = ScrollerVisibility.Auto };
+            text.AddToClassList("tft-extension-text");
+            root.Add(text);
+            var navigation = new VisualElement();
+            navigation.AddToClassList("tft-diff-value-navigation");
+            var previous = new Button { name = "diff-value-previous", text = "이전 페이지" };
+            var next = new Button { name = "diff-value-next", text = "다음 페이지" };
+            var notice = new Label { name = "diff-value-page" };
+            navigation.Add(previous); navigation.Add(notice); navigation.Add(next);
+            root.Add(navigation);
+            var offsets = new List<int> { 0 };
+            while (offsets[offsets.Count - 1] < value.Length)
+            {
+                var end = Math.Min(value.Length, offsets[offsets.Count - 1] + 4096);
+                if (end < value.Length && char.IsHighSurrogate(value[end - 1]) && char.IsLowSurrogate(value[end])) end--;
+                offsets.Add(end);
+            }
+            var count = Math.Max(1, offsets.Count - 1);
+            var page = 0;
+            void RenderPage()
+            {
+                var start = offsets[page];
+                text.SetValueWithoutNotify(value.Substring(start, page + 1 < offsets.Count ? offsets[page + 1] - start : 0));
+                notice.text = $"{page + 1} / {count} 페이지";
+                previous.SetEnabled(page > 0);
+                next.SetEnabled(page + 1 < count);
+                PlainText(root);
+            }
+            previous.clicked += () => { if (page > 0) { page--; RenderPage(); } };
+            next.clicked += () => { if (page + 1 < count) { page++; RenderPage(); } };
+            RenderPage();
+            return root;
+        }
+
+        private static void PlainText(VisualElement root)
+        {
+            foreach (var element in root.Query<TextElement>().ToList()) element.enableRichText = false;
         }
 
         public void Dispose()

@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-06-static-diff-collision",
+  "inputDigest": "8778b67ac7be9bd08a75dc04146b70926280e8bcce1ee6b9499b4dc0c5373994",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.1",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 20764,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8104,
+    "output_tokens": 110,
+    "thinking_tokens": 0,
+    "cache_read_tokens": 0,
+    "total_tokens": 8214
+  },
+  "responseSeconds": 10.9025881,
+  "exitCode": 0,
+  "durationSeconds": 18.338
+}

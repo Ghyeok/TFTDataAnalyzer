@@ -150,6 +150,12 @@
     -unity-text-align: upper-left;
 }
 
+.tft-diff-value-navigation {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 .tft-compliance-confirmation .unity-toggle__label {
     white-space: normal;
     flex-shrink: 1;

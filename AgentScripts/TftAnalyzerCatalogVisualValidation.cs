@@ -39,6 +39,9 @@ public static class CatalogScopedVisualValidation
     public static Task<object> RunComparison() => Execute(false, false, false, false, true);
     public static Task<object> RunComparisonFailureProbe() => Execute(true, false, false, false, true);
     public static Task<object> RunComparisonInitializationFailureProbe() => Execute(false, true, false, false, true);
+    public static Task<object> RunCollisionComparison() => Execute(false, false, false, false, false, true);
+    public static Task<object> RunCollisionComparisonFailureProbe() => Execute(true, false, false, false, false, true);
+    public static Task<object> RunCollisionComparisonInitializationFailureProbe() => Execute(false, true, false, false, false, true);
     public static Task<object> Run() => Execute(false, false);
     public static Task<object> RunFieldOrigins() => Execute(false, false, true);
     public static Task<object> RunFieldOriginFailureProbe() => Execute(true, false, true);
@@ -88,7 +91,7 @@ public static class CatalogScopedVisualValidation
         };
     }
 
-    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false)
+    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
     {
         Directory.CreateDirectory(Root);
         var focus = EditorWindow.focusedWindow;
@@ -110,7 +113,8 @@ public static class CatalogScopedVisualValidation
         var expectedFailureObserved = false;
         OfflineCollection.Calls = 0;
         var fake = new SyntheticAnalysis();
-        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured || comparison ? 20 : 8)))
+        var local = new LocalCatalogs(synthetic, structured, comparison, collision);
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured || comparison || collision ? 20 : 8)))
         {
             try
             {
@@ -118,7 +122,7 @@ public static class CatalogScopedVisualValidation
                 id = window.GetInstanceID();
                 window.name = name;
                 WriteOwnership(id, name, before, beforeContainers, focusId, false);
-                data = new DataManagerViewModel(new LocalCatalogs(synthetic, structured, comparison));
+                data = new DataManagerViewModel(local);
                 analysis = new AnalysisViewModel(fake);
                 collection = new CollectionViewModel(new OfflineCollection());
                 Inject(window, "_dataManager", data);
@@ -138,7 +142,9 @@ public static class CatalogScopedVisualValidation
                 await Settle(window, id, name, deadline.Token);
                 window.CreateGUI();
                 stage = "SelectingVerifiedLocalCatalog";
-                if (comparison)
+                if (collision)
+                    await CaptureCollisionComparison(window, data, id, name, deadline.Token, captures);
+                else if (comparison)
                     await CaptureComparison(window, data, id, name, deadline.Token, captures);
                 else if (structured)
                     await CaptureStructured(window, data, id, name, deadline.Token, captures);
@@ -178,7 +184,8 @@ public static class CatalogScopedVisualValidation
             catch (Exception exception)
             {
                 var known = new[] { "FieldOriginDetailsMissing", "OwnedNativeIdentityAmbiguous", "OwnedNativeVisibilityUnavailable", "SyntheticCatalogInvalid",
-                    "SyntheticComparisonMissing", "ComparisonPlainTextContractMissing", "ComparisonTargetOutsideViewport" };
+                    "SyntheticComparisonMissing", "ComparisonPlainTextContractMissing", "ComparisonTargetOutsideViewport",
+                    "CollisionChangeContractMissing", "CollisionDisplayContractMissing", "CollisionLongPageContractMissing" };
                 failure = "VisualValidationFailed:" + exception.GetType().Name +
                     (known.Contains(exception.Message) ? ":" + exception.Message : "");
             }
@@ -206,13 +213,14 @@ public static class CatalogScopedVisualValidation
         var restored = focusId == 0 || (focus != null && EditorWindow.focusedWindow == focus);
         var report = new
         {
-            Passed = cleanupFailure == "" && OfflineCollection.Calls == 0 && fake.LoadCalls == 0 && remaining == 0 && missing.Length == 0 && added.Length == 0 && restored &&
+            Passed = cleanupFailure == "" && OfflineCollection.Calls == 0 && fake.LoadCalls == 0 && local.ForbiddenServiceCalls == 0 && remaining == 0 && missing.Length == 0 && added.Length == 0 && restored &&
                 addedContainers.Length == 0 && missingContainers.Length == 0 &&
-                ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == (structured || comparison ? 8 : 4)),
+                ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == (collision ? 10 : structured || comparison ? 8 : 4)),
             Failure = failure, CleanupFailure = cleanupFailure, Stage = stage,
-            ReadOnlyLocalCatalogs = !synthetic && !structured && !comparison, SyntheticCatalogs = synthetic || structured || comparison,
-            StructuredStatic = structured, StaticComparison = comparison, NoObservationStore = true, OfflineCredentials = true,
-            ComparisonCatalogValidation = comparison ? data?.Rows.Select(row => new
+            ReadOnlyLocalCatalogs = !synthetic && !structured && !comparison && !collision, SyntheticCatalogs = synthetic || structured || comparison || collision,
+            StructuredStatic = structured, StaticComparison = comparison, CollisionComparison = collision, NoObservationStore = true, OfflineCredentials = true,
+            ActualApiCalls = 0, ForbiddenServiceCalls = local.ForbiddenServiceCalls,
+            ComparisonCatalogValidation = comparison || collision ? data?.Rows.Select(row => new
                 { SourceGameVersion = row.Identity.Patch.SourceGameVersion, row.ValidationErrorCount, row.ValidationWarningCount }).ToArray() : null,
             UnusedSyntheticAnalysisLoadCalls = fake.LoadCalls, CollectionCalls = OfflineCollection.Calls,
             BeforeIds = before, OwnedIds = new[] { id }, AfterIds = after,
@@ -224,7 +232,7 @@ public static class CatalogScopedVisualValidation
         };
         var file = failBeforeShow ? "catalog-visual-initialization-failure-cleanup.json" :
             failAfterShow ? "catalog-visual-failure-cleanup.json" : "catalog-visual-final.json";
-        File.WriteAllText(Path.Combine(Root, comparison ? "comparison-" + file : structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Root, collision ? "collision-" + file : comparison ? "comparison-" + file : structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
     }
 
@@ -269,7 +277,119 @@ public static class CatalogScopedVisualValidation
         }
     }
 
-    private static object CaptureComparisonPixels(TftDataAnalyzerWindow window, int width, string area, VisualElement[] targets)
+    private static async Task CaptureCollisionComparison(TftDataAnalyzerWindow window, DataManagerViewModel data,
+        int id, string name, CancellationToken token, List<object> captures)
+    {
+        var root = window.rootVisualElement;
+        root.Q<DropdownField>("diff-before").index = 0;
+        root.Q<DropdownField>("diff-after").index = 1;
+        Submit(root.Q<Button>("compare-button"));
+        await Settle(window, id, name, token);
+        var cases = new[]
+        {
+            (Id: CollisionEffectsId, Field: "effects", Before: "{\"A\":1,\"B\":2}", After: "{\"A=1\\u001fB\":2}"),
+            (Id: CollisionRelationsId, Field: "traitIds", Before: "[\"A\",\"B\"]", After: "[\"A\\u001fB\"]"),
+            (Id: CollisionSourcesId, Field: "sources", Before: CollisionSourceDisplay(false), After: CollisionSourceDisplay(true))
+        };
+        if (data.Diff == null || data.Diff.Units.Changed.Count != 4 || data.Diff.Units.AddedIds.Count != 0 ||
+            data.Diff.Units.RemovedIds.Count != 0)
+            throw new InvalidOperationException("CollisionChangeContractMissing");
+        foreach (var item in cases)
+        {
+            var change = data.Diff.Units.Changed.Single(x => x.StableId == item.Id);
+            // This assertion concerns the public legacy strings, independently of the rendered structure below.
+            if (change.Fields.Count != 1 || change.Fields[0].FieldName != item.Field || change.Fields[0].Before != change.Fields[0].After)
+                throw new InvalidOperationException("CollisionChangeContractMissing");
+        }
+        var diff = root.Q("catalog-diff");
+        var group = diff.Query<Foldout>().ToList().First();
+        group.value = true;
+        var scroll = root.Q<ScrollView>("data-scroll");
+        foreach (var width in new[] { 940, 500 })
+        {
+            window.position = new Rect(80, 80, width, 760);
+            foreach (var item in cases)
+            {
+                foreach (var previous in group.Query<Foldout>().ToList().Where(x => x != group)) previous.value = false;
+                var record = group.Query<Foldout>().ToList().Single(x => x.text == item.Id);
+                record.value = true;
+                await Settle(window, id, name, token);
+                var label = record.Q("diff-field-" + item.Field).Q<Label>("diff-field-summary");
+                if (item.Before == item.After || label.text != $"{item.Field}\n이전: {item.Before}\n이후: {item.After}" ||
+                    diff.Query<TextElement>().ToList().Any(x => x.enableRichText))
+                    throw new InvalidOperationException("CollisionDisplayContractMissing");
+                AlignTop(scroll, record);
+                await Settle(window, id, name, token);
+                captures.Add(CaptureComparisonPixels(window, width, item.Field,
+                    new VisualElement[] { record.Q<Toggle>(), label }, "collision"));
+            }
+
+            foreach (var previous in group.Query<Foldout>().ToList().Where(x => x != group)) previous.value = false;
+            var longRecord = group.Query<Foldout>().ToList().Single(x => x.text == CollisionLongId);
+            longRecord.value = true;
+            var field = longRecord.Q("diff-field-effects");
+            var summary = field.Q<Label>("diff-field-summary");
+            var full = field.Q<Foldout>("diff-field-full");
+            if (!summary.text.Contains("일부 생략") || full == null)
+                throw new InvalidOperationException("CollisionLongPageContractMissing");
+            full.value = true;
+            var sides = new[] { full.Q("diff-before-full"), full.Q("diff-after-full") };
+            var firstPages = new List<string>();
+            for (var side = 0; side < sides.Length; side++)
+            {
+                var valueRoot = sides[side];
+                if (valueRoot.Q<Button>("diff-value-previous").enabledSelf) Submit(valueRoot.Q<Button>("diff-value-previous"));
+                var text = valueRoot.Q<TextField>("diff-value-text");
+                var first = text.value;
+                if (!text.isReadOnly || first.Length != 4095 || HasUnpairedSurrogate(first) ||
+                    !first.Contains(side == 0 ? "BEFORE-BEGIN 😀🚀" : "AFTER-BEGIN 😀🚀") ||
+                    !first.Contains("<b>literal</b>") || !first.Contains("\\u001f") || !first.Contains("\\\\u001f") ||
+                    !first.Contains("\\n") || !first.Contains("\\\\n") ||
+                    valueRoot.Q<Label>("diff-value-page").text != "1 / 2 페이지")
+                    throw new InvalidOperationException("CollisionLongPageContractMissing");
+                firstPages.Add(first);
+                var textScroll = text.Q<ScrollView>();
+                if (textScroll != null) textScroll.scrollOffset = Vector2.zero;
+            }
+            await Settle(window, id, name, token);
+            AlignTop(scroll, full);
+            await Settle(window, id, name, token);
+            captures.Add(CaptureComparisonPixels(window, width, "long-first",
+                new VisualElement[] { full.Q<Toggle>(), sides[0], sides[1] }, "collision"));
+            for (var side = 0; side < sides.Length; side++)
+            {
+                var valueRoot = sides[side];
+                Submit(valueRoot.Q<Button>("diff-value-next"));
+                var last = valueRoot.Q<TextField>("diff-value-text").value;
+                var expected = "{" + JsonConvert.SerializeObject(CollisionLongKey(side == 1)) + ":1}";
+                if (HasUnpairedSurrogate(last) || !last.StartsWith("😀", StringComparison.Ordinal) ||
+                    !last.Contains(side == 0 ? "BEFORE-END 🚀" : "AFTER-END 🚀") || firstPages[side] + last != expected ||
+                    valueRoot.Q<Label>("diff-value-page").text != "2 / 2 페이지" ||
+                    valueRoot.Q<Button>("diff-value-next").enabledSelf)
+                    throw new InvalidOperationException("CollisionLongPageContractMissing");
+            }
+            await Settle(window, id, name, token);
+            AlignTop(scroll, full);
+            await Settle(window, id, name, token);
+            captures.Add(CaptureComparisonPixels(window, width, "long-last",
+                new VisualElement[] { full.Q<Toggle>(), sides[0], sides[1] }, "collision"));
+        }
+    }
+
+    private static bool HasUnpairedSurrogate(string value)
+    {
+        for (var index = 0; index < value.Length; index++)
+        {
+            if (char.IsHighSurrogate(value[index]))
+            {
+                if (index + 1 >= value.Length || !char.IsLowSurrogate(value[++index])) return true;
+            }
+            else if (char.IsLowSurrogate(value[index])) return true;
+        }
+        return false;
+    }
+
+    private static object CaptureComparisonPixels(TftDataAnalyzerWindow window, int width, string area, VisualElement[] targets, string mode = "comparison")
     {
         var root = window.rootVisualElement;
         var viewport = root.Q<ScrollView>("data-scroll").contentViewport.worldBound;
@@ -280,7 +400,9 @@ public static class CatalogScopedVisualValidation
         var rect = window.position;
         var height = (int)root.panel.visualTree.worldBound.height;
         if (height <= 0 || (int)rect.width != width) throw new InvalidOperationException("CaptureGeometryInvalid");
-        var path = Path.Combine(Root, "catalog-window-" + width + "-comparison-" + area + ".png");
+        if (root.Q("catalog-diff").Query<TextElement>().ToList().Any(x => x.enableRichText))
+            throw new InvalidOperationException("ComparisonPlainTextContractMissing");
+        var path = Path.Combine(Root, "catalog-window-" + width + "-" + mode + "-" + area + ".png");
         var texture = new Texture2D(width, height, TextureFormat.RGB24, false);
         try
         {
@@ -295,11 +417,68 @@ public static class CatalogScopedVisualValidation
             TargetText = targets.SelectMany(x => x is Label label ? new[] { label } : x.Query<Label>().ToList().ToArray()).Select(x => x.text).ToArray(),
             TargetBounds = targets.Select(x => x.worldBound.ToString()).ToArray(), ViewportBounds = viewport.ToString(),
             AllComparisonLabelsPlainText = root.Q("catalog-diff").Query<Label>().ToList().All(x => !x.enableRichText),
+            AllComparisonTextPlainText = root.Q("catalog-diff").Query<TextElement>().ToList().All(x => !x.enableRichText),
+            FullValues = targets.SelectMany(x => x.Query<TextField>().ToList()).Select(x => new
+                { x.value, x.isReadOnly, Utf16Length = x.value.Length, HasUnpairedSurrogate = HasUnpairedSurrogate(x.value) }).ToArray(),
+            ScrollOffset = root.Q<ScrollView>("data-scroll").scrollOffset.ToString(),
+            ScrollMaximum = root.Q<ScrollView>("data-scroll").verticalScroller.highValue,
             PixelVisualReviewRequired = true
         };
     }
 
     private const string ComparisonId = "TEST18_<b>Literal</b>";
+    private const string CollisionEffectsId = "COLLISION_<b>effects</b>";
+    private const string CollisionRelationsId = "COLLISION_<b>relations</b>";
+    private const string CollisionSourcesId = "COLLISION_<b>sources</b>";
+    private const string CollisionLongId = "COLLISION_<b>long 😀🚀</b>";
+
+    private static string CollisionLongKey(bool after)
+    {
+        var prefix = (after ? "AFTER-BEGIN 😀🚀" : "BEFORE-BEGIN 😀🚀") + " <b>literal</b> actual:\u001f literal:\\u001f newline:\n literal:\\n quote:\" slash:\\ ";
+        // The JSON object's opening brace and key quote place this pair across the 4096-unit page boundary.
+        var padding = 4095 - JsonConvert.SerializeObject(prefix).Length;
+        return prefix + new string('x', padding) + "😀 " + new string('z', 80) + (after ? " AFTER-END 🚀" : " BEFORE-END 🚀");
+    }
+
+    private static SourceStamp CollisionSource(bool after) => new SourceStamp("Riot Data Dragon",
+        "https://ddragon.leagueoflegends.com/validation.json", DateTime.UnixEpoch,
+        after ? "a" : "a\u001fb", after ? "b\u001fc" : "c");
+
+    private static string CollisionSourceDisplay(bool after)
+    {
+        var source = CollisionSource(after);
+        return JsonConvert.SerializeObject(new[] { new { source.SourceName, source.Url, source.ETag, source.Sha256, source.IsSupplemental } });
+    }
+
+    private static IReadOnlyList<PatchRowViewModel> CollisionCatalogRows()
+    {
+        var rows = new List<PatchRowViewModel>();
+        var label = new LocalizedText("창작 충돌 검증", "Synthetic collision validation");
+        var traits = new[] { "A", "B", "A\u001fB" }.Select(trait => new TraitRecord(trait, label, null, null, "", null)).ToArray();
+        foreach (var after in new[] { false, true })
+        {
+            var identity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", after ? "16.18.2" : "16.18.1"), CatalogSourceProfile.OfficialOnly);
+            var official = new SourceStamp("Riot Data Dragon", "https://ddragon.leagueoflegends.com/validation.json", DateTime.UnixEpoch, "", new string('a', 64));
+            var sources = new[] { official };
+            var units = new[]
+            {
+                new UnitRecord(CollisionEffectsId, label, 1, null, "", sources, effects: after
+                    ? new Dictionary<string, double> { ["A=1\u001fB"] = 2 }
+                    : new Dictionary<string, double> { ["A"] = 1, ["B"] = 2 }),
+                new UnitRecord(CollisionRelationsId, label, 1, after ? new[] { "A\u001fB" } : new[] { "A", "B" }, "", sources),
+                new UnitRecord(CollisionSourcesId, label, 1, null, "", new[] { CollisionSource(after) }),
+                new UnitRecord(CollisionLongId, label, 1, null, "", sources,
+                    effects: new Dictionary<string, double> { [CollisionLongKey(after)] = 1 })
+            };
+            var manifest = new PatchManifest(2, identity, "창작 검증 자료", DateTime.UnixEpoch, "", sources, DateTime.UnixEpoch, null, 0, 0, "", "");
+            var catalog = new StaticCatalog(manifest, units, traits, null, null);
+            var validation = new TFTAnalyzer.Validation.CatalogValidator().Validate(catalog);
+            if (!validation.CanPublish) throw new InvalidOperationException("SyntheticCatalogInvalid");
+            rows.Add(new PatchRowViewModel(new CatalogIndexEntry(identity, "synthetic-only", "Assets/SyntheticValidation/catalog.json"),
+                identity, "synthetic-only", catalog, DateTime.UnixEpoch, validation.ErrorCount, validation.WarningCount, ""));
+        }
+        return rows.AsReadOnly();
+    }
 
     private static string ComparisonDescription(bool after)
     {
@@ -602,11 +781,13 @@ public static class CatalogScopedVisualValidation
 
     private sealed class LocalCatalogs : IDataManagerService
     {
-        private readonly bool _synthetic, _structured, _comparison;
-        public LocalCatalogs(bool synthetic = false, bool structured = false, bool comparison = false)
-        { _synthetic = synthetic; _structured = structured; _comparison = comparison; }
+        private readonly bool _synthetic, _structured, _comparison, _collision;
+        public int ForbiddenServiceCalls;
+        public LocalCatalogs(bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
+        { _synthetic = synthetic; _structured = structured; _comparison = comparison; _collision = collision; }
         public IReadOnlyList<PatchRowViewModel> LoadLocalCatalogs()
         {
+            if (_collision) return CollisionCatalogRows();
             if (_comparison) return ComparisonCatalogRows();
             if (_structured) return StructuredCatalogRows();
             if (_synthetic) return SyntheticCatalogRows();
@@ -614,8 +795,10 @@ public static class CatalogScopedVisualValidation
             return new PublishedCatalogLoader(paths).Load(AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath));
         }
         public string ResolveDestination(StaticImportRequest request) => throw new InvalidOperationException("ValidationNeverImports");
-        public Task<IReadOnlyList<string>> FetchVersionsAsync(CancellationToken token) => throw new InvalidOperationException("ValidationNeverRequestsVersions");
-        public Task<StaticImportResult> ImportAsync(StaticImportRequest request, CancellationToken token) => throw new InvalidOperationException("ValidationNeverImports");
+        public Task<IReadOnlyList<string>> FetchVersionsAsync(CancellationToken token)
+        { ForbiddenServiceCalls++; throw new InvalidOperationException("ValidationNeverRequestsVersions"); }
+        public Task<StaticImportResult> ImportAsync(StaticImportRequest request, CancellationToken token)
+        { ForbiddenServiceCalls++; throw new InvalidOperationException("ValidationNeverImports"); }
     }
 
     private sealed class OfflineCollection : ICollectionService

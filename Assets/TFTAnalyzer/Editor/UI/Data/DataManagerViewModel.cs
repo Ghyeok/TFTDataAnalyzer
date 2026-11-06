@@ -32,6 +32,8 @@ namespace TFTAnalyzer.Editor.UI.Data
         public CatalogIdentity DiffBeforeIdentity { get; private set; }
         public CatalogIdentity DiffAfterIdentity { get; private set; }
         public CatalogDiff Diff { get; private set; }
+        internal PatchRowViewModel DiffBeforeRow { get; private set; }
+        internal PatchRowViewModel DiffAfterRow { get; private set; }
         public StaticImportReportViewModel LastImportReport { get; private set; }
 
         public DataManagerViewModel(IDataManagerService service)
@@ -189,6 +191,8 @@ namespace TFTAnalyzer.Editor.UI.Data
             Diff = new CatalogDiffer().Compare(previous.Catalog, current.Catalog);
             DiffBeforeIdentity = before;
             DiffAfterIdentity = after;
+            DiffBeforeRow = previous;
+            DiffAfterRow = current;
             Notify();
             return true;
         }
@@ -209,6 +213,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             if (Find(ActiveIdentity) == null) ActiveIdentity = null;
             Diff = null;
             DiffBeforeIdentity = DiffAfterIdentity = null;
+            DiffBeforeRow = DiffAfterRow = null;
             return loaded;
         }
 

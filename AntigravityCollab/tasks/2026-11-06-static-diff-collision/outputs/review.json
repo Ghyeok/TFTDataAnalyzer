@@ -1,0 +1,7 @@
+{
+  "findings": [],
+  "inputDigest": "8778b67ac7be9bd08a75dc04146b70926280e8bcce1ee6b9499b4dc0c5373994",
+  "taskId": "2026-11-06-static-diff-collision",
+  "unverified": [],
+  "verdict": "pass"
+}

@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-06-static-diff-collision",
+  "baseCommit": "ba50db8ad5ef8dc6ef58153cee57da0f8555588c",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "정적 비교 충돌의 비식별 범위와 현재 코드 계약",
+      "sha256": "1d263514589762d6d249c83ab9a72a20027ea6f6aefdb24ef5e3db3c34310e22"
+    },
+    {
+      "copy": "inputs/technical.md",
+      "source": "정적 비교 충돌의 비식별 범위와 현재 코드 계약",
+      "sha256": "57ba78874316b7c21064adef0915921ce6d8f5b5b95ca594ba21158720cf8922"
+    }
+  ],
+  "inputDigest": "8778b67ac7be9bd08a75dc04146b70926280e8bcce1ee6b9499b4dc0c5373994",
+  "inputBytes": 2762
+}
