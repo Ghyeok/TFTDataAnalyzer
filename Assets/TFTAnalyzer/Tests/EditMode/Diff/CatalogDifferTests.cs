@@ -232,6 +232,7 @@ namespace TFTAnalyzer.Tests.Diff
             Assert.That(new CatalogDiffer().Compare(previous, current).Units.Changed, Is.Empty);
         }
 
+        /// <summary>Confirms identical legacy values still produce a change when their structures differ.</summary>
         private static void AssertCollision(string kind, StaticCatalog previous, StaticCatalog current,
             string fieldName, string publicValue, bool reverse)
         {
@@ -263,6 +264,7 @@ namespace TFTAnalyzer.Tests.Diff
             return new SourceStamp(name, url, retrieved ?? DateTime.UnixEpoch, etag, hash, supplemental);
         }
 
+        /// <summary>Maps each record kind with relationships to its comparison field.</summary>
         private static string RelationField(string kind)
         {
             switch (kind)
@@ -274,6 +276,7 @@ namespace TFTAnalyzer.Tests.Diff
             }
         }
 
+        /// <summary>Selects the comparison result for the requested record kind.</summary>
         private static EntityDiff Entity(CatalogDiff diff, string kind)
         {
             switch (kind)
@@ -286,6 +289,7 @@ namespace TFTAnalyzer.Tests.Diff
             }
         }
 
+        /// <summary>Creates a single-record catalog with controllable relationships, effects and sources.</summary>
         private static StaticCatalog RecordCatalog(string kind, IEnumerable<string> relations = null,
             IReadOnlyDictionary<string, double> effects = null, IEnumerable<SourceStamp> sources = null,
             string id = "Same", string name = "Same")
