@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-05-static-diff-planning",
+  "baseCommit": "ba50db8ad5ef8dc6ef58153cee57da0f8555588c",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "정적 비교 표시 문제의 비식별 계약",
+      "sha256": "ec241b3b42d41e8ea26e69e390b68887248ab3279237be19f821993a63ba7f75"
+    },
+    {
+      "copy": "inputs/context.md",
+      "source": "정적 비교 표시 문제의 비식별 계약",
+      "sha256": "1d1c93442e7b92c83ce68238c782859df64da311f4ac976a7d7d6955160bcdeb"
+    }
+  ],
+  "inputDigest": "ba1a3c580c1c6b4aceeddaa88d689525f9407eaf2ebdd31b2d33cd4d770ed6c6",
+  "inputBytes": 2337
+}

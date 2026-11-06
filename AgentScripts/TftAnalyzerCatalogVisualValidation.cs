@@ -36,6 +36,9 @@ public static class CatalogScopedVisualValidation
     public static Task<object> RunStructured() => Execute(false, false, false, true);
     public static Task<object> RunStructuredFailureProbe() => Execute(true, false, false, true);
     public static Task<object> RunStructuredInitializationFailureProbe() => Execute(false, true, false, true);
+    public static Task<object> RunComparison() => Execute(false, false, false, false, true);
+    public static Task<object> RunComparisonFailureProbe() => Execute(true, false, false, false, true);
+    public static Task<object> RunComparisonInitializationFailureProbe() => Execute(false, true, false, false, true);
     public static Task<object> Run() => Execute(false, false);
     public static Task<object> RunFieldOrigins() => Execute(false, false, true);
     public static Task<object> RunFieldOriginFailureProbe() => Execute(true, false, true);
@@ -85,7 +88,8 @@ public static class CatalogScopedVisualValidation
         };
     }
 
-    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false)
+    /// <summary>Runs one scoped visual scenario and reports owned-window cleanup for success or failure.</summary>
+    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false)
     {
         Directory.CreateDirectory(Root);
         var focus = EditorWindow.focusedWindow;
@@ -107,7 +111,7 @@ public static class CatalogScopedVisualValidation
         var expectedFailureObserved = false;
         OfflineCollection.Calls = 0;
         var fake = new SyntheticAnalysis();
-        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured ? 20 : 8)))
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured || comparison ? 20 : 8)))
         {
             try
             {
@@ -115,7 +119,7 @@ public static class CatalogScopedVisualValidation
                 id = window.GetInstanceID();
                 window.name = name;
                 WriteOwnership(id, name, before, beforeContainers, focusId, false);
-                data = new DataManagerViewModel(new LocalCatalogs(synthetic, structured));
+                data = new DataManagerViewModel(new LocalCatalogs(synthetic, structured, comparison));
                 analysis = new AnalysisViewModel(fake);
                 collection = new CollectionViewModel(new OfflineCollection());
                 Inject(window, "_dataManager", data);
@@ -135,7 +139,9 @@ public static class CatalogScopedVisualValidation
                 await Settle(window, id, name, deadline.Token);
                 window.CreateGUI();
                 stage = "SelectingVerifiedLocalCatalog";
-                if (structured)
+                if (comparison)
+                    await CaptureComparison(window, data, id, name, deadline.Token, captures);
+                else if (structured)
                     await CaptureStructured(window, data, id, name, deadline.Token, captures);
                 else if (synthetic)
                     await CaptureFieldOrigins(window, data, id, name, deadline.Token, captures);
@@ -172,7 +178,8 @@ public static class CatalogScopedVisualValidation
             catch (OperationCanceledException) { failure = "ValidationDeadlineOrAbort"; }
             catch (Exception exception)
             {
-                var known = new[] { "FieldOriginDetailsMissing", "OwnedNativeIdentityAmbiguous", "OwnedNativeVisibilityUnavailable", "SyntheticCatalogInvalid" };
+                var known = new[] { "FieldOriginDetailsMissing", "OwnedNativeIdentityAmbiguous", "OwnedNativeVisibilityUnavailable", "SyntheticCatalogInvalid",
+                    "SyntheticComparisonMissing", "ComparisonPlainTextContractMissing", "ComparisonTargetOutsideViewport" };
                 failure = "VisualValidationFailed:" + exception.GetType().Name +
                     (known.Contains(exception.Message) ? ":" + exception.Message : "");
             }
@@ -202,9 +209,12 @@ public static class CatalogScopedVisualValidation
         {
             Passed = cleanupFailure == "" && OfflineCollection.Calls == 0 && fake.LoadCalls == 0 && remaining == 0 && missing.Length == 0 && added.Length == 0 && restored &&
                 addedContainers.Length == 0 && missingContainers.Length == 0 &&
-                ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == (structured ? 8 : 4)),
+                ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == (structured || comparison ? 8 : 4)),
             Failure = failure, CleanupFailure = cleanupFailure, Stage = stage,
-            ReadOnlyLocalCatalogs = !synthetic && !structured, SyntheticCatalogs = synthetic || structured, StructuredStatic = structured, NoObservationStore = true, OfflineCredentials = true,
+            ReadOnlyLocalCatalogs = !synthetic && !structured && !comparison, SyntheticCatalogs = synthetic || structured || comparison,
+            StructuredStatic = structured, StaticComparison = comparison, NoObservationStore = true, OfflineCredentials = true,
+            ComparisonCatalogValidation = comparison ? data?.Rows.Select(row => new
+                { SourceGameVersion = row.Identity.Patch.SourceGameVersion, row.ValidationErrorCount, row.ValidationWarningCount }).ToArray() : null,
             UnusedSyntheticAnalysisLoadCalls = fake.LoadCalls, CollectionCalls = OfflineCollection.Calls,
             BeforeIds = before, OwnedIds = new[] { id }, AfterIds = after,
             AddedWindowIds = added, MissingWindowIds = missing,
@@ -215,8 +225,116 @@ public static class CatalogScopedVisualValidation
         };
         var file = failBeforeShow ? "catalog-visual-initialization-failure-cleanup.json" :
             failAfterShow ? "catalog-visual-failure-cleanup.json" : "catalog-visual-final.json";
-        File.WriteAllText(Path.Combine(Root, structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Root, comparison ? "comparison-" + file : structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
+    }
+
+    /// <summary>Checks literal comparison labels and captures their visible titles and values at both supported widths.</summary>
+    private static async Task CaptureComparison(TftDataAnalyzerWindow window, DataManagerViewModel data,
+        int id, string name, CancellationToken token, List<object> captures)
+    {
+        var root = window.rootVisualElement;
+        root.Q<DropdownField>("diff-before").index = 0;
+        root.Q<DropdownField>("diff-after").index = 1;
+        Submit(root.Q<Button>("compare-button"));
+        await Settle(window, id, name, token);
+        if (data.Diff == null || data.Diff.Units.Changed.Count != 1 || data.Diff.Units.Changed[0].Fields.Count != 3)
+            throw new InvalidOperationException("SyntheticComparisonMissing");
+        var diff = root.Q("catalog-diff");
+        var group = diff.Query<Foldout>().ToList().First();
+        var record = group.Query<Foldout>().ToList().First(x => x.text == ComparisonId);
+        group.value = true;
+        record.value = true;
+        await Settle(window, id, name, token);
+        // Include the Foldout's generated Toggle label as well as all data labels.
+        if (diff.Query<Label>().ToList().Any(x => x.enableRichText) ||
+            !record.Q<Toggle>().Query<Label>().ToList().Any(x => x.text == ComparisonId && !x.enableRichText))
+            throw new InvalidOperationException("ComparisonPlainTextContractMissing");
+        var fields = data.Diff.Units.Changed[0].Fields;
+        foreach (var width in new[] { 940, 500 })
+        {
+            window.position = new Rect(80, 80, width, 760);
+            await Settle(window, id, name, token);
+            var scroll = root.Q<ScrollView>("data-scroll");
+            AlignTop(scroll, group);
+            await Settle(window, id, name, token);
+            captures.Add(CaptureComparisonPixels(window, width, "titles", new[] { group.Q<Toggle>(), record.Q<Toggle>() }));
+            foreach (var field in fields)
+            {
+                var expected = $"{field.FieldName}\n이전: {field.Before}\n이후: {field.After}";
+                var label = record.Query<Label>().ToList().Single(x => x.text == expected);
+                if (label.enableRichText) throw new InvalidOperationException("ComparisonPlainTextContractMissing");
+                AlignTop(scroll, label);
+                await Settle(window, id, name, token);
+                captures.Add(CaptureComparisonPixels(window, width, field.FieldName.Replace('.', '-'), new VisualElement[] { label }));
+            }
+        }
+    }
+
+    /// <summary>Captures comparison pixels only after verifying the requested targets are inside the viewport.</summary>
+    private static object CaptureComparisonPixels(TftDataAnalyzerWindow window, int width, string area, VisualElement[] targets)
+    {
+        var root = window.rootVisualElement;
+        var viewport = root.Q<ScrollView>("data-scroll").contentViewport.worldBound;
+        if (root.Q("data-tab").resolvedStyle.display == DisplayStyle.None || root.panel == null ||
+            targets.Any(x => x == null || x.worldBound.yMin < viewport.yMin - 1 || x.worldBound.yMax > viewport.yMax + 1 ||
+                x.worldBound.xMin < viewport.xMin - 1 || x.worldBound.xMax > viewport.xMax + 1))
+            throw new InvalidOperationException("ComparisonTargetOutsideViewport");
+        var rect = window.position;
+        var height = (int)root.panel.visualTree.worldBound.height;
+        if (height <= 0 || (int)rect.width != width) throw new InvalidOperationException("CaptureGeometryInvalid");
+        var path = Path.Combine(Root, "catalog-window-" + width + "-comparison-" + area + ".png");
+        var texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+        try
+        {
+            texture.SetPixels(InternalEditorUtility.ReadScreenPixel(new Vector2(rect.x, rect.y), width, height));
+            texture.Apply(); File.WriteAllBytes(path, texture.EncodeToPNG());
+        }
+        finally { UnityEngine.Object.DestroyImmediate(texture); }
+        return new
+        {
+            Path = path, Width = width, Height = height, Area = area,
+            FoldoutTitles = root.Q("catalog-diff").Query<Foldout>().ToList().Select(x => x.text).ToArray(),
+            TargetText = targets.SelectMany(x => x is Label label ? new[] { label } : x.Query<Label>().ToList().ToArray()).Select(x => x.text).ToArray(),
+            TargetBounds = targets.Select(x => x.worldBound.ToString()).ToArray(), ViewportBounds = viewport.ToString(),
+            AllComparisonLabelsPlainText = root.Q("catalog-diff").Query<Label>().ToList().All(x => !x.enableRichText),
+            PixelVisualReviewRequired = true
+        };
+    }
+
+    private const string ComparisonId = "TEST18_<b>Literal</b>";
+
+    /// <summary>Builds a long tagged example containing supplementary Unicode characters for visual verification.</summary>
+    private static string ComparisonDescription(bool after)
+    {
+        // Long enough to exercise multiple lines at 500px while keeping the complete before/after field capturable.
+        // Supplementary characters remain surrogate pairs in the exact-text assertion and serialized evidence.
+        return (after ? "<b>이후 설명 🚀</b> " : "<color=blue>이전 설명 😀</color> ") +
+            string.Concat(Enumerable.Repeat("긴 문자열·비BMP 보존 😀🚀 확인. ", 10)) +
+            (after ? "<i>AFTER-END 🚀</i>" : "<i>BEFORE-END 😀</i>");
+    }
+
+    /// <summary>Creates two validator-checked synthetic catalogs with a directional text comparison.</summary>
+    private static IReadOnlyList<PatchRowViewModel> ComparisonCatalogRows()
+    {
+        var rows = new List<PatchRowViewModel>();
+        foreach (var after in new[] { false, true })
+        {
+            var identity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", after ? "16.18.2" : "16.18.1"), CatalogSourceProfile.OfficialOnly);
+            var source = new SourceStamp("Riot Data Dragon", "https://ddragon.leagueoflegends.com/validation.json", DateTime.UnixEpoch, "", new string('a', 64));
+            var unit = new UnitRecord(ComparisonId,
+                new LocalizedText(after ? "<color=red>이후 기물</color>" : "<b>이전 기물</b>", after ? "<i>After unit</i>" : "<size=28>Before unit</size>"),
+                3, null, "", new[] { source }, description: new LocalizedText(ComparisonDescription(after), "Unchanged description"));
+            var manifest = new PatchManifest(2, identity, "창작 비교 검증 자료", DateTime.UnixEpoch, "", new[] { source }, DateTime.UnixEpoch, null, 0, 0, "", "");
+            var catalog = new StaticCatalog(manifest, new[] { unit }, null, null, null);
+            var validation = new TFTAnalyzer.Validation.CatalogValidator().Validate(catalog);
+            if (!validation.CanPublish)
+                throw new InvalidOperationException("SyntheticCatalogInvalid");
+            var entry = new CatalogIndexEntry(identity, "synthetic-only", "Assets/SyntheticValidation/catalog.json");
+            rows.Add(new PatchRowViewModel(entry, identity, "synthetic-only", catalog, DateTime.UnixEpoch,
+                validation.ErrorCount, validation.WarningCount, ""));
+        }
+        return rows.AsReadOnly();
     }
 
     private static async Task CaptureFieldOrigins(TftDataAnalyzerWindow window, DataManagerViewModel data,
@@ -489,10 +607,13 @@ public static class CatalogScopedVisualValidation
 
     private sealed class LocalCatalogs : IDataManagerService
     {
-        private readonly bool _synthetic, _structured;
-        public LocalCatalogs(bool synthetic = false, bool structured = false) { _synthetic = synthetic; _structured = structured; }
+        private readonly bool _synthetic, _structured, _comparison;
+        public LocalCatalogs(bool synthetic = false, bool structured = false, bool comparison = false)
+        { _synthetic = synthetic; _structured = structured; _comparison = comparison; }
+        /// <summary>Returns the selected synthetic fixture or reads the existing local catalogs for validation.</summary>
         public IReadOnlyList<PatchRowViewModel> LoadLocalCatalogs()
         {
+            if (_comparison) return ComparisonCatalogRows();
             if (_structured) return StructuredCatalogRows();
             if (_synthetic) return SyntheticCatalogRows();
             var paths = new StaticCatalogPaths(Path.GetDirectoryName(Application.dataPath));

@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-05-static-diff-planning",
+  "inputDigest": "ba1a3c580c1c6b4aceeddaa88d689525f9407eaf2ebdd31b2d33cd4d770ed6c6",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.1",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 31860,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8006,
+    "output_tokens": 1591,
+    "thinking_tokens": 984,
+    "cache_read_tokens": 0,
+    "total_tokens": 9597
+  },
+  "responseSeconds": 25.5763612,
+  "exitCode": 0,
+  "durationSeconds": 32.714
+}

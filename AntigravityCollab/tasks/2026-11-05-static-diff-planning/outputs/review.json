@@ -1,0 +1,32 @@
+{
+  "findings": [
+    {
+      "action": "Foldout 하위 계층(Q<Toggle>() 및 내장 Label)을 직접 조회해 enableRichText == false 설정 여부와 태그 포함 원문 문자열 보존을 동시에 검증하는 단언 조건을 명시한다.",
+      "impact": "Foldout.text나 상위 요소 속성만 확인하거나 Label.text 문자열만 비교하면 Foldout 내장 Label에서 리치 텍스트가 실제 비활성화되었는지와 화면 서식 해석 차단 여부를 보장할 수 없다.",
+      "inScope": true,
+      "reference": "inputs/context.md - DataManagerTab.RenderDiff/AddEntityDiff 및 Foldout 내장 Toggle/Label 검증",
+      "severity": "P2"
+    },
+    {
+      "action": "다중 변경 필드와 긴 태그·원문 문자열을 포함한 합성 카탈로그에 대해 940px 및 500px 창에서의 줄바꿈·스크롤 가능 여부, 클리핑 유무, 실행 전후 EditorWindow/native frame/포커스 보존 및 소유창 finally 정리 검증 기준을 구체화한다.",
+      "impact": "필드가 많거나 창이 작은(500px) 환경에서의 오버플로·스크롤·가독성 판정 기준이 모호하면 실제 패치 비교 화면에서 이전·이후 값을 정확히 읽는다는 완료 조건을 일관되게 검증하기 어렵다.",
+      "inScope": true,
+      "reference": "inputs/context.md - 다중 항목 및 실제 940/500px 화면 확인",
+      "severity": "P2"
+    },
+    {
+      "action": "현재 범위는 표시 계층 Label의 리치 텍스트 비활성화와 원문 무결성(비교 계산·카탈로그·저장·API 불변)으로 고정하고, 내부 제어 구분자 표시 개선은 화면 가독성 사실관계 확인 후 원본 값을 변형하지 않는 별도 세부 계약으로 분리한다.",
+      "impact": "리치 텍스트 차단 작업과 내부 제어 구분자 분리 표시를 한 번에 처리하면 원본 문자열 보존 원칙이나 기존 비교 계산 모델 불변 조건이 흔들릴 수 있다.",
+      "inScope": true,
+      "reference": "inputs/scope.md - 원문 보존 및 내부 제어 구분자 별도 세부 계약 검토",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "ba1a3c580c1c6b4aceeddaa88d689525f9407eaf2ebdd31b2d33cd4d770ed6c6",
+  "taskId": "2026-11-05-static-diff-planning",
+  "unverified": [
+    "강제 접근 차단",
+    "제공된 텍스트 외 실제 코드베이스 및 Unity 런타임/UI 계층 동작"
+  ],
+  "verdict": "revise"
+}

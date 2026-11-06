@@ -269,6 +269,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             element.Q<Label>("directory").text = "위치: " + (string.IsNullOrEmpty(row.Directory) ? "확인 불가" : row.Directory);
         }
 
+        /// <summary>Renders the directional comparison as literal text, including labels inside Foldout title toggles.</summary>
         private void RenderDiff()
         {
             _renderedDiff = _vm.Diff;
@@ -283,6 +284,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             AddEntityDiff(container, "시너지", _vm.Diff.Traits);
             AddEntityDiff(container, "아이템", _vm.Diff.Items);
             AddEntityDiff(container, "증강", _vm.Diff.Augments);
+            foreach (var label in container.Query<Label>().ToList()) label.enableRichText = false;
         }
 
         private static void AddEntityDiff(VisualElement container, string name, EntityDiff diff)
