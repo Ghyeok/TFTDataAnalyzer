@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Ingestion;
@@ -305,6 +306,200 @@ namespace TFTAnalyzer.Tests.UI
                 validation.ErrorCount, validation.WarningCount, "");
         }
 
+        /// <summary>Checks structured collision display and source preservation in both directions.</summary>
+        [UnityTest]
+        public IEnumerator CollisionComparisonDisplaysOriginalStructuresInBothDirections()
+        {
+            var rows = UseStructuredComparisonRows();
+            var originals = rows.Select(row => CanonicalCatalogSerializer.Serialize(row.Catalog)).ToArray();
+            for (var iteration = 0; iteration < 3; iteration++)
+            {
+                var reverse = iteration == 1;
+                _tree.Q<DropdownField>("diff-before").index = reverse ? 1 : 0;
+                _tree.Q<DropdownField>("diff-after").index = reverse ? 0 : 1;
+                Submit("compare-button");
+                yield return WaitForEditorRender();
+                // Changing the active browser catalog and dropdowns must not reinterpret an existing diff.
+                _tree.Q<ListView>("catalog-list").SetSelection(reverse ? 0 : 1);
+                _tree.Q<DropdownField>("diff-before").index = reverse ? 0 : 1;
+                _tree.Q<DropdownField>("diff-after").index = reverse ? 1 : 0;
+                Rebuild();
+                foreach (var pair in new[] { ("TEST18_Unit", _vm.Diff.Units), ("TEST18_Trait", _vm.Diff.Traits),
+                    ("TEST18_Item", _vm.Diff.Items), ("TEST18_Augment", _vm.Diff.Augments) })
+                {
+                    foreach (var field in pair.Item2.Changed.Single().Fields)
+                    {
+                        Assert.That(field.Before, Is.EqualTo(field.After), "The public legacy collision strings must remain identical.");
+                        var label = ComparisonField(pair.Item1, field.FieldName);
+                        var values = DisplayedValues(label);
+                        Assert.That(values[0], Is.Not.EqualTo(values[1]), "Original structures must remain distinguishable.");
+                        if (field.FieldName.EndsWith("Ids", StringComparison.Ordinal))
+                        {
+                            Assert.That(values[reverse ? 1 : 0], Is.EqualTo("[\"A\\u001fB\"]"));
+                            Assert.That(values[reverse ? 0 : 1], Is.EqualTo("[\"A\",\"B\"]"));
+                        }
+                        else if (field.FieldName == "effects")
+                        {
+                            Assert.That(values[reverse ? 1 : 0], Is.EqualTo("{\"A=1\\u001fB\":2}"));
+                            Assert.That(values[reverse ? 0 : 1], Is.EqualTo("{\"A\":1,\"B\":2}"));
+                        }
+                        else if (field.FieldName == "sources")
+                        {
+                            var before = JArray.Parse(values[reverse ? 1 : 0]);
+                            var after = JArray.Parse(values[reverse ? 0 : 1]);
+                            Assert.That((string)before[0]["ETag"], Is.EqualTo("tag\u001fhash"));
+                            Assert.That((string)before[0]["Sha256"], Is.EqualTo("tail"));
+                            Assert.That((string)after[0]["ETag"], Is.EqualTo("tag"));
+                            Assert.That((string)after[0]["Sha256"], Is.EqualTo("hash\u001ftail"));
+                            Assert.That(before[0]["RetrievedUtc"], Is.Null, "Ignored retrieval time is not a compared field.");
+                        }
+                        Assert.That(label.enableRichText, Is.False);
+                    }
+                }
+                for (var index = 0; index < rows.Length; index++)
+                    Assert.That(CanonicalCatalogSerializer.Serialize(rows[index].Catalog), Is.EqualTo(originals[index]));
+            }
+        }
+
+        /// <summary>Distinguishes control characters from literal escape sequences in displayed values.</summary>
+        [UnityTest]
+        public IEnumerator StructuredComparisonEscapesControlsSeparatelyFromLiteralBackslashes()
+        {
+            const string key = "<b>tag</b>\n\u001f\"\\n\\u001f😀";
+            UseStructuredComparisonRows(new Dictionary<string, double> { [key] = 1 });
+            Submit("compare-button");
+            yield return WaitForEditorRender();
+            var field = ComparisonField("TEST18_Unit", "effects");
+            var values = DisplayedValues(field);
+            Assert.That(JObject.Parse(values[0]).Properties().Single().Name, Is.EqualTo(key));
+            Assert.That(values[0], Does.Contain("\\n").And.Contain("\\\\n").And.Contain("\\u001f")
+                .And.Contain("\\\\u001f").And.Contain("\\\"").And.Contain("😀").And.Contain("<b>tag</b>"));
+            Assert.That(values[0], Does.Not.Contain("\n").And.Not.Contain("\u001f"));
+            Assert.That(field.enableRichText, Is.False);
+        }
+
+        /// <summary>Checks bounded read-only pages retain long Unicode values without splitting surrogate pairs.</summary>
+        [UnityTest]
+        public IEnumerator LongStructuredComparisonProvidesBoundedReadOnlyPagesWithoutSplittingSurrogates()
+        {
+            var key = string.Concat(Enumerable.Repeat("<b>😀</b>\\n", 1600)) + "FINAL_VALUE";
+            UseStructuredComparisonRows(new Dictionary<string, double> { [key] = 1 });
+            Submit("compare-button");
+            yield return WaitForEditorRender();
+            var preview = ComparisonField("TEST18_Unit", "effects");
+            Assert.That(preview.text, Does.Contain("일부 생략"));
+            Assert.That(preview.text.Length, Is.LessThan(4096));
+            Assert.That(preview.enableRichText, Is.False);
+            var record = _tree.Q("catalog-diff").Query<Foldout>().ToList().Single(x => x.text == "TEST18_Unit");
+            var full = record.Q("diff-before-full");
+            Assert.That(full, Is.Not.Null, "Every omitted character must remain accessible through bounded pages.");
+            var text = full.Q<TextField>();
+            Assert.That(text.isReadOnly, Is.True);
+            Assert.That(text.multiline, Is.True);
+            var pages = new List<string>();
+            var next = full.Q<Button>("diff-value-next");
+            var previous = full.Q<Button>("diff-value-previous");
+            Assert.That(previous.enabledSelf, Is.False);
+            for (var page = 0; ; page++)
+            {
+                Assert.That(page, Is.LessThan(100), "Page navigation must terminate.");
+                Assert.That(text.value.Length, Is.InRange(1, 4096));
+                Assert.That(char.IsLowSurrogate(text.value[0]), Is.False);
+                Assert.That(char.IsHighSurrogate(text.value[text.value.Length - 1]), Is.False);
+                pages.Add(text.value);
+                foreach (var element in full.Query<TextElement>().ToList()) Assert.That(element.enableRichText, Is.False);
+                if (!next.enabledSelf) break;
+                SubmitButton(next);
+            }
+            Assert.That(pages.Count, Is.GreaterThan(1));
+            Assert.That(JObject.Parse(string.Concat(pages)).Properties().Single().Name, Is.EqualTo(key));
+            SubmitButton(previous);
+            Assert.That(text.value, Is.EqualTo(pages[pages.Count - 2]));
+        }
+
+        /// <summary>Uses the same first-duplicate record policy as the comparison engine.</summary>
+        [UnityTest]
+        public IEnumerator StructuredComparisonUsesFirstDuplicateIdLikeTheDiffer()
+        {
+            // Deliberately malformed memory input: duplicate IDs cannot come from the validated disk loader.
+            // This guards the differ's existing first-record policy when a selectable in-memory row is supplied.
+            UseStructuredComparisonRows(duplicateFirst: true);
+            Submit("compare-button");
+            yield return WaitForEditorRender();
+            var values = DisplayedValues(ComparisonField("TEST18_Unit", "effects"));
+            Assert.That(values[0], Is.EqualTo("{\"A=1\\u001fB\":2}"));
+            Assert.That(values[1], Is.EqualTo("{\"A\":1,\"B\":2}"));
+            Assert.That(string.Join("\n", _tree.Q("catalog-diff").Query<Label>().ToList().Select(x => x.text)),
+                Does.Not.Contain("SECOND_DUPLICATE"));
+        }
+
+        /// <summary>Shows a fixed notice when the compared source record is unavailable.</summary>
+        [Test]
+        public void MissingStructuredComparisonRecordUsesNoticeInsteadOfGuessingLegacyValue()
+        {
+            var field = new TFTAnalyzer.Diff.FieldChange("effects", "A=1\u001fB=2", "A=1\u001fB=2");
+            var record = new UnitRecord("TEST18_Unit", LocalizedText.Empty, 1, null, "", null,
+                effects: new Dictionary<string, double> { ["real"] = 2 });
+            foreach (var missingBefore in new[] { true, false })
+            {
+                var display = new CatalogDiffFieldDisplay(field, missingBefore ? null : record,
+                    missingBefore ? record : null);
+                Assert.That(missingBefore ? display.Before : display.After,
+                    Is.EqualTo("비교 당시 원본 자료를 확인할 수 없습니다."));
+                Assert.That(missingBefore ? display.After : display.Before, Is.EqualTo("{\"real\":2}"));
+            }
+        }
+
+        private Label ComparisonField(string id, string name) => _tree.Q("catalog-diff").Query<Foldout>()
+            .ToList().Single(x => x.text == id).Query<Label>().ToList()
+            .Single(x => x.text.StartsWith(name + "\n이전: ", StringComparison.Ordinal));
+
+        private static string[] DisplayedValues(Label label) => label.text.Substring(label.text.IndexOf("\n이전: ",
+            StringComparison.Ordinal) + 5).Split(new[] { "\n이후: " }, StringSplitOptions.None);
+
+        /// <summary>Creates and selects synthetic rows for structured comparison UI checks.</summary>
+        private PatchRowViewModel[] UseStructuredComparisonRows(IReadOnlyDictionary<string, double> beforeEffects = null,
+            bool duplicateFirst = false)
+        {
+            _binding.Dispose();
+            _vm.Dispose();
+            var rows = new[] { StructuredComparisonRow(false, beforeEffects, duplicateFirst),
+                StructuredComparisonRow(true, null, duplicateFirst) };
+            _service.Rows = rows;
+            _vm = new DataManagerViewModel(_service);
+            Rebuild();
+            return rows;
+        }
+
+        /// <summary>Builds a synthetic catalog row with controlled structured values.</summary>
+        private static PatchRowViewModel StructuredComparisonRow(bool after, IReadOnlyDictionary<string, double> beforeEffects,
+            bool duplicateFirst)
+        {
+            var identity = DataManagerTestSupport.Identity(after ? "16.18.2" : "16.18.1");
+            var manifest = DataManagerTestSupport.Catalog(identity).Manifest;
+            var sources = new[] { new SourceStamp("Riot Data Dragon", "https://example.invalid/static.json",
+                DataManagerTestSupport.RetrievedUtc, after ? "tag" : "tag\u001fhash", after ? "hash\u001ftail" : "tail") };
+            var relations = after ? new[] { "A", "B" } : new[] { "A\u001fB" };
+            var effects = after ? new Dictionary<string, double> { ["A"] = 1, ["B"] = 2 } :
+                beforeEffects ?? new Dictionary<string, double> { ["A=1\u001fB"] = 2 };
+            var name = new LocalizedText("이름", "Name");
+            var units = new List<UnitRecord> { new UnitRecord("TEST18_Unit", name, 1, relations, "", sources, effects: effects) };
+            if (duplicateFirst) units.Add(new UnitRecord("TEST18_Unit", name, 1, null, "", sources,
+                effects: new Dictionary<string, double> { ["SECOND_DUPLICATE"] = after ? 1 : 2 }));
+            var targets = new[] { "A", "B", "A\u001fB" };
+            var catalog = new StaticCatalog(manifest, units,
+                new[] { new TraitRecord("TEST18_Trait", name, null, effects, "", sources) }
+                    .Concat(targets.Select(id => new TraitRecord(id, name, null, null, "", manifest.Sources))),
+                new[] { new ItemRecord("TEST18_Item", name, null, relations, effects, "", sources) }
+                    .Concat(targets.Select(id => new ItemRecord(id, name, null, null, null, "", manifest.Sources))),
+                new[] { new AugmentRecord("TEST18_Augment", name, "Gold", null, relations, effects, "", sources) });
+            var validation = new CatalogValidator().Validate(catalog);
+            if (!duplicateFirst) Assert.That(validation.ErrorCount, Is.Zero);
+            return new PatchRowViewModel(new CatalogIndexEntry(identity, new string('a', 64), "test/structured.json"),
+                identity, "test/memory-only", catalog, DataManagerTestSupport.RetrievedUtc, 0,
+                validation.WarningCount, "");
+        }
+
         [UnityTest]
         public IEnumerator DisposedBindingCannotChangeInputOrReceiveScheduledUpdatesAndRebuildKeepsActiveIdentity()
         {
@@ -395,6 +590,12 @@ namespace TFTAnalyzer.Tests.UI
         {
             var button = _tree.Q<Button>(name);
             Assert.That(button, Is.Not.Null);
+            SubmitButton(button);
+        }
+
+        /// <summary>Submits a UI button using the same event path as a keyboard activation.</summary>
+        private static void SubmitButton(Button button)
+        {
             button.Focus();
             using (var submit = NavigationSubmitEvent.GetPooled())
             {

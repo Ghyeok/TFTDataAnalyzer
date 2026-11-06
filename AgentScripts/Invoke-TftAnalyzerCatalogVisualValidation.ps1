@@ -4,7 +4,8 @@ param(
     [switch]$ProbeInitializationFailure,
     [switch]$FieldOrigins,
     [switch]$StructuredStatic,
-    [switch]$StaticComparison
+    [switch]$StaticComparison,
+    [switch]$CollisionComparison
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,7 +20,7 @@ if ($FieldOrigins) {
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunFieldOriginFailureProbe' }
         else { 'CatalogScopedVisualValidation.RunFieldOrigins' }
 }
-if ((@($FieldOrigins, $StructuredStatic, $StaticComparison) | Where-Object { $_ }).Count -gt 1) { throw 'Choose one synthetic mode.' }
+if ((@($FieldOrigins, $StructuredStatic, $StaticComparison, $CollisionComparison) | Where-Object { $_ }).Count -gt 1) { throw 'Choose one synthetic mode.' }
 if ($StructuredStatic) {
     $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunStructuredInitializationFailureProbe' }
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunStructuredFailureProbe' }
@@ -30,10 +31,16 @@ if ($StaticComparison) {
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunComparisonFailureProbe' }
         else { 'CatalogScopedVisualValidation.RunComparison' }
 }
+if ($CollisionComparison) {
+    $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunCollisionComparisonInitializationFailureProbe' }
+        elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunCollisionComparisonFailureProbe' }
+        else { 'CatalogScopedVisualValidation.RunCollisionComparison' }
+}
 $resultFileName = if ($ProbeInitializationFailure) { 'catalog-visual-initialization-failure-command.json' }
     elseif ($ProbeFailure) { 'catalog-visual-failure-command.json' } else { 'catalog-visual-command.json' }
 if ($StructuredStatic) { $resultFileName = 'structured-' + $resultFileName }
 if ($StaticComparison) { $resultFileName = 'comparison-' + $resultFileName }
+if ($CollisionComparison) { $resultFileName = 'collision-' + $resultFileName }
 $resultPath = Join-Path $outputRoot $resultFileName
 $cleanupPath = Join-Path $outputRoot 'catalog-visual-fallback-cleanup.json'
 $validationFailure = $null
