@@ -37,6 +37,9 @@ public static class CatalogScopedVisualValidation
     public static Task<object> RunStructuredFailureProbe() => Execute(true, false, false, true);
     public static Task<object> RunStructuredInitializationFailureProbe() => Execute(false, true, false, true);
     public static Task<object> RunComparison() => Execute(false, false, false, false, true);
+    public static Task<object> RunSummary() => Execute(false, false, false, false, false, false, true);
+    public static Task<object> RunSummaryFailureProbe() => Execute(true, false, false, false, false, false, true);
+    public static Task<object> RunSummaryInitializationFailureProbe() => Execute(false, true, false, false, false, false, true);
     public static Task<object> RunComparisonFailureProbe() => Execute(true, false, false, false, true);
     public static Task<object> RunComparisonInitializationFailureProbe() => Execute(false, true, false, false, true);
     public static Task<object> RunCollisionComparison() => Execute(false, false, false, false, false, true);
@@ -92,7 +95,7 @@ public static class CatalogScopedVisualValidation
     }
 
     /// <summary>Runs the selected capture or failure probe in one owned window, then reports cleanup, preserved editor state, and forbidden service calls.</summary>
-    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false)
+    private static async Task<object> Execute(bool failAfterShow, bool failBeforeShow, bool synthetic = false, bool structured = false, bool comparison = false, bool collision = false, bool summary = false)
     {
         Directory.CreateDirectory(Root);
         var focus = EditorWindow.focusedWindow;
@@ -114,8 +117,8 @@ public static class CatalogScopedVisualValidation
         var expectedFailureObserved = false;
         OfflineCollection.Calls = 0;
         var fake = new SyntheticAnalysis();
-        var local = new LocalCatalogs(synthetic, structured, comparison, collision);
-        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured || comparison || collision ? 20 : 8)))
+        var local = new LocalCatalogs(synthetic, structured, comparison || summary, collision);
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(structured || comparison || collision || summary ? 20 : 8)))
         {
             try
             {
@@ -143,7 +146,9 @@ public static class CatalogScopedVisualValidation
                 await Settle(window, id, name, deadline.Token);
                 window.CreateGUI();
                 stage = "SelectingVerifiedLocalCatalog";
-                if (collision)
+                if (summary)
+                    await CaptureSummary(window, data, id, name, deadline.Token, captures);
+                else if (collision)
                     await CaptureCollisionComparison(window, data, id, name, deadline.Token, captures);
                 else if (comparison)
                     await CaptureComparison(window, data, id, name, deadline.Token, captures);
@@ -218,7 +223,7 @@ public static class CatalogScopedVisualValidation
                 addedContainers.Length == 0 && missingContainers.Length == 0 &&
                 ((failBeforeShow || failAfterShow) ? expectedFailureObserved : failure == "" && captures.Count == (collision ? 10 : structured || comparison ? 8 : 4)),
             Failure = failure, CleanupFailure = cleanupFailure, Stage = stage,
-            ReadOnlyLocalCatalogs = !synthetic && !structured && !comparison && !collision, SyntheticCatalogs = synthetic || structured || comparison || collision,
+            ReadOnlyLocalCatalogs = !synthetic && !structured && !comparison && !collision && !summary, SyntheticCatalogs = synthetic || structured || comparison || collision || summary,
             StructuredStatic = structured, StaticComparison = comparison, CollisionComparison = collision, NoObservationStore = true, OfflineCredentials = true,
             ActualApiCalls = 0, ForbiddenServiceCalls = local.ForbiddenServiceCalls,
             ComparisonCatalogValidation = comparison || collision ? data?.Rows.Select(row => new
@@ -233,8 +238,37 @@ public static class CatalogScopedVisualValidation
         };
         var file = failBeforeShow ? "catalog-visual-initialization-failure-cleanup.json" :
             failAfterShow ? "catalog-visual-failure-cleanup.json" : "catalog-visual-final.json";
-        File.WriteAllText(Path.Combine(Root, collision ? "collision-" + file : comparison ? "comparison-" + file : structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
+        File.WriteAllText(Path.Combine(Root, summary ? "summary-" + file : collision ? "collision-" + file : comparison ? "comparison-" + file : structured ? "structured-" + file : synthetic ? "field-origin-" + file : file), JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
+    }
+
+    private static async Task CaptureSummary(TftDataAnalyzerWindow window, DataManagerViewModel data,
+        int id, string name, CancellationToken token, List<object> captures)
+    {
+        var root = window.rootVisualElement;
+        var baseline = data.Rows[0];
+        var target = data.Rows[1];
+        data.TrySetInput(target.Identity.Patch, false);
+        data.TrySelectImportBaseline(baseline.Identity);
+        data.SelectActiveCatalog(target.Identity);
+        foreach (var width in new[] { 940, 500 })
+        {
+            window.position = new Rect(80, 80, width, 760);
+            await Settle(window, id, name, token);
+            var scroll = root.Q<ScrollView>("data-scroll");
+            var dropdown = root.Q<DropdownField>("import-baseline");
+            var status = root.Q<Label>("import-baseline-status");
+            if (!status.text.Contains("비교 방향") || !status.text.Contains(baseline.Entry.ContentHash))
+                throw new InvalidOperationException("SummaryBaselineMissing");
+            AlignTop(scroll, dropdown);
+            await Settle(window, id, name, token);
+            captures.Add(CaptureComparisonPixels(window, width, "baseline", new VisualElement[] { dropdown, status }, "summary"));
+            var label = root.Q<Label>("active-change-summary");
+            if (!label.text.Contains("기물 +1")) throw new InvalidOperationException("SummaryTextMissing");
+            AlignTop(scroll, label);
+            await Settle(window, id, name, token);
+            captures.Add(CaptureComparisonPixels(window, width, "result", new VisualElement[] { label }, "summary"));
+        }
     }
 
     /// <summary>Checks literal comparison labels and captures their visible titles and values at both supported widths.</summary>
@@ -514,9 +548,10 @@ public static class CatalogScopedVisualValidation
             var validation = new TFTAnalyzer.Validation.CatalogValidator().Validate(catalog);
             if (!validation.CanPublish)
                 throw new InvalidOperationException("SyntheticCatalogInvalid");
-            var entry = new CatalogIndexEntry(identity, "synthetic-only", "Assets/SyntheticValidation/catalog.json");
+            var entry = new CatalogIndexEntry(identity, new string(after ? 'b' : 'a', 64), "Assets/SyntheticValidation/catalog.json");
             rows.Add(new PatchRowViewModel(entry, identity, "synthetic-only", catalog, DateTime.UnixEpoch,
-                validation.ErrorCount, validation.WarningCount, ""));
+                validation.ErrorCount, validation.WarningCount, "", after ?
+                    "비교 기준: TFTSet18 (세트 18) · TFT 18.2 · 원본 16.18.1 · official-only · 해시 aaaaaaaaaaaa\n기물 +1 / 변경 2 / -3 · 시너지 +1 / 변경 2 / -3 · 아이템 +1 / 변경 2 / -3 · 증강 +1 / 변경 2 / -3" : "변경 요약 없음"));
         }
         return rows.AsReadOnly();
     }

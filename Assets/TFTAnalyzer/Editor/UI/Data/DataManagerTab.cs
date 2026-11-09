@@ -20,7 +20,7 @@ namespace TFTAnalyzer.Editor.UI.Data
         private readonly Button _check, _import, _cancel, _compare;
         private readonly Button _validationPrevious, _validationNext, _mergePrevious, _mergeNext;
         private readonly ListView _list;
-        private readonly DropdownField _before, _after;
+        private readonly DropdownField _before, _after, _baseline;
         private IReadOnlyList<PatchRowViewModel> _boundRows;
         private List<PatchRowViewModel> _healthy = new List<PatchRowViewModel>();
         private CatalogDiff _renderedDiff;
@@ -49,11 +49,13 @@ namespace TFTAnalyzer.Editor.UI.Data
             _list = tab.Q<ListView>("catalog-list");
             _before = tab.Q<DropdownField>("diff-before");
             _after = tab.Q<DropdownField>("diff-after");
+            _baseline = tab.Q<DropdownField>("import-baseline");
             _setId.RegisterValueChangedCallback(OnTextChanged);
             _patch.RegisterValueChangedCallback(OnTextChanged);
             _version.RegisterValueChangedCallback(OnTextChanged);
             _setNumber.RegisterValueChangedCallback(OnNumberChanged);
             _supplement.RegisterValueChangedCallback(OnSupplementChanged);
+            _baseline.RegisterValueChangedCallback(OnBaselineChanged);
             _check.clicked += Check;
             _import.clicked += Import;
             _cancel.clicked += Cancel;
@@ -74,6 +76,16 @@ namespace TFTAnalyzer.Editor.UI.Data
         private void OnTextChanged(ChangeEvent<string> evt) => CaptureInput();
         private void OnNumberChanged(ChangeEvent<int> evt) => CaptureInput();
         private void OnSupplementChanged(ChangeEvent<bool> evt) => CaptureInput();
+
+        private void OnBaselineChanged(ChangeEvent<string> evt)
+        {
+            if (_disposed || _rendering) return;
+            var index = _baseline.index;
+            if (index == 0) _vm.TrySelectImportBaseline(null);
+            else if (index > 0 && index <= _healthy.Count)
+                _vm.TrySelectImportBaseline(_healthy[index - 1].Identity);
+            else QueueRender();
+        }
 
         private void CaptureInput()
         {
@@ -155,10 +167,29 @@ namespace TFTAnalyzer.Editor.UI.Data
                     if (choices.Count > 1) _after.SetValueWithoutNotify(choices[1]);
                 }
                 var active = _vm.Rows.FirstOrDefault(row => row.IsSelectable && row.Identity.Equals(_vm.ActiveIdentity));
+                var baselineChoices = new List<string> { "선택하지 않음" };
+                baselineChoices.AddRange(_healthy.Select((row, index) =>
+                    $"{index + 1}. {row.DisplayIdentity} · 해시 {row.ContentHashPrefix}"));
+                var baselineIndex = _vm.ImportBaselineIdentity == null ? 0 :
+                    _healthy.FindIndex(row => row.Identity.Equals(_vm.ImportBaselineIdentity)) + 1;
+                if (_vm.ImportBaselineIdentity != null && baselineIndex == 0)
+                {
+                    baselineChoices.Add("선택한 기준을 찾을 수 없음");
+                    baselineIndex = baselineChoices.Count - 1;
+                }
+                _baseline.choices = baselineChoices;
+                _baseline.SetValueWithoutNotify(baselineChoices[baselineIndex]);
+                PlainText(_baseline);
+                var baselineStatus = _tab.Q<Label>("import-baseline-status");
+                baselineStatus.enableRichText = false;
+                baselineStatus.text = _vm.ImportBaselineStatusText;
                 _list.SetSelectionWithoutNotify(active == null ? Array.Empty<int>() :
                     new[] { _vm.Rows.ToList().IndexOf(active) });
                 _tab.Q<Label>("active-catalog").text = active == null ? "활성 카탈로그: 선택하지 않음" :
                     "활성 카탈로그: " + active.DisplayIdentity;
+                var summary = _tab.Q<Label>("active-change-summary");
+                summary.enableRichText = false;
+                summary.text = active == null ? "변경 요약: 카탈로그를 선택해 주세요." : active.ChangeSummaryText;
                 _tab.Q<Label>("catalog-empty-state").EnableInClassList("tft-tab-hidden", _vm.Rows.Count != 0);
                 var canCompare = _healthy.Count >= 2;
                 _before.SetEnabled(!busy && canCompare);
@@ -392,6 +423,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             _version.UnregisterValueChangedCallback(OnTextChanged);
             _setNumber.UnregisterValueChangedCallback(OnNumberChanged);
             _supplement.UnregisterValueChangedCallback(OnSupplementChanged);
+            _baseline.UnregisterValueChangedCallback(OnBaselineChanged);
             _check.clicked -= Check;
             _import.clicked -= Import;
             _cancel.clicked -= Cancel;

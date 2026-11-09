@@ -20,6 +20,8 @@
                             <ui:TextField name="source-version" label="원본 게임 버전" class="tft-data-field" />
                             <ui:Toggle name="communitydragon-toggle" label="CommunityDragon 보충 사용" />
                             <ui:Label text="보충 자료 사용은 가져올 때마다 선택합니다. 가져오기 전에 대상과 저장 위치를 확인합니다." class="tft-wrapped-text" />
+                            <ui:DropdownField name="import-baseline" label="변경 요약 기준" class="tft-data-field" />
+                            <ui:Label name="import-baseline-status" class="tft-wrapped-text" />
                         </ui:VisualElement>
                         <ui:VisualElement class="tft-data-actions">
                             <ui:Button name="check-updates-button" text="원본 버전 확인" />
@@ -54,6 +56,7 @@
                         <ui:Label name="catalog-empty-state" text="아직 로컬 카탈로그가 없습니다. 가져올 패치를 입력해 주세요." class="tft-wrapped-text" />
                         <ui:ListView name="catalog-list" class="tft-catalog-list" />
                         <ui:Label name="active-catalog" class="tft-wrapped-text" />
+                        <ui:Label name="active-change-summary" class="tft-wrapped-text" />
                         <ui:Foldout name="catalog-browser" text="카탈로그 내용 탐색" value="false" class="tft-data-section">
                             <ui:Label name="browser-catalog" class="tft-wrapped-text" />
                             <ui:Label text="로컬 정적 자료입니다. 수록 여부가 이 패치의 실제 경기 등장이나 증강 통계 허용을 뜻하지 않습니다." class="tft-wrapped-text" />

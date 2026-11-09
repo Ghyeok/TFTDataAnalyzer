@@ -165,7 +165,10 @@ namespace TFTAnalyzer.Editor.Persistence
         public StagedCatalog WriteStagedCatalog(
             StaticCatalog catalog,
             ValidationReport validation,
-            string stagingRoot)
+            string stagingRoot,
+            StaticCatalog baseline = null,
+            CatalogIdentity baselineIdentity = null,
+            string baselineHash = null)
         {
             _paths.EnsureStagingPath(stagingRoot);
             var patchDirectory = Path.Combine(stagingRoot, "patch");
@@ -200,7 +203,9 @@ namespace TFTAnalyzer.Editor.Persistence
                 policyUrls = catalog.Manifest.PolicyUrls.OrderBy(value => value, StringComparer.Ordinal),
                 validationErrorCount = validation.ErrorCount,
                 validationWarningCount = validation.WarningCount,
-                previousPatchSummary = catalog.Manifest.PreviousPatchSummary,
+                previousPatchSummary = baseline == null ? catalog.Manifest.PreviousPatchSummary :
+                    CatalogChangeSummary.Create(baseline, baselineIdentity, baselineHash,
+                        CanonicalCatalogSerializer.Deserialize(catalogJson), catalog.Manifest.Identity, contentHash),
                 communityDragonVersion = catalog.Manifest.CommunityDragonVersion
             };
             var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented,

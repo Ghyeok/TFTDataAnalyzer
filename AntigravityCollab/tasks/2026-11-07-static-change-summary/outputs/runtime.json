@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-07-static-change-summary",
+  "inputDigest": "009d7a3063a5b995eba3a0ee477f512009e805518ed4669914bef467e22ba8f3",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.2",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 29100,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8275,
+    "output_tokens": 1337,
+    "thinking_tokens": 346,
+    "cache_read_tokens": 0,
+    "total_tokens": 9612
+  },
+  "responseSeconds": 22.9294195,
+  "exitCode": 0,
+  "durationSeconds": 30.045
+}
