@@ -29,6 +29,13 @@ namespace TFTAnalyzer.Editor.UI.Data
         internal string LastImportFailureStack { get; private set; } = "";
         public string StatusText { get; private set; } = "";
         public CatalogIdentity ActiveIdentity { get; private set; }
+        public CatalogIdentity ImportBaselineIdentity { get; private set; }
+        public string ImportBaselineContentHash { get; private set; } = "";
+        public string ImportBaselineStatusText => ImportBaselineIdentity == null
+            ? "기준 미선택 · 변경 요약 없이 가져옵니다."
+            : ImportBaselineProblem() is string problem && problem.Length != 0 ? problem :
+                "비교 방향: 선택한 기준 → 가져올 카탈로그 (패치 순서를 뜻하지 않음)\n" +
+                BaselineDescription();
         public CatalogIdentity DiffBeforeIdentity { get; private set; }
         public CatalogIdentity DiffAfterIdentity { get; private set; }
         public CatalogDiff Diff { get; private set; }
@@ -80,6 +87,12 @@ namespace TFTAnalyzer.Editor.UI.Data
         public async Task ImportAsync(Func<string, bool> confirm)
         {
             if (_disposed || IsBusy) return;
+            var baselineProblem = ImportBaselineProblem();
+            if (baselineProblem.Length != 0)
+            {
+                SetStatus(DataManagerState.Failed, baselineProblem, "InvalidSummaryBaseline");
+                return;
+            }
             LastImportFailureType = LastImportFailureStack = "";
             var operation = Begin(DataManagerState.AwaitingApproval, "가져올 카탈로그를 확인해 주세요.");
             var started = false;
@@ -87,11 +100,15 @@ namespace TFTAnalyzer.Editor.UI.Data
             {
                 if (InputPatch == null || confirm == null) throw new ArgumentException();
                 var request = new StaticImportRequest(new CatalogIdentity(InputPatch,
-                    IncludeCommunityDragon ? CatalogSourceProfile.OfficialPlusCommunityDragon : CatalogSourceProfile.OfficialOnly));
+                    IncludeCommunityDragon ? CatalogSourceProfile.OfficialPlusCommunityDragon : CatalogSourceProfile.OfficialOnly),
+                    ImportBaselineIdentity, ImportBaselineContentHash);
                 var directory = _service.ResolveDestination(request);
                 var patch = request.Patch;
                 var summary = $"세트: {patch.SetId} (번호 {patch.SetNumber})\nTFT 패치: {patch.PatchId}\n" +
-                              $"원본 게임 버전: {patch.SourceGameVersion}\n출처 프로필: {request.Identity.ProfileId}\n저장 위치: {directory}";
+                              $"원본 게임 버전: {patch.SourceGameVersion}\n출처 프로필: {request.Identity.ProfileId}\n저장 위치: {directory}\n" +
+                              (request.BaselineIdentity == null ? "변경 요약 기준: 선택하지 않음" :
+                                  "변경 요약 기준: " + BaselineDescription() +
+                                  "\n비교 방향: 선택한 기준 → 가져올 카탈로그 (패치 순서를 뜻하지 않음)");
                 var approved = confirm(summary);
                 IncludeCommunityDragon = false;
                 if (_disposed) return;
@@ -122,12 +139,20 @@ namespace TFTAnalyzer.Editor.UI.Data
                 else
                 {
                     if (ReloadRows())
-                        SetStatus(DataManagerState.Succeeded, "카탈로그를 가져왔습니다. 로컬 목록에서 선택해 주세요.");
+                        SetStatus(DataManagerState.Succeeded, result.Idempotent
+                            ? "동일한 카탈로그를 재사용했습니다. 기존 매니페스트를 유지하며 새 변경 요약은 저장하지 않았습니다."
+                            : request.BaselineIdentity == null ? "카탈로그를 가져왔습니다. 로컬 목록에서 선택해 주세요."
+                            : "카탈로그와 선택한 기준 대비 변경 요약을 저장했습니다. 로컬 목록에서 선택해 주세요.");
                     else
                         SetStatus(DataManagerState.Failed, "카탈로그는 저장되었으나 로컬 목록을 읽지 못했습니다. 자산 상태를 확인한 뒤 창을 다시 열어 주세요.", "LocalCatalogsUnavailable");
                 }
             }
             catch (OperationCanceledException) { if (!_disposed) SetStatus(DataManagerState.Cancelled, "가져오기를 취소했습니다."); }
+            catch (StaticSummaryBaselineException)
+            {
+                if (!_disposed) SetStatus(DataManagerState.Failed,
+                    "변경 요약 기준을 찾을 수 없거나 내용이 변경되었습니다. 기준을 다시 선택해 주세요.", "SummaryBaselineUnavailable");
+            }
             catch (StaticImportRecoveryException recovery)
             {
                 if (!_disposed)
@@ -180,6 +205,48 @@ namespace TFTAnalyzer.Editor.UI.Data
             ActiveIdentity = identity;
             Notify();
             return true;
+        }
+
+        /// <summary>Explicitly selects a validated local baseline and freezes its identity and full content hash independently of active selection.</summary>
+        public bool TrySelectImportBaseline(CatalogIdentity identity)
+        {
+            if (_disposed || IsBusy) return false;
+            var row = identity == null ? null : Find(identity);
+            if (identity != null && row == null) return false;
+            ImportBaselineIdentity = row?.Identity;
+            ImportBaselineContentHash = row?.Entry.ContentHash ?? "";
+            Notify();
+            return true;
+        }
+
+        /// <summary>Checks the retained baseline against the current target and loaded row without silently clearing an invalid selection.</summary>
+        private string ImportBaselineProblem()
+        {
+            if (ImportBaselineIdentity == null) return "";
+            var row = Find(ImportBaselineIdentity);
+            if (row == null) return "선택한 변경 요약 기준을 찾을 수 없습니다. 다른 기준이나 기준 미선택을 선택해 주세요.";
+            var hash = ImportBaselineContentHash;
+            if (hash.Length != 64 || hash.Any(character => !Uri.IsHexDigit(character)) ||
+                !string.Equals(hash, row.Entry.ContentHash, StringComparison.OrdinalIgnoreCase))
+                return "선택한 변경 요약 기준의 내용 해시가 바뀌었거나 유효하지 않습니다. 기준을 다시 선택해 주세요.";
+            if (InputPatch == null) return "변경 요약 기준과 비교할 세트·패치·원본 게임 버전을 입력해 주세요.";
+            if (!string.Equals(ImportBaselineIdentity.Patch.SetId, InputPatch.SetId, StringComparison.Ordinal) ||
+                ImportBaselineIdentity.Patch.SetNumber != InputPatch.SetNumber)
+                return "변경 요약 기준과 가져올 카탈로그의 세트가 다릅니다. 다른 기준이나 기준 미선택을 선택해 주세요.";
+            var profile = IncludeCommunityDragon ? CatalogSourceProfile.OfficialPlusCommunityDragon : CatalogSourceProfile.OfficialOnly;
+            if (ImportBaselineIdentity.SourceProfile != profile)
+                return "변경 요약 기준과 가져올 카탈로그의 출처 프로필이 다릅니다. 다른 기준이나 기준 미선택을 선택해 주세요.";
+            if (ImportBaselineIdentity.Equals(new CatalogIdentity(InputPatch, profile)))
+                return "같은 카탈로그를 변경 요약 기준으로 사용할 수 없습니다. 다른 기준이나 기준 미선택을 선택해 주세요.";
+            return "";
+        }
+
+        /// <summary>Formats the complete frozen baseline identity and hash for confirmation and status text.</summary>
+        private string BaselineDescription()
+        {
+            var patch = ImportBaselineIdentity.Patch;
+            return $"{patch.SetId} (세트 {patch.SetNumber}) · TFT {patch.PatchId} · 원본 {patch.SourceGameVersion} · " +
+                ImportBaselineIdentity.ProfileId + "\n기준 내용 해시: " + ImportBaselineContentHash;
         }
 
         /// <summary>Compares two selectable catalogs and retains their original rows so later selection changes cannot reinterpret the result.</summary>

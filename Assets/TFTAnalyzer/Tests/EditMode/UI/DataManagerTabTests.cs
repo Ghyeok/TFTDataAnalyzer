@@ -27,6 +27,7 @@ namespace TFTAnalyzer.Tests.UI
         private DataManagerTab _binding;
         private bool _approve;
         private int _confirmations;
+        private string _lastConfirmation;
         private OwnedEditorWindowScope _windows;
 
         [UnitySetUp]
@@ -37,6 +38,7 @@ namespace TFTAnalyzer.Tests.UI
             {
                 _approve = false;
                 _confirmations = 0;
+                _lastConfirmation = "";
                 _service = new DataManagerFakeService
                 {
                     Rows = new[] { DataManagerTestSupport.Row(DataManagerTestSupport.Identity()),
@@ -139,6 +141,90 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_service.Imports[0].Patch.SourceGameVersion, Is.EqualTo("16.18.1"));
             Assert.That(_tree.Q<Toggle>("communitydragon-toggle").value, Is.False);
             Assert.That(_tree.Q<Label>("data-status").text, Is.EqualTo(_vm.StatusText));
+        }
+
+        [UnityTest]
+        public IEnumerator ImportBaselineDefaultsToNoneAndMissingStoredSummaryIsVisible()
+        {
+            var baseline = _tree.Q<DropdownField>("import-baseline");
+            Assert.That(baseline, Is.Not.Null, "The import baseline must be a separate optional selection.");
+            Assert.That(baseline.index, Is.Zero);
+            _tree.Q<ListView>("catalog-list").SetSelection(0);
+            yield return WaitForEditorRender();
+            Assert.That(_tree.Q<Label>("active-change-summary").text, Does.Contain("요약 없음"));
+            _approve = true;
+            SetInputs();
+            Submit("import-button");
+            yield return WaitForEditorRender();
+            Assert.That(_service.Imports.Single().BaselineIdentity, Is.Null);
+            Assert.That(_service.Imports.Single().BaselineContentHash, Is.Empty);
+            Assert.That(_lastConfirmation, Does.Contain("변경 요약 기준: 선택하지 않음"));
+        }
+
+        [UnityTest]
+        public IEnumerator ExplicitImportBaselineRetainsIdentityAndHashAcrossActiveSelectionAndRebuild()
+        {
+            var rows = UseImportBaselineRows();
+            SetInputs();
+            yield return WaitForEditorRender();
+            var baseline = _tree.Q<DropdownField>("import-baseline");
+            Assert.That(baseline, Is.Not.Null);
+            baseline.index = 1;
+            _tree.Q<ListView>("catalog-list").SetSelection(1);
+            yield return WaitForEditorRender();
+            Rebuild();
+            Assert.That(_tree.Q<DropdownField>("import-baseline").value, Does.Contain("16.18.2"));
+            _approve = true;
+            Submit("import-button");
+            yield return WaitForEditorRender();
+            var request = _service.Imports.Single();
+            Assert.That(request.BaselineIdentity, Is.EqualTo(rows[0].Identity));
+            Assert.That(request.BaselineContentHash, Is.EqualTo(new string('b', 64)));
+            Assert.That(request.Patch.SourceGameVersion, Is.EqualTo("16.18.1"));
+            Assert.That(_lastConfirmation, Does.Contain("변경 요약 기준:").And.Contain("16.18.2")
+                .And.Contain("official-plus-communitydragon").And.Contain(new string('b', 64)));
+        }
+
+        [UnityTest]
+        public IEnumerator IncompatibleSelectedImportBaselineBlocksImportUntilExplicitlyCleared()
+        {
+            UseImportBaselineRows();
+            SetInputs();
+            yield return WaitForEditorRender();
+            var baseline = _tree.Q<DropdownField>("import-baseline");
+            Assert.That(baseline, Is.Not.Null);
+            baseline.index = 1;
+            // The retained baseline uses the supplementary profile; changing the target must not silently omit it.
+            _tree.Q<Toggle>("communitydragon-toggle").value = false;
+            _approve = true;
+            Submit("import-button");
+            yield return WaitForEditorRender();
+            Assert.That(_service.Imports, Is.Empty);
+            Assert.That(_confirmations, Is.Zero);
+            Assert.That(_tree.Q<Label>("import-baseline-status").text, Does.Contain("출처"));
+            baseline.index = 0;
+            SetInputs();
+            Submit("import-button");
+            yield return WaitForEditorRender();
+            Assert.That(_service.Imports.Single().BaselineIdentity, Is.Null);
+        }
+
+        private PatchRowViewModel[] UseImportBaselineRows()
+        {
+            _binding.Dispose();
+            _vm.Dispose();
+            var rows = new[] { "16.18.2", "16.18.3" }.Select((version, index) =>
+            {
+                var row = DataManagerTestSupport.Row(DataManagerTestSupport.Identity(version,
+                    CatalogSourceProfile.OfficialPlusCommunityDragon));
+                return new PatchRowViewModel(new CatalogIndexEntry(row.Identity, new string(index == 0 ? 'b' : 'c', 64),
+                    "test/import-baseline.json"), row.Identity, row.Directory, row.Catalog, row.RetrievedUtc,
+                    row.ValidationErrorCount, row.ValidationWarningCount, row.ErrorCode);
+            }).ToArray();
+            _service.Rows = rows;
+            _vm = new DataManagerViewModel(_service);
+            Rebuild();
+            return rows;
         }
 
         [UnityTest]
@@ -550,6 +636,7 @@ namespace TFTAnalyzer.Tests.UI
             _binding = new DataManagerTab(_tree.Q("data-tab"), _vm, summary =>
             {
                 _confirmations++;
+                _lastConfirmation = summary;
                 Assert.That(summary, Does.Contain("TFTSet18").And.Contain("18.2")
                     .And.Contain("16.18.1").And.Contain("official-plus-communitydragon"));
                 return _approve;

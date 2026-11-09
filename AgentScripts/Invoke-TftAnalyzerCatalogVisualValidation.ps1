@@ -5,7 +5,8 @@ param(
     [switch]$FieldOrigins,
     [switch]$StructuredStatic,
     [switch]$StaticComparison,
-    [switch]$CollisionComparison
+    [switch]$CollisionComparison,
+    [switch]$ChangeSummary
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,12 @@ if ($FieldOrigins) {
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunFieldOriginFailureProbe' }
         else { 'CatalogScopedVisualValidation.RunFieldOrigins' }
 }
-if ((@($FieldOrigins, $StructuredStatic, $StaticComparison, $CollisionComparison) | Where-Object { $_ }).Count -gt 1) { throw 'Choose one synthetic mode.' }
+if ((@($FieldOrigins, $StructuredStatic, $StaticComparison, $CollisionComparison, $ChangeSummary) | Where-Object { $_ }).Count -gt 1) { throw 'Choose one synthetic mode.' }
+if ($ChangeSummary) {
+    $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunSummaryInitializationFailureProbe' }
+        elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunSummaryFailureProbe' }
+        else { 'CatalogScopedVisualValidation.RunSummary' }
+}
 if ($StructuredStatic) {
     $entry = if ($ProbeInitializationFailure) { 'CatalogScopedVisualValidation.RunStructuredInitializationFailureProbe' }
         elseif ($ProbeFailure) { 'CatalogScopedVisualValidation.RunStructuredFailureProbe' }
@@ -41,6 +47,7 @@ $resultFileName = if ($ProbeInitializationFailure) { 'catalog-visual-initializat
 if ($StructuredStatic) { $resultFileName = 'structured-' + $resultFileName }
 if ($StaticComparison) { $resultFileName = 'comparison-' + $resultFileName }
 if ($CollisionComparison) { $resultFileName = 'collision-' + $resultFileName }
+if ($ChangeSummary) { $resultFileName = 'summary-' + $resultFileName }
 $resultPath = Join-Path $outputRoot $resultFileName
 $cleanupPath = Join-Path $outputRoot 'catalog-visual-fallback-cleanup.json'
 $validationFailure = $null

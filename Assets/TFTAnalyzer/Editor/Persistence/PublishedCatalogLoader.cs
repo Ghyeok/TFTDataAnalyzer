@@ -22,7 +22,25 @@ namespace TFTAnalyzer.Editor.Persistence
         public IReadOnlyList<PatchRowViewModel> Load(CatalogIndex index)
         {
             if (index == null) return Array.Empty<PatchRowViewModel>();
-            return Array.AsReadOnly(index.Entries.Select(Read).ToArray());
+            var rows = index.Entries.Select(Read).ToArray();
+            return Array.AsReadOnly(rows.Select(row => WithSummary(row, rows)).ToArray());
+        }
+
+        private static PatchRowViewModel WithSummary(PatchRowViewModel row, IReadOnlyList<PatchRowViewModel> rows)
+        {
+            if (!row.IsSelectable) return row;
+            string summary;
+            try
+            {
+                var metadata = JObject.Parse(File.ReadAllText(Path.Combine(row.Directory, "manifest.json")));
+                var token = metadata["previousPatchSummary"];
+                summary = token == null || token.Type == JTokenType.Null ? "변경 요약 없음" :
+                    token.Type == JTokenType.String ? CatalogChangeSummary.Describe(token.Value<string>(), row, rows) :
+                    "변경 요약을 읽거나 검증할 수 없음";
+            }
+            catch (Exception) { summary = "변경 요약을 읽거나 검증할 수 없음"; }
+            return new PatchRowViewModel(row.Entry, row.Identity, row.Directory, row.Catalog, row.RetrievedUtc,
+                row.ValidationErrorCount, row.ValidationWarningCount, row.ErrorCode, summary);
         }
 
         private PatchRowViewModel Read(CatalogIndexEntry entry)

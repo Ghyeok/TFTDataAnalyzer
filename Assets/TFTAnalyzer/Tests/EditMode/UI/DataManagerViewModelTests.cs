@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -23,6 +24,29 @@ namespace TFTAnalyzer.Tests.UI
 
         [TearDown]
         public void TearDown() => _vm.Dispose();
+
+        [Test]
+        public async Task ChangedOrMissingSummaryBaselineShowsSafeRecoveryGuidance()
+        {
+            var baseline = DataManagerTestSupport.Row(DataManagerTestSupport.Identity("16.18.2"));
+            _service.Rows = new[] { baseline };
+            _vm.Dispose();
+            _vm = new DataManagerViewModel(_service);
+            _vm.TrySetInput(DataManagerTestSupport.Identity().Patch, false);
+            Assert.That(_vm.TrySelectImportBaseline(baseline.Identity), Is.True);
+            _service.Run = _ => Task.FromException<StaticImportResult>(
+                new StaticSummaryBaselineException(new IOException("C:/private/secret catalog path")));
+
+            await _vm.ImportAsync(_ => true);
+
+            Assert.That(_vm.State, Is.EqualTo(DataManagerState.Failed));
+            Assert.That(_vm.ErrorCode, Is.EqualTo("SummaryBaselineUnavailable"));
+            Assert.That(_vm.StatusText, Does.Contain("기준").And.Contain("변경").And.Contain("다시 선택"));
+            Assert.That(_vm.StatusText, Does.Not.Contain("private").And.Not.Contain("C:/"));
+            Assert.That(_vm.ImportBaselineIdentity, Is.EqualTo(baseline.Identity));
+            Assert.That(_vm.LastImportReport.Published, Is.Null);
+            Assert.That(_vm.IsBusy, Is.False);
+        }
 
         [Test]
         public async Task ReturnedValidationAndMergeDecisionsRemainAvailableAfterRejection()

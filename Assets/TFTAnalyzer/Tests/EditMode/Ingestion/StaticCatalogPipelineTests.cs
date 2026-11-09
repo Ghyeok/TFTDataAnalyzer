@@ -54,6 +54,162 @@ namespace TFTAnalyzer.Tests.Ingestion
         }
 
         [Test]
+        public async Task RunAsync_WithSelectedBaseline_PublishesChangeSummaryAndPreservesItOnReuse()
+        {
+            var baseline = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            var nextIdentity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"),
+                CatalogSourceProfile.OfficialOnly);
+            _source.Catalog = ValidCatalog("Changed Unit", "", "16.18.2");
+            var constructor = typeof(StaticImportRequest).GetConstructor(new[]
+                { typeof(CatalogIdentity), typeof(CatalogIdentity), typeof(string) });
+            Assert.That(constructor, Is.Not.Null, "The import request must accept a pinned comparison baseline.");
+            var request = (StaticImportRequest)constructor.Invoke(new object[]
+                { nextIdentity, Request().Identity, baseline.ContentHash });
+
+            var published = await _pipeline.RunAsync(request, CancellationToken.None);
+            var path = Path.Combine(published.FinalDirectory, "manifest.json");
+            var manifestBefore = File.ReadAllText(path);
+            var summary = JObject.Parse(JObject.Parse(manifestBefore).Value<string>("previousPatchSummary"));
+            Assert.That(summary["baseline"]["contentHash"].Value<string>(), Is.EqualTo(baseline.ContentHash));
+            Assert.That(summary["target"]["contentHash"].Value<string>(), Is.EqualTo(published.ContentHash));
+            Assert.That(summary["units"]["changed"].Value<int>(), Is.EqualTo(1));
+
+            var rerun = await _pipeline.RunAsync(request, CancellationToken.None);
+            Assert.That(rerun.Idempotent, Is.True);
+            Assert.That(File.ReadAllText(path), Is.EqualTo(manifestBefore));
+        }
+
+        [Test]
+        public async Task SummaryTracksAddedChangedAndRemovedAcrossAllFourKindsAfterReload()
+        {
+            StaticCatalog FourKinds(string version, bool after)
+            {
+                var ids = new[] { "Common", after ? "Added" : "Removed" };
+                LocalizedText Name(string id) => new LocalizedText(id == "Common" && after ? "변경" : id,
+                    id == "Common" && after ? "Changed" : id);
+                return new StaticCatalog(Manifest(version),
+                    ids.Select(id => new UnitRecord("Unit_" + id, Name(id), 1, null, "", null)),
+                    ids.Select(id => new TraitRecord("Trait_" + id, Name(id), null, null, "", null)),
+                    ids.Select(id => new ItemRecord("Item_" + id, Name(id), null, null, null, "", null)),
+                    ids.Select(id => new AugmentRecord("Augment_" + id, Name(id), "", null, null, null, "", null)));
+            }
+
+            _source.Catalog = FourKinds("16.18.1", false);
+            var baseline = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            _source.Catalog = FourKinds("16.18.2", true);
+            var targetIdentity = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+            var target = await _pipeline.RunAsync(new StaticImportRequest(targetIdentity, Request().Identity, baseline.ContentHash), CancellationToken.None);
+            Assert.That(target.Published, Is.True);
+            var manifest = JObject.Parse(File.ReadAllText(Path.Combine(target.FinalDirectory, "manifest.json")));
+            var summary = JObject.Parse(manifest.Value<string>("previousPatchSummary"));
+            foreach (var kind in new[] { "units", "traits", "items", "augments" })
+            {
+                Assert.That(summary[kind]["added"].Value<int>(), Is.EqualTo(1), kind);
+                Assert.That(summary[kind]["changed"].Value<int>(), Is.EqualTo(1), kind);
+                Assert.That(summary[kind]["removed"].Value<int>(), Is.EqualTo(1), kind);
+            }
+            Assert.That(summary["baseline"]["contentHash"].Value<string>(), Is.EqualTo(baseline.ContentHash));
+            Assert.That(summary["target"]["contentHash"].Value<string>(), Is.EqualTo(target.ContentHash));
+            var index = UnityEngine.ScriptableObject.CreateInstance<CatalogIndex>();
+            try
+            {
+                index.Upsert(Request().Identity, baseline.ContentHash, _paths.CatalogAssetPath(Request().Identity));
+                index.Upsert(targetIdentity, target.ContentHash, _paths.CatalogAssetPath(targetIdentity));
+                var row = new PublishedCatalogLoader(_paths).Load(index).Single(value => value.Identity.Equals(targetIdentity));
+                Assert.That(row.IsSelectable, Is.True);
+                foreach (var label in new[] { "기물", "시너지", "아이템", "증강" })
+                    Assert.That(row.ChangeSummaryText, Does.Contain(label + " +1 / 변경 1 / -1"));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(index); }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public async Task BaselineChangedDuringImportDoesNotPublishTargetOrRewriteExistingFiles(bool delete, bool targetExists)
+        {
+            var baseline = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            var baselineFile = Path.Combine(baseline.FinalDirectory, "catalog.json");
+            var baselineManifest = Path.Combine(baseline.FinalDirectory, "manifest.json");
+            var manifestBefore = File.ReadAllBytes(baselineManifest);
+            var target = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+            var targetDirectory = _paths.CanonicalFinalDirectory(target);
+            _source.Catalog = ValidCatalog("Changed Unit", "", "16.18.2");
+            if (targetExists) await _pipeline.RunAsync(new StaticImportRequest(target), CancellationToken.None);
+            var targetCatalogBefore = targetExists ? File.ReadAllBytes(Path.Combine(targetDirectory, "catalog.json")) : null;
+            var targetManifestBefore = targetExists ? File.ReadAllBytes(Path.Combine(targetDirectory, "manifest.json")) : null;
+            var baselineAfterMutation = delete ? null : Encoding.UTF8.GetBytes("changed during import");
+            _source.OnLoad = () =>
+            {
+                if (delete) File.Delete(baselineFile);
+                else File.WriteAllBytes(baselineFile, baselineAfterMutation);
+            };
+            var indexWrites = _index.UpdateCount;
+
+            Assert.ThrowsAsync<StaticSummaryBaselineException>(async () =>
+                await _pipeline.RunAsync(new StaticImportRequest(target, Request().Identity, baseline.ContentHash), CancellationToken.None));
+
+            Assert.That(Directory.Exists(targetDirectory), Is.EqualTo(targetExists));
+            if (targetExists)
+            {
+                Assert.That(File.ReadAllBytes(Path.Combine(targetDirectory, "catalog.json")), Is.EqualTo(targetCatalogBefore));
+                Assert.That(File.ReadAllBytes(Path.Combine(targetDirectory, "manifest.json")), Is.EqualTo(targetManifestBefore));
+            }
+            Assert.That(_index.UpdateCount, Is.EqualTo(indexWrites));
+            Assert.That(File.ReadAllBytes(baselineManifest), Is.EqualTo(manifestBefore));
+            Assert.That(File.Exists(baselineFile), Is.EqualTo(!delete));
+            if (!delete) Assert.That(File.ReadAllBytes(baselineFile), Is.EqualTo(baselineAfterMutation));
+            Assert.That(Directory.Exists(_paths.StagingDirectory) ? Directory.GetDirectories(_paths.StagingDirectory) : Array.Empty<string>(), Is.Empty);
+        }
+
+        [Test]
+        public async Task RunAsync_RejectsInvalidBaselineBeforeLoadingSource()
+        {
+            var baseline = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            var target = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+            var calls = _source.Calls;
+            var invalid = new[] {
+                new StaticImportRequest(target, Request().Identity, new string('a', 64)),
+                new StaticImportRequest(Request().Identity, Request().Identity, baseline.ContentHash),
+                new StaticImportRequest(new CatalogIdentity(new PatchKey("TFTSet19", 19, "19.1", "16.18.2"), CatalogSourceProfile.OfficialOnly), Request().Identity, baseline.ContentHash),
+                new StaticImportRequest(new CatalogIdentity(target.Patch, CatalogSourceProfile.OfficialPlusCommunityDragon), Request().Identity, baseline.ContentHash)
+            };
+            foreach (var request in invalid)
+                Assert.ThrowsAsync<StaticSummaryBaselineException>(async () => await _pipeline.RunAsync(request, CancellationToken.None));
+            Assert.That(_source.Calls, Is.EqualTo(calls));
+        }
+
+        [Test]
+        public async Task LoadBaseline_VerifiedCanonicalCatalogSurvivesUnrelatedIncompleteLegacyFiles()
+        {
+            var published = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            var legacy = _paths.LegacyFinalDirectory(Request().Patch);
+            Directory.CreateDirectory(legacy);
+            File.WriteAllText(Path.Combine(legacy, "manifest.json"), "{}");
+            var target = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+
+            var loaded = CatalogChangeSummary.LoadBaseline(_paths, Request().Identity, published.ContentHash, target);
+
+            Assert.That(loaded.Units[0].Name.EnUs, Is.EqualTo("Test Unit"));
+        }
+
+        [Test]
+        public async Task RunAsync_ComparesPublishedIconPathsRatherThanSourceUrls()
+        {
+            var url = "https://example.test/unit.png";
+            var png = new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3 };
+            _transport.Responses[url] = new HttpResponseData(url, 200, png, "etag", "image/png", DateTime.UnixEpoch);
+            _source.Catalog = ValidCatalog("Test Unit", url);
+            var baseline = await _pipeline.RunAsync(Request(), CancellationToken.None);
+            _source.Catalog = ValidCatalog("Test Unit", url, "16.18.2");
+            var target = new CatalogIdentity(new PatchKey("TFTSet18", 18, "18.2", "16.18.2"), CatalogSourceProfile.OfficialOnly);
+            var result = await _pipeline.RunAsync(new StaticImportRequest(target, Request().Identity, baseline.ContentHash), CancellationToken.None);
+            var raw = JObject.Parse(File.ReadAllText(Path.Combine(result.FinalDirectory, "manifest.json"))).Value<string>("previousPatchSummary");
+            Assert.That(JObject.Parse(raw)["units"]["changed"].Value<int>(), Is.Zero);
+        }
+
+        [Test]
         public async Task RunAsync_DoesNotPublishWhenValidationFails()
         {
             _source.Catalog = InvalidCatalog();
@@ -459,6 +615,8 @@ namespace TFTAnalyzer.Tests.Ingestion
         {
             public StaticCatalog Catalog { get; set; }
             public bool Cancel { get; set; }
+            public int Calls { get; private set; }
+            public Action OnLoad { get; set; }
 
             public FakeSource(StaticCatalog catalog)
             {
@@ -469,6 +627,8 @@ namespace TFTAnalyzer.Tests.Ingestion
                 StaticImportRequest request,
                 CancellationToken token)
             {
+                Calls++;
+                OnLoad?.Invoke();
                 if (Cancel)
                 {
                     return Task.FromCanceled<StaticSourceLoadResult>(new CancellationToken(true));

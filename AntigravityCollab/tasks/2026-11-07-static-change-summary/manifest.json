@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-07-static-change-summary",
+  "baseCommit": "d186d39158ee011e3ef2fcbbc42b0804e3fcbb03",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "상위 설계와 사용자 목표 요약",
+      "sha256": "b714542b358029a4dfbfacf5a09248f0b6ef57903a35459c3055110d172c4178"
+    },
+    {
+      "copy": "inputs/technical.md",
+      "source": "현재 코드와 검수 쟁점 요약",
+      "sha256": "8ed27cbbb252faa161fda732583fe9acb650e45afdf562c125b19a565d46b4fc"
+    }
+  ],
+  "inputDigest": "009d7a3063a5b995eba3a0ee477f512009e805518ed4669914bef467e22ba8f3",
+  "inputBytes": 3445
+}

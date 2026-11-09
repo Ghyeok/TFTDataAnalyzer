@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,12 @@ using TFTAnalyzer.Validation;
 
 namespace TFTAnalyzer.Editor.Ingestion
 {
+    public sealed class StaticSummaryBaselineException : IOException
+    {
+        public StaticSummaryBaselineException(Exception innerException)
+            : base("The selected comparison baseline is unavailable or changed.", innerException) { }
+    }
+
     public enum StaticImportRecoveryState
     {
         PublishedUnindexed,
@@ -171,6 +178,8 @@ namespace TFTAnalyzer.Editor.Ingestion
                 throw new ArgumentNullException(nameof(request));
             }
 
+            if (request.BaselineIdentity != null) ReadBaseline(request);
+
             var resolution = new LegacyCatalogResolver(_paths).Resolve(request.Identity);
             if (resolution.Status == LegacyCatalogStatus.AmbiguousLegacy)
             {
@@ -226,10 +235,11 @@ namespace TFTAnalyzer.Editor.Ingestion
                 }
 
                 token.ThrowIfCancellationRequested();
+                var baseline = request.BaselineIdentity == null ? null : ReadBaseline(request);
                 var staged = _writer.WriteStagedCatalog(
                     withIcons,
                     validation,
-                    stagingRoot);
+                    stagingRoot, baseline, request.BaselineIdentity, request.BaselineContentHash);
                 token.ThrowIfCancellationRequested();
                 var isLegacy = resolution.Status == LegacyCatalogStatus.CompatibleOfficialLegacy;
                 var publication = _writer.PublishVerified(staged, finalDirectory, isLegacy);
@@ -274,6 +284,14 @@ namespace TFTAnalyzer.Editor.Ingestion
             {
                 _writer.CleanupStaging(stagingRoot);
             }
+        }
+
+        private StaticCatalog ReadBaseline(StaticImportRequest request)
+        {
+            try { return CatalogChangeSummary.LoadBaseline(_paths, request.BaselineIdentity, request.BaselineContentHash, request.Identity); }
+            catch (Exception error) when (error is InvalidDataException || error is IOException || error is Newtonsoft.Json.JsonException ||
+                error is InvalidOperationException || error is ArgumentException)
+            { throw new StaticSummaryBaselineException(error); }
         }
 
         private static StaticCatalog PromoteManifest(StaticCatalog catalog, CatalogIdentity identity)

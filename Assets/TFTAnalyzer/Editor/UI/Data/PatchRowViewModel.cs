@@ -14,6 +14,7 @@ namespace TFTAnalyzer.Editor.UI.Data
         public int ValidationErrorCount { get; }
         public int ValidationWarningCount { get; }
         public string ErrorCode { get; }
+        public string ChangeSummaryText { get; }
         public bool IsSelectable => Identity != null && Catalog != null &&
                                     ValidationErrorCount == 0 && string.IsNullOrEmpty(ErrorCode);
         public string ContentHashPrefix => (Entry.ContentHash ?? "").Substring(0,
@@ -27,7 +28,7 @@ namespace TFTAnalyzer.Editor.UI.Data
 
         public PatchRowViewModel(CatalogIndexEntry entry, CatalogIdentity identity, string directory,
             StaticCatalog catalog, DateTime retrievedUtc, int validationErrorCount,
-            int validationWarningCount, string errorCode)
+            int validationWarningCount, string errorCode, string changeSummaryText = "요약 없음")
         {
             Entry = entry ?? throw new ArgumentNullException(nameof(entry));
             Identity = identity;
@@ -37,6 +38,7 @@ namespace TFTAnalyzer.Editor.UI.Data
             ValidationErrorCount = validationErrorCount;
             ValidationWarningCount = validationWarningCount;
             ErrorCode = errorCode ?? "";
+            ChangeSummaryText = changeSummaryText ?? "요약 없음";
         }
     }
 }
