@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-09-relaxed-composition",
+  "inputDigest": "4930a4f66533e7ee2f36f61585894fcd62fd2192a55a3366bdb50cd74e03679f",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.3",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 41068,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 13291,
+    "output_tokens": 6124,
+    "thinking_tokens": 2685,
+    "cache_read_tokens": 8709,
+    "total_tokens": 19415
+  },
+  "responseSeconds": 93.6213245,
+  "exitCode": 0,
+  "durationSeconds": 100.748
+}

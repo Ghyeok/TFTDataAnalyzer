@@ -16,6 +16,8 @@ namespace TFTAnalyzer.Editor.Persistence
         public string ObservationsDirectory => Path.Combine(RootDirectory, "observations");
         public string ProcessedMatchIndexPath => Path.Combine(RootDirectory, "processed-match-hashes.json");
         internal string LeasePath => Path.Combine(RootDirectory, "store.lock");
+        internal string AggregateGenerationsDirectory => Path.Combine(RootDirectory, "aggregates",
+            AggregateSnapshot.CurrentSchemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture), "generations");
 
         /// <summary>Maps a validated digest to the most recent quarantined run for that requested context.</summary>
         internal string QuarantineReportPath(string requestContextHash)

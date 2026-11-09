@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-09-relaxed-composition",
+  "baseCommit": "d186d39158ee011e3ef2fcbbc42b0804e3fcbb03",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "사용자 확정 기준과 필터 요구",
+      "sha256": "d6958667e67d2e86db21c7c8b353cb14afcb9389c8fff1bf026cf661ffce4366"
+    },
+    {
+      "copy": "inputs/technical.md",
+      "source": "현재 코드와 정책 계약 요약",
+      "sha256": "ed1f1274b7815dc4fec1c970a415de74ead6ff7ce0535ac0c691d5b2fd921b1c"
+    }
+  ],
+  "inputDigest": "4930a4f66533e7ee2f36f61585894fcd62fd2192a55a3366bdb50cd74e03679f",
+  "inputBytes": 5346
+}

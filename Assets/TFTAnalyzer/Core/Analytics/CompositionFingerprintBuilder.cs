@@ -13,6 +13,18 @@ namespace TFTAnalyzer.Analytics
         public static CompositionFingerprint Build(AnonymousParticipant participant)
         {
             if (participant == null) throw new ArgumentNullException(nameof(participant));
+            var units = participant.Units.Select(unit => unit.StableId).OrderBy(id => id, StringComparer.Ordinal);
+            var traits = participant.Traits.Where(trait => trait.IsActive).Select(trait => trait.StableId)
+                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal);
+            var canonical = new JArray(new JArray(units), new JArray(traits));
+            return new CompositionFingerprint(ContentHasher.Sha256Hex(
+                "fingerprint-v2|" + canonical.ToString(Formatting.None)));
+        }
+
+        // Duplicate-observation integrity retains the original v1 distinctions, independent of grouping.
+        internal static CompositionFingerprint BuildStrict(AnonymousParticipant participant)
+        {
+            if (participant == null) throw new ArgumentNullException(nameof(participant));
             var units = participant.Units.Select(unit => new
                 {
                     Unit = unit,

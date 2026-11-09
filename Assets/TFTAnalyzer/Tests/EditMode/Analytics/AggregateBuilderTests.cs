@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using TFTAnalyzer.Analytics;
@@ -12,6 +13,74 @@ namespace TFTAnalyzer.Tests.Analytics
     /// <summary>Verifies exact participant counts, lobby comparisons, scope isolation and deterministic rebuilds.</summary>
     public sealed class AggregateBuilderTests
     {
+        [Test]
+        public void FilteredParticipantsContributeIndividuallyAndAmbiguousPairsUseOriginalLobby()
+        {
+            var boards = Enumerable.Range(1, 8).Select(place => AggregateTestData.Participant(place,
+                place == 8 ? "A" : ((char)('A' + place - 1)).ToString())).ToArray();
+            var method = typeof(AggregateBuilder).GetMethod("Build", new[] {
+                typeof(IEnumerable<AnonymousMatchObservation>), typeof(Func<AnonymousParticipant, bool>) });
+            Assert.That(method, Is.Not.Null, "The builder must accept a participant filter.");
+            var snapshot = (AggregateSnapshot)method.Invoke(null, new object[] {
+                new[] { AggregateTestData.Match("one", boards) }, (Func<AnonymousParticipant, bool>)(p => p.Placement == 1) });
+            var scope = snapshot.Scopes.Single();
+            Assert.That(scope.Metrics.Sum(metric => metric.Count), Is.EqualTo(1));
+            var ambiguous = Pair(scope, "A", "B");
+            Assert.That(ambiguous.Count, Is.Zero);
+            Assert.That(ambiguous.AmbiguousLobbyCount, Is.EqualTo(1));
+            Assert.That(scope.Pairs.Count, Is.EqualTo(6));
+            Assert.That(scope.Pairs.All(pair => pair.First.Equals(AggregateTestData.Key("A")) ||
+                pair.Second.Equals(AggregateTestData.Key("A"))), Is.True);
+        }
+
+        [Test]
+        public void CancelledRebuildStopsDuringParticipantFiltering()
+        {
+            var method = typeof(AggregateBuilder).GetMethod("Build", new[] {
+                typeof(IEnumerable<AnonymousMatchObservation>), typeof(Func<AnonymousParticipant, bool>), typeof(CancellationToken) });
+            Assert.That(method, Is.Not.Null, "The builder must accept cancellation.");
+            using (var cts = new CancellationTokenSource())
+            {
+                var calls = 0;
+                Func<AnonymousParticipant, bool> filter = participant => { calls++; cts.Cancel(); return true; };
+                var exception = Assert.Throws<System.Reflection.TargetInvocationException>(() => method.Invoke(null,
+                    new object[] { new[] { AggregateTestData.Match("one") }, filter, cts.Token }));
+                Assert.That(exception.InnerException, Is.InstanceOf<OperationCanceledException>());
+                Assert.That(calls, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void RelaxedCompositionStillRejectsDuplicateHashWithDifferentUnitTierItemsOrAugments()
+        {
+            var original = AggregateTestData.Match("one");
+            var first = original.Participants[0];
+            foreach (var changed in new[] {
+                new AnonymousParticipant(1, first.LastRound, new[] { new AnonymousUnit("TEST_A", 3, null) }, null, null),
+                new AnonymousParticipant(1, first.LastRound, new[] { new AnonymousUnit("TEST_A", 2, new[] { "ITEM_X" }) }, null, null),
+                new AnonymousParticipant(1, first.LastRound, first.Units, null, new[] { "AUG_X" }) })
+            {
+                var participants = original.Participants.Select(p => p.Placement == 1 ? changed : p).ToArray();
+                var duplicate = AggregateTestData.Match("one", participants);
+                Assert.That(CompositionFingerprintBuilder.Build(changed), Is.EqualTo(CompositionFingerprintBuilder.Build(first)));
+                Assert.Throws<ArgumentException>(() => AggregateBuilder.Build(new[] { original, duplicate }));
+            }
+        }
+
+        [Test]
+        public void AggregatedVariantsRetainAllContributingAugmentsForPolicy()
+        {
+            AnonymousParticipant Variant(int placement, string augment) => new AnonymousParticipant(placement, 30,
+                new[] { new AnonymousUnit("TEST_A", placement, null) }, null, new[] { augment });
+            var first = AggregateTestData.Board(1, "A"); first[0] = Variant(1, "AUG_STANDARD");
+            var second = AggregateTestData.Board(2, "A"); second[1] = Variant(2, "AUG_BLOCKED");
+            var scope = AggregateBuilder.Build(new[] { AggregateTestData.Match("one", first),
+                AggregateTestData.Match("two", second) }).Scopes.Single();
+            var metric = scope.Metrics.Single(row => row.Fingerprint.Equals(AggregateTestData.Key("A")));
+            Assert.That(metric.Count, Is.EqualTo(2));
+            Assert.That(metric.AugmentIds, Is.EquivalentTo(new[] { "AUG_STANDARD", "AUG_BLOCKED" }));
+        }
+
         /// <summary>Counts each final participant independently with correct raw numerators and placement sums.</summary>
         [Test]
         public void ExactPlacementAndRatioCountsRetainPeriodAndVersions()

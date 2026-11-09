@@ -199,6 +199,57 @@ namespace TFTAnalyzer.Tests.Analytics
             AssertHidden(result);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void MergedVariantsApplyEveryAugmentRestrictionInEitherInputOrder(bool reverse, bool classifiedLegend)
+        {
+            var observations = Enumerable.Range(0, 100).Select(i =>
+            {
+                var boards = Enumerable.Range(1, 8).Select(place => Participant(place,
+                    ((char)('A' + place - 1)).ToString(), place == 1 ? (i % 2 == 0 ? "SAFE_AUGMENT" : "LEGEND") : null)).ToArray();
+                return AggregateTestData.Match("mixed-policy" + i, boards);
+            }).ToArray();
+            if (reverse) Array.Reverse(observations);
+            var metric = AggregateBuilder.Build(observations).Scopes.Single().Metrics.Single(row => row.Fingerprint.Equals(Key("A", null)));
+            var rules = new Dictionary<string, AugmentPolicyKind> { ["SAFE_AUGMENT"] = AugmentPolicyKind.Standard };
+            if (classifiedLegend) rules["LEGEND"] = AugmentPolicyKind.Legend;
+            var result = new MetricPolicy(100, new MetricPolicyMetadata(Identity(), rules)).Evaluate(metric, Catalog());
+            Assert.That(metric.Count, Is.EqualTo(100));
+            Assert.That(result.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+            Assert.That(result.ReasonCode, Is.EqualTo(classifiedLegend ? "legend" : "unclassified_augment"));
+            if (classifiedLegend) Assert.That(result.AveragePlacement, Is.Null);
+            AssertHidden(result);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FilteredPairIncludesRestrictedAugmentsFromTheNonMatchingOpponent(bool reverse)
+        {
+            var observations = Enumerable.Range(0, 100).Select(i =>
+            {
+                var boards = Enumerable.Range(1, 8).Select(place => Participant(place,
+                    ((char)('A' + place - 1)).ToString(), place == 1 ? "SAFE_AUGMENT" :
+                        place == 2 && i % 2 == 1 ? "LEGEND" : null)).ToArray();
+                return AggregateTestData.Match("pair-mixed-policy" + i, boards);
+            }).ToArray();
+            if (reverse) Array.Reverse(observations);
+            var scope = AggregateBuilder.Build(observations,
+                participant => participant.Units.Any(unit => unit.StableId == "TEST_A")).Scopes.Single();
+            var a = Key("A", null);
+            var b = Key("B", null);
+            var pair = scope.Pairs.Single(row => row.First.Equals(a) && row.Second.Equals(b) ||
+                row.First.Equals(b) && row.Second.Equals(a));
+            var metadata = new MetricPolicyMetadata(Identity(), new Dictionary<string, AugmentPolicyKind> {
+                ["SAFE_AUGMENT"] = AugmentPolicyKind.Standard, ["LEGEND"] = AugmentPolicyKind.Legend });
+            var result = new MetricPolicy(100, metadata).Evaluate(pair, Catalog());
+            Assert.That(pair.Count, Is.EqualTo(100));
+            Assert.That(result.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+            Assert.That(result.ReasonCode, Is.EqualTo("legend"));
+            AssertHidden(result);
+        }
+
         /// <summary>Zero eligible lobbies with ambiguity exclusions are not promoted to sufficient samples.</summary>
         [Test]
         public void AmbiguousLobbiesNeverSatisfyTheSampleFloor()

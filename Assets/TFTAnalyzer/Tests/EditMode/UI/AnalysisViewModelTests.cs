@@ -14,6 +14,43 @@ namespace TFTAnalyzer.Tests.UI
 {
     public sealed class AnalysisViewModelTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task CacheLimitShowsManualCleanupAndDoesNotExposePaths(bool staging)
+        {
+            var service = new AnalysisFixture.Service { Failure = new TFTAnalyzer.Editor.Persistence.AggregateGenerationLimitException(staging) };
+            using (var vm = new AnalysisViewModel(service))
+            {
+                vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
+                await vm.RefreshAsync();
+                Assert.That(vm.ErrorCode, Is.EqualTo("analysis_cache_limit"));
+                Assert.That(vm.StatusText, Does.Contain("직접 정리"));
+                Assert.That(vm.StatusText, Does.Contain(staging ? ".staging-" : "generation-"));
+                Assert.That(vm.CanExport, Is.False);
+                Assert.That(vm.Snapshot, Is.Null);
+            }
+        }
+
+        [Test]
+        public void RecalculationAppliesItemToTheSelectedUnitAndKeepsThresholdAndPairDirection()
+        {
+            var observations = AnalysisFixture.Observations(100).Select((match, index) =>
+                new AnonymousMatchObservation(match.MatchHash, match.Scope, match.PlayedAt,
+                    match.Participants.Select((participant, number) => number != 0 ? participant :
+                        new AnonymousParticipant(participant.Placement, participant.LastRound,
+                            new[] { new AnonymousUnit("A", 2, index < 99 ? new[] { "X" } : null),
+                                new AnonymousUnit("EXTRA", 1, index == 99 ? new[] { "X" } : null) },
+                            participant.Traits, participant.AugmentIds)).ToArray())).ToArray();
+            var original = AnalysisService.BuildSnapshot(AnalysisFixture.Catalog(), AnalysisFixture.Identity(), observations);
+            var filtered = original.Recalculate(new AnalysisFilters(unit: "A", item: "X"), CancellationToken.None);
+            var row = filtered.AllRows.Single(x => x.First.UnitIds.Contains("A"));
+            Assert.That(row.Presentation.SampleCount, Is.EqualTo(99));
+            Assert.That(row.Presentation.State, Is.EqualTo(MetricVisibility.InsufficientSample));
+            Assert.That(filtered.AllPairs.All(x => x.First.UnitIds.Contains("A") || x.Second.UnitIds.Contains("A")), Is.True);
+            Assert.That(filtered.AllPairs.All(x => x.Presentation.SampleCount == 99), Is.True);
+            Assert.That(row.First.SummaryText, Does.Not.Contain("★").And.Not.Contain(" (X"));
+        }
+
         [TestCase(99)]
         [TestCase(0)]
         [TestCase(-1)]
@@ -122,11 +159,15 @@ namespace TFTAnalyzer.Tests.UI
                 Assert.That(service.Calls, Is.Zero);
                 await vm.RefreshAsync();
                 vm.SetFilters(new AnalysisFilters(unit: "A", item: "ITEM_B"));
+                Assert.That(vm.CanExport, Is.False);
+                while (vm.IsBusy) await Task.Yield();
                 Assert.That(vm.Rows, Is.Empty); Assert.That(vm.Pairs, Is.Empty);
                 vm.SetFilters(new AnalysisFilters(unit: "A", trait: "ACTIVE_A", item: "ITEM_A"));
+                while (vm.IsBusy) await Task.Yield();
                 Assert.That(vm.Rows.Count, Is.EqualTo(1)); Assert.That(vm.Pairs.Count, Is.EqualTo(7));
                 Assert.That(vm.Pairs.All(x => x.First.UnitIds.Contains("A") || x.Second.UnitIds.Contains("A")), Is.True);
                 vm.SetFilters(new AnalysisFilters(trait: "INACTIVE_A"));
+                while (vm.IsBusy) await Task.Yield();
                 Assert.That(vm.Rows, Is.Empty);
                 Assert.That(service.Calls, Is.EqualTo(1));
             }

@@ -142,7 +142,7 @@
                     <ui:VisualElement class="tft-data-content">
                         <ui:Label text="과거 관측 결과 분석" class="tft-tab-title" />
                         <ui:Label name="analysis-catalog" class="tft-wrapped-text" />
-                        <ui:Label text="로컬 새로고침은 익명 관측에서 집계를 재생성합니다. 필터 변경은 현재 결과만 좁히며 네트워크를 사용하지 않습니다." class="tft-wrapped-text" />
+                        <ui:Label text="경기 종료 시점의 기물 목록과 활성 시너지 종류가 같으면 같은 조합입니다. 필터를 바꾸면 저장된 익명 관측에서 통계를 다시 계산합니다." class="tft-wrapped-text" />
                         <ui:IntegerField name="analysis-minimum-samples" label="최소 표본 수" value="100" class="tft-data-field" />
                         <ui:Label name="analysis-minimum-status" class="tft-wrapped-text" />
                         <ui:VisualElement class="tft-data-actions">
@@ -159,7 +159,7 @@
                             <ui:DropdownField name="analysis-trait" label="활성 시너지" class="tft-data-field" />
                             <ui:DropdownField name="analysis-item" label="장착 아이템" class="tft-data-field" />
                             <ui:DropdownField name="analysis-augment" label="증강" class="tft-data-field" />
-                            <ui:Label text="조건은 같은 조합 안에서 모두 일치해야 합니다. 상대 비교는 어느 한 조합이 모든 조건을 충족하면 표시합니다. 전체는 서로 다른 범위의 행을 합산하지 않습니다. 티어는 수집 당시의 기록 라벨입니다." class="tft-wrapped-text" />
+                            <ui:Label text="선택 조건은 같은 참가자의 관측에서 모두 일치해야 합니다. 기물과 아이템을 함께 선택하면 그 기물이 아이템을 장착해야 합니다. 상대 비교는 양쪽 중 한 참가자가 모든 조건을 만족한 로비를 사용합니다. 지역·큐·티어 기록 라벨이 다른 범위는 합산하지 않습니다." class="tft-wrapped-text" />
                         </ui:VisualElement>
                         <ui:Label text="최종 관측 조합 · 표본은 참가자 관측 수" class="tft-tab-title" />
                         <ui:VisualElement name="analysis-rows" />

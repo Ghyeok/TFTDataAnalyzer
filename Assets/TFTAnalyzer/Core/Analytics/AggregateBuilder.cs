@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TFTAnalyzer.Domain;
@@ -11,7 +12,7 @@ namespace TFTAnalyzer.Analytics
     /// <summary>A deterministic collection of scope snapshots with no match identifiers or wall-clock build metadata.</summary>
     public sealed class AggregateSnapshot
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
         public int SchemaVersion => CurrentSchemaVersion;
         public IReadOnlyList<ScopeAggregate> Scopes { get; }
 
@@ -52,22 +53,39 @@ namespace TFTAnalyzer.Analytics
     {
         /// <summary>Deduplicates equivalent hashes, rejects conflicts and sorts all scope/composition outputs ordinally.</summary>
         public static AggregateSnapshot Build(IEnumerable<AnonymousMatchObservation> observations)
+            => Build(observations, null, CancellationToken.None);
+
+        /// <summary>Filters participant observations while preserving the original lobby for pair ambiguity checks.</summary>
+        public static AggregateSnapshot Build(IEnumerable<AnonymousMatchObservation> observations,
+            Func<AnonymousParticipant, bool> participantFilter)
+            => Build(observations, participantFilter, CancellationToken.None);
+
+        /// <summary>Allows callers to cancel a rebuild without publishing a partial snapshot.</summary>
+        public static AggregateSnapshot Build(IEnumerable<AnonymousMatchObservation> observations,
+            Func<AnonymousParticipant, bool> participantFilter, CancellationToken cancellationToken)
         {
             if (observations == null) throw new ArgumentNullException(nameof(observations));
+            cancellationToken.ThrowIfCancellationRequested();
             var seen = new Dictionary<string, string>(StringComparer.Ordinal);
             var scopes = new SortedDictionary<string, ScopeAccumulator>(StringComparer.Ordinal);
             foreach (var observation in observations)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (observation == null || observation.Participants.Count != 8 ||
                     observation.Participants.Select(value => value.Placement).Distinct().Count() != 8)
                     throw new ArgumentException("A complete eight-placement observation is required.");
-                var boards = observation.Participants.OrderBy(value => value.Placement)
-                    .Select(value => new Board(value, CompositionFingerprintBuilder.Build(value))).ToArray();
+                var boards = new List<Board>();
+                foreach (var participant in observation.Participants.OrderBy(value => value.Placement))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    boards.Add(new Board(participant, CompositionFingerprintBuilder.Build(participant),
+                        CompositionFingerprintBuilder.BuildStrict(participant)));
+                }
                 var scopeKey = ScopeKey(observation.Scope);
                 var signature = new JArray(scopeKey, observation.PlayedAt.ToString("O", CultureInfo.InvariantCulture),
                     observation.MatchDataVersion, observation.MatchGameVersion,
                     new JArray(boards.Select(board => new JArray(board.Participant.Placement,
-                        board.Participant.LastRound, board.Fingerprint.Value)))).ToString(Formatting.None);
+                        board.Participant.LastRound, board.StrictFingerprint.Value)))).ToString(Formatting.None);
                 if (seen.TryGetValue(observation.MatchHash, out var previous))
                 {
                     if (!string.Equals(previous, signature, StringComparison.Ordinal))
@@ -80,7 +98,7 @@ namespace TFTAnalyzer.Analytics
                     accumulator = new ScopeAccumulator(observation.Scope, observation.PlayedAt);
                     scopes.Add(scopeKey, accumulator);
                 }
-                accumulator.Add(observation, boards);
+                accumulator.Add(observation, boards.ToArray(), participantFilter, cancellationToken);
             }
             return new AggregateSnapshot(scopes.Values.Select(value => value.Finish()));
         }
@@ -98,10 +116,12 @@ namespace TFTAnalyzer.Analytics
         {
             internal AnonymousParticipant Participant { get; }
             internal CompositionFingerprint Fingerprint { get; }
+            internal CompositionFingerprint StrictFingerprint { get; }
+            internal bool Selected { get; set; }
 
             /// <summary>Retains only the current observation's board references while building.</summary>
-            internal Board(AnonymousParticipant participant, CompositionFingerprint fingerprint)
-            { Participant = participant; Fingerprint = fingerprint; }
+            internal Board(AnonymousParticipant participant, CompositionFingerprint fingerprint, CompositionFingerprint strictFingerprint)
+            { Participant = participant; Fingerprint = fingerprint; StrictFingerprint = strictFingerprint; }
         }
 
         /// <summary>Accumulates counts privately until an immutable public scope snapshot is produced.</summary>
@@ -121,7 +141,8 @@ namespace TFTAnalyzer.Analytics
             { _scope = scope; _firstPlayedAt = _lastPlayedAt = playedAt; }
 
             /// <summary>Adds every participant and one result or exclusion per distinct composition pair in this lobby.</summary>
-            internal void Add(AnonymousMatchObservation observation, Board[] boards)
+            internal void Add(AnonymousMatchObservation observation, Board[] boards,
+                Func<AnonymousParticipant, bool> participantFilter, CancellationToken cancellationToken)
             {
                 checked { _matchCount++; }
                 if (observation.PlayedAt < _firstPlayedAt) _firstPlayedAt = observation.PlayedAt;
@@ -130,29 +151,36 @@ namespace TFTAnalyzer.Analytics
                 _gameVersions.Add(observation.MatchGameVersion);
                 foreach (var board in boards)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    board.Selected = participantFilter == null || participantFilter(board.Participant);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!board.Selected) continue;
                     if (!_metrics.TryGetValue(board.Fingerprint.Value, out var metric))
                     {
                         metric = new AggregateMetric(_scope, board.Fingerprint, observation.PlayedAt, board.Participant.AugmentIds);
                         _metrics.Add(board.Fingerprint.Value, metric);
                     }
-                    metric.Add(board.Participant.Placement, observation.PlayedAt);
+                    metric.Add(board.Participant.Placement, observation.PlayedAt, board.Participant.AugmentIds);
                 }
                 var groups = boards.GroupBy(board => board.Fingerprint.Value, StringComparer.Ordinal)
                     .OrderBy(group => group.Key, StringComparer.Ordinal).Select(group => group.ToArray()).ToArray();
                 for (var i = 0; i < groups.Length; i++)
                 for (var j = i + 1; j < groups.Length; j++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!groups[i].Any(board => board.Selected) && !groups[j].Any(board => board.Selected)) continue;
                     var first = groups[i][0];
                     var second = groups[j][0];
                     var key = first.Fingerprint.Value + "|" + second.Fingerprint.Value;
                     if (!_pairs.TryGetValue(key, out var pair))
                     {
                         pair = new PairwiseMetric(_scope, first.Fingerprint, second.Fingerprint, observation.PlayedAt,
-                            first.Participant.AugmentIds, second.Participant.AugmentIds);
+                            Array.Empty<string>(), Array.Empty<string>());
                         _pairs.Add(key, pair);
                     }
                     pair.Add(groups[i].Length == 1 && groups[j].Length == 1
-                        ? (bool?)(first.Participant.Placement < second.Participant.Placement) : null, observation.PlayedAt);
+                        ? (bool?)(first.Participant.Placement < second.Participant.Placement) : null, observation.PlayedAt,
+                        first.Participant.AugmentIds, second.Participant.AugmentIds);
                 }
             }
 

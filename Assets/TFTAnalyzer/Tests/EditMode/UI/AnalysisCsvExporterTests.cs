@@ -13,6 +13,23 @@ namespace TFTAnalyzer.Tests.UI
     public sealed class AnalysisCsvExporterTests
     {
         [Test]
+        public void CsvRecordsSelectedConditionsAndEndOfGameCompositionBasis()
+        {
+            var snapshot = AnalysisFixture.Snapshot(1);
+            var csv = AnalysisCsvExporter.Serialize(snapshot.AllRows.Take(1).Select(x => x.Presentation),
+                new AnalysisFilters(region: "asia", unit: "A", item: "ITEM_A", augment: "AUG"));
+            var lines = csv.Trim().Split('\n');
+            var header = lines[0].TrimEnd('\r').Split(',');
+            var values = lines[1].TrimEnd('\r').Split(',');
+            Assert.That(values.Length, Is.EqualTo(header.Length));
+            Assert.That(values[Array.IndexOf(header, "composition_basis")], Is.EqualTo("end_board_units_active_traits_v2"));
+            Assert.That(values[Array.IndexOf(header, "filter_region")], Is.EqualTo("asia"));
+            Assert.That(values[Array.IndexOf(header, "filter_unit")], Is.EqualTo("A"));
+            Assert.That(values[Array.IndexOf(header, "filter_item")], Is.EqualTo("ITEM_A"));
+            Assert.That(values[Array.IndexOf(header, "filter_augment")], Is.EqualTo("AUG"));
+        }
+
+        [Test]
         public void SuppressedCellsStayEmptyAndVisibleCellsIncludeApprovedCounts()
         {
             var hidden = AnalysisFixture.Snapshot(99).AllRows.First().Presentation;

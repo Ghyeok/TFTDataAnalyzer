@@ -33,46 +33,48 @@ namespace TFTAnalyzer.Tests.Analytics
         {
             var participant = Participant(new[] { Unit("TEST_A", 2, "ITEM_B", "ITEM_A") },
                 new[] { Trait("TRAIT_A") }, new[] { "AUG_A" });
-            const string canonical = "fingerprint-v1|[[[\"TEST_A\",2,[\"ITEM_A\",\"ITEM_B\"]]],[\"TRAIT_A\"],[\"AUG_A\"]]";
+            const string canonical = "fingerprint-v2|[[\"TEST_A\"],[\"TRAIT_A\"]]";
 
             Assert.That(CompositionFingerprintBuilder.Build(participant).Value,
                 Is.EqualTo(ContentHasher.Sha256Hex(canonical)));
         }
 
-        /// <summary>Ensures an ID containing a delimiter cannot impersonate multiple item IDs.</summary>
+        /// <summary>Ensures an ID containing a delimiter cannot impersonate multiple unit IDs.</summary>
         [Test]
         public void FingerprintSeparatesDelimiterLikeIdsWithoutCollisions()
         {
-            var a = Participant(new[] { Unit("TEST_A", 1, "ITEM_A|ITEM_B") });
-            var b = Participant(new[] { Unit("TEST_A", 1, "ITEM_A", "ITEM_B") });
+            var a = Participant(new[] { Unit("TEST_A|TEST_B") });
+            var b = Participant(new[] { Unit("TEST_A"), Unit("TEST_B") });
             Assert.That(CompositionFingerprintBuilder.Build(a), Is.Not.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
-        /// <summary>Checks that every composition dimension and repeated unit changes the resulting key.</summary>
+        /// <summary>Unit IDs, multiplicity and active trait IDs distinguish compositions; other board details do not.</summary>
         [Test]
-        public void FingerprintIncludesUnitTierItemsActiveTraitsAndAugments()
+        public void FingerprintIncludesUnitMultiplicityAndActiveTraitsButNotTierItemsOrAugments()
         {
             var baseline = CompositionFingerprintBuilder.Build(Participant(new[] { Unit("TEST_A") }));
             var variants = new[]
             {
                 Participant(new[] { Unit("TEST_B") }),
-                Participant(new[] { Unit("TEST_A", 2) }),
-                Participant(new[] { Unit("TEST_A", 1, "ITEM_A") }),
                 Participant(new[] { Unit("TEST_A") }, new[] { Trait("TRAIT_A") }),
-                Participant(new[] { Unit("TEST_A") }, augments: new[] { "AUG_A" }),
                 Participant(new[] { Unit("TEST_A"), Unit("TEST_A") })
             };
             foreach (var variant in variants)
                 Assert.That(CompositionFingerprintBuilder.Build(variant), Is.Not.EqualTo(baseline));
+            Assert.That(CompositionFingerprintBuilder.Build(Participant(new[] { Unit("TEST_A", 2, "ITEM_A") },
+                augments: new[] { "AUG_A" })), Is.EqualTo(baseline));
+            var traitOne = Participant(new[] { Unit("TEST_A") }, new[] { new AnonymousTrait("TRAIT_A", 1) });
+            var traitTwo = Participant(new[] { Unit("TEST_A") }, new[] { new AnonymousTrait("TRAIT_A", 2) });
+            Assert.That(CompositionFingerprintBuilder.Build(traitOne), Is.EqualTo(CompositionFingerprintBuilder.Build(traitTwo)));
         }
 
-        /// <summary>Ensures a repeated equipped item remains significant rather than becoming a set entry.</summary>
+        /// <summary>Equipped item multiplicity does not change a final-board composition key.</summary>
         [Test]
-        public void FingerprintRetainsRepeatedEquippedItems()
+        public void FingerprintIgnoresRepeatedEquippedItems()
         {
             var a = Participant(new[] { Unit("TEST_A", 1, "ITEM_A") });
             var b = Participant(new[] { Unit("TEST_A", 1, "ITEM_A", "ITEM_A") });
-            Assert.That(CompositionFingerprintBuilder.Build(a), Is.Not.EqualTo(CompositionFingerprintBuilder.Build(b)));
+            Assert.That(CompositionFingerprintBuilder.Build(a), Is.EqualTo(CompositionFingerprintBuilder.Build(b)));
         }
 
         /// <summary>Keeps composition identity independent of placement, last round and inactive trait records.</summary>

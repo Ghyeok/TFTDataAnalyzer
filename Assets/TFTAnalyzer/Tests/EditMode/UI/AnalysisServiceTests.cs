@@ -16,6 +16,28 @@ namespace TFTAnalyzer.Tests.UI
 {
     public sealed class AnalysisServiceTests
     {
+        [Test]
+        public void SnapshotConstructionStopsDuringObservationEnumerationWhenCancelled()
+        {
+            using (var cancellation = new CancellationTokenSource())
+            {
+                var source = AnalysisFixture.Observations(4);
+                var visited = 0;
+                System.Collections.Generic.IEnumerable<AnonymousMatchObservation> CancelAfterSecond()
+                {
+                    foreach (var observation in source)
+                    {
+                        visited++;
+                        if (visited == 2) cancellation.Cancel();
+                        yield return observation;
+                    }
+                }
+                Assert.Throws<OperationCanceledException>(() => AnalysisService.BuildSnapshot(
+                    AnalysisFixture.Catalog(), AnalysisFixture.Identity(), CancelAfterSecond(), token: cancellation.Token));
+                Assert.That(visited, Is.EqualTo(2));
+            }
+        }
+
         private string _temporary;
         private AnalyzerStorePaths _paths;
         [SetUp]
@@ -91,11 +113,13 @@ namespace TFTAnalyzer.Tests.UI
             using (var vm = new AnalysisViewModel(service))
             {
                 vm.SetCatalog(AnalysisFixture.Catalog(), AnalysisFixture.Identity());
-                Assert.That(File.Exists(_paths.AggregatePath(observations[0].Scope)), Is.False);
+                Assert.That(Directory.Exists(_paths.AggregateGenerationsDirectory), Is.False);
                 await vm.RefreshAsync();
                 Assert.That(vm.ErrorCode, Is.Empty); Assert.That(vm.Rows.Count, Is.EqualTo(8));
-                Assert.That(File.Exists(_paths.AggregatePath(observations[0].Scope)), Is.True);
+                var generation = Directory.GetDirectories(_paths.AggregateGenerationsDirectory, "generation-*").Single();
+                Assert.That(File.Exists(Path.Combine(generation, Path.GetFileName(_paths.AggregatePath(observations[0].Scope)))), Is.True);
                 vm.SetFilters(new AnalysisFilters(unit: "A", trait: "ACTIVE_A", item: "ITEM_A"));
+                while (vm.IsBusy) await Task.Yield();
                 Assert.That(vm.Rows.Count, Is.EqualTo(1));
                 var export = Path.Combine(_temporary, "개인연구.csv");
                 new AnalysisCsvExporter(_paths.ProjectRoot).Save(export, vm.Rows.Concat(vm.Pairs).Select(x => x.Presentation));
@@ -123,7 +147,7 @@ namespace TFTAnalyzer.Tests.UI
                 Assert.That(vm.ErrorCode, Is.EqualTo("analysis_load_failed"));
                 Assert.That(vm.Snapshot, Is.Null); Assert.That(vm.Rows, Is.Empty); Assert.That(vm.Pairs, Is.Empty);
                 Assert.That(vm.CanExport, Is.False); Assert.That(vm.CanRefresh, Is.True);
-                Assert.That(File.Exists(_paths.AggregatePath(observation.Scope)), Is.False);
+                Assert.That(Directory.Exists(_paths.AggregateGenerationsDirectory), Is.False);
             }
         }
 
