@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -119,7 +120,7 @@ namespace TFTAnalyzer.Tests.UI
         {
             var observation = AnalysisFixture.Observations(1)[0];
             await new ObservationStore(_paths).AppendIfNewAsync(observation, CancellationToken.None);
-            var cache = _paths.AggregatePath(observation.Scope);
+            var cache = _paths.AggregateGenerationsDirectory;
             var transport = new OfflineTransport { CachePath = cache };
             var keys = new EnvironmentRiotApiKeyProvider(() => "fabricated-key");
             var analysis = new AnalysisService(new ObservationStore(_paths), new AggregateStore(_paths));
@@ -132,7 +133,7 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(transport.CachePresentAtSend, Is.True, "Collection must wait through aggregate SaveAsync, not only observation read.");
             Assert.That((await collect).Failed, Is.Zero);
             Assert.That((await refresh).AllRows.Count, Is.EqualTo(8));
-            Assert.That(File.Exists(cache), Is.True);
+            Assert.That(Directory.GetDirectories(cache, "generation-*").Length, Is.EqualTo(1));
         }
 
         private sealed class OfflineTransport : IRiotApiTransport
@@ -143,7 +144,8 @@ namespace TFTAnalyzer.Tests.UI
             public Task<RiotApiResponse> SendAsync(Uri uri, IReadOnlyDictionary<string, string> headers, CancellationToken token)
             {
                 token.ThrowIfCancellationRequested(); Sends++;
-                CachePresentAtSend = CachePath != null && File.Exists(CachePath);
+                CachePresentAtSend = CachePath != null && Directory.Exists(CachePath) &&
+                    Directory.GetDirectories(CachePath, "generation-*").Any(path => Directory.GetFiles(path, "*.json").Length > 0);
                 return Task.FromResult(new RiotApiResponse(200, new MemoryStream(Encoding.UTF8.GetBytes("[]")),
                     new Dictionary<string, string>()));
             }

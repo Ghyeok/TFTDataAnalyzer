@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,160 @@ namespace TFTAnalyzer.Tests.Persistence
     /// <summary>Checks canonical per-scope aggregate publication against real temporary files.</summary>
     public sealed class AggregateStoreTests
     {
+        [Test]
+        public async Task GenerationPublishesAllScopesWithoutReplacingAnyExistingCache()
+        {
+            var first = Build("generation-a");
+            var second = AggregateBuilder.Build(new[] { AggregateTestData.Match("generation-b", dimension: "region") }).Scopes.Single();
+            var store = new AggregateStore(_paths);
+            await store.SaveAsync(first, CancellationToken.None);
+            var previous = _paths.AggregatePath(first.Scope);
+            var bytes = File.ReadAllBytes(previous);
+            var directory = await SaveGeneration(store, new[] { first, second }, CancellationToken.None);
+            Assert.That(Directory.Exists(directory), Is.True);
+            var files = Directory.GetFiles(directory, "*.json");
+            Assert.That(files, Has.Length.EqualTo(2));
+            Assert.That(files.Select(file => (string)JObject.Parse(File.ReadAllText(file))["scope"]["region"]),
+                Is.EquivalentTo(new[] { "asia", "europe" }));
+            Assert.That(files.All(file => (int)JObject.Parse(File.ReadAllText(file))["schemaVersion"] == 3), Is.True);
+            Assert.That(File.ReadAllBytes(previous), Is.EqualTo(bytes));
+            var empty = await SaveGeneration(store, Array.Empty<ScopeAggregate>(), CancellationToken.None);
+            Assert.That(empty, Is.Not.EqualTo(directory));
+            Assert.That(Directory.GetFiles(empty), Is.Empty);
+        }
+
+        [Test]
+        public async Task IdenticalGenerationAndEmptyResultsAreReusedRegardlessOfScopeOrder()
+        {
+            var first = Build("reuse-a");
+            var second = AggregateBuilder.Build(new[] { AggregateTestData.Match("reuse-b", dimension: "region") }).Scopes.Single();
+            var store = new AggregateStore(_paths);
+            var one = await SaveGeneration(store, new[] { first, second }, CancellationToken.None);
+            var two = await SaveGeneration(store, new[] { second, first }, CancellationToken.None);
+            Assert.That(two, Is.EqualTo(one));
+            var empty = await SaveGeneration(store, Array.Empty<ScopeAggregate>(), CancellationToken.None);
+            var repeated = await SaveGeneration(store, Array.Empty<ScopeAggregate>(), CancellationToken.None);
+            Assert.That(repeated, Is.EqualTo(empty));
+            Assert.That(Directory.GetDirectories(Path.GetDirectoryName(one), "generation-*").Length, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task LimitAllowsExactReuseButRejectsNewResultsWithoutDeletingExistingGenerations()
+        {
+            var first = Build("limit-a");
+            var second = AggregateBuilder.Build(new[] { AggregateTestData.Match("limit-b", dimension: "region") }).Scopes.Single();
+            var store = new AggregateStore(_paths);
+            var original = await SaveGeneration(store, new[] { first }, CancellationToken.None);
+            var directory = Path.GetDirectoryName(original);
+            var originalFile = Directory.GetFiles(original).Single();
+            var originalBytes = File.ReadAllBytes(originalFile);
+            for (var i = 0; i < 31; i++)
+            {
+                var existing = Path.Combine(directory, "generation-existing-" + i);
+                Directory.CreateDirectory(existing);
+                File.WriteAllText(Path.Combine(existing, "marker"), "keep");
+            }
+            Assert.That(await SaveGeneration(store, new[] { first }, CancellationToken.None), Is.EqualTo(original));
+            var error = await ThrowsAsync<IOException>(() => SaveGeneration(store, new[] { second }, CancellationToken.None));
+            Assert.That(error.Message, Does.Contain("aggregate_generation_limit"));
+            Assert.That(File.ReadAllBytes(originalFile), Is.EqualTo(originalBytes));
+            Assert.That(Directory.GetDirectories(directory, "generation-*").Length, Is.EqualTo(32));
+            Assert.That(Directory.GetDirectories(directory, ".staging-*").Length, Is.Zero);
+        }
+
+        [Test]
+        public async Task DamagedGenerationIsNotReusedOrOverwritten()
+        {
+            var scope = Build("damaged-generation");
+            var store = new AggregateStore(_paths);
+            var first = await SaveGeneration(store, new[] { scope }, CancellationToken.None);
+            var oldFile = Directory.GetFiles(first).Single();
+            File.AppendAllText(oldFile, "tampered");
+            var bytes = File.ReadAllBytes(oldFile);
+            var second = await SaveGeneration(store, new[] { scope }, CancellationToken.None);
+            Assert.That(second, Is.Not.EqualTo(first));
+            Assert.That(File.ReadAllBytes(oldFile), Is.EqualTo(bytes));
+        }
+
+        [Test]
+        public async Task UnfinishedForeignStagesAtLimitArePreservedAndBlockAnotherStage()
+        {
+            var root = _paths.AggregateGenerationsDirectory;
+            Directory.CreateDirectory(root);
+            for (var i = 0; i < 32; i++)
+            {
+                var other = Path.Combine(root, ".staging-foreign-" + i);
+                Directory.CreateDirectory(other);
+                File.WriteAllText(Path.Combine(other, "marker"), "keep");
+            }
+            var error = await ThrowsAsync<IOException>(() => SaveGeneration(new AggregateStore(_paths),
+                new[] { Build("stale-stage") }, CancellationToken.None));
+            Assert.That(error.Message, Does.Contain("aggregate_generation_limit"));
+            Assert.That(Directory.GetDirectories(root, ".staging-*").Length, Is.EqualTo(32));
+            Assert.That(Directory.GetFiles(root, "marker", SearchOption.AllDirectories).Length, Is.EqualTo(32));
+        }
+
+        [Test]
+        public async Task ChangedOwnStageIsRejectedBeforePublishing()
+        {
+            var first = Build("changed-stage-a");
+            var second = AggregateBuilder.Build(new[] { AggregateTestData.Match("changed-stage-b", dimension: "region") }).Scopes.Single();
+            IEnumerable<ScopeAggregate> MutateStage()
+            {
+                yield return first;
+                var stage = Directory.GetDirectories(_paths.AggregateGenerationsDirectory, ".staging-*").Single();
+                var file = Directory.GetFiles(stage).Single();
+                File.AppendAllText(file, "changed during write");
+                yield return second;
+            }
+            await ThrowsAsync<IOException>(() => SaveGeneration(new AggregateStore(_paths), MutateStage(), CancellationToken.None));
+            Assert.That(Directory.GetDirectories(_paths.AggregateGenerationsDirectory, "generation-*").Length, Is.Zero);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task GenerationFailureOrCancellationKeepsPublishedBytesAndOtherStaging(bool cancel)
+        {
+            var first = Build("generation-before");
+            var store = new AggregateStore(_paths);
+            await store.SaveAsync(first, CancellationToken.None);
+            var previous = _paths.AggregatePath(first.Scope);
+            var bytes = File.ReadAllBytes(previous);
+            var existing = await SaveGeneration(store, new[] { first }, CancellationToken.None);
+            var existingFile = Directory.GetFiles(existing).Single();
+            var existingBytes = File.ReadAllBytes(existingFile);
+            var foreign = Path.Combine(Path.GetDirectoryName(existing), ".staging-unrelated");
+            Directory.CreateDirectory(foreign);
+            var marker = Path.Combine(foreign, "marker");
+            File.WriteAllText(marker, "keep");
+            using (var cts = new CancellationTokenSource())
+            {
+                IEnumerable<ScopeAggregate> Broken()
+                {
+                    yield return first;
+                    if (cancel) { cts.Cancel(); yield return Build("another"); }
+                    else throw new IOException("private synthetic error");
+                }
+                if (cancel) await ThrowsAsync<OperationCanceledException>(() => SaveGeneration(store, Broken(), cts.Token));
+                else
+                {
+                    var error = await ThrowsAsync<IOException>(() => SaveGeneration(store, Broken(), cts.Token));
+                    Assert.That(error.ToString(), Does.Not.Contain("private synthetic error"));
+                }
+            }
+            Assert.That(File.ReadAllBytes(previous), Is.EqualTo(bytes));
+            Assert.That(File.ReadAllBytes(existingFile), Is.EqualTo(existingBytes));
+            Assert.That(File.ReadAllText(marker), Is.EqualTo("keep"));
+            Assert.That(Directory.GetDirectories(Path.GetDirectoryName(existing)), Is.EquivalentTo(new[] { existing, foreign }));
+        }
+
+        private static Task<string> SaveGeneration(AggregateStore store, IEnumerable<ScopeAggregate> scopes, CancellationToken token)
+        {
+            var method = typeof(AggregateStore).GetMethod("SaveGenerationAsync", new[] { typeof(IEnumerable<ScopeAggregate>), typeof(CancellationToken) });
+            Assert.That(method, Is.Not.Null, "A generation must publish all scope files as a single operation.");
+            return (Task<string>)method.Invoke(store, new object[] { scopes, token });
+        }
+
         private string _temporary;
         private AnalyzerStorePaths _paths;
 
@@ -52,7 +207,7 @@ namespace TFTAnalyzer.Tests.Persistence
             finally { CultureInfo.CurrentCulture = originalCulture; }
             Assert.That(File.ReadAllBytes(path), Is.EqualTo(first));
             var json = JObject.Parse(File.ReadAllText(path));
-            Assert.That((int)json["schemaVersion"], Is.EqualTo(2));
+            Assert.That((int)json["schemaVersion"], Is.EqualTo(3));
             Assert.That((int)json["matchCount"], Is.EqualTo(2));
             Assert.That(json["metrics"].Sum(row => (int)row["count"]), Is.EqualTo(16));
             Assert.That(json["metrics"].Sum(row => (long)row["placementSum"]), Is.EqualTo(72));
@@ -172,18 +327,20 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(json["pairs"].All(row => row["firstAugmentIds"] != null && row["secondAugmentIds"] != null), Is.True);
         }
 
-        /// <summary>Adding policy provenance creates a new cache schema without altering existing schema-one files.</summary>
-        [Test]
-        public async Task PolicySchemaUpgradeLeavesPreviousCacheUntouched()
+        /// <summary>Rebuilding with the new composition contract preserves the exact bytes of previous schema caches.</summary>
+        [TestCase(1)]
+        [TestCase(2)]
+        public async Task PolicySchemaUpgradeLeavesPreviousCacheUntouched(int previousSchema)
         {
             var scope = Build("one");
-            var legacyPath = _paths.AggregatePath(scope.Scope, 1);
+            var legacyPath = _paths.AggregatePath(scope.Scope, previousSchema);
             Directory.CreateDirectory(Path.GetDirectoryName(legacyPath));
-            File.WriteAllText(legacyPath, "legacy-snapshot");
+            var legacyBytes = new byte[] { 0xef, 0xbb, 0xbf, 0x7b, 0x32, 0x7d, 0x0d, 0x0a };
+            File.WriteAllBytes(legacyPath, legacyBytes);
             await new AggregateStore(_paths).SaveAsync(scope, CancellationToken.None);
-            Assert.That(File.ReadAllText(legacyPath), Is.EqualTo("legacy-snapshot"));
+            Assert.That(File.ReadAllBytes(legacyPath), Is.EqualTo(legacyBytes));
             Assert.That(_paths.AggregatePath(scope.Scope), Is.Not.EqualTo(legacyPath));
-            Assert.That((int)JObject.Parse(File.ReadAllText(_paths.AggregatePath(scope.Scope)))["schemaVersion"], Is.EqualTo(2));
+            Assert.That((int)JObject.Parse(File.ReadAllText(_paths.AggregatePath(scope.Scope)))["schemaVersion"], Is.EqualTo(3));
         }
 
         /// <summary>Builds a single fabricated statistics scope through the real aggregate builder.</summary>

@@ -212,6 +212,51 @@ namespace TFTAnalyzer.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator ItemAndAugmentFiltersRecalculatePolicyAndExportMatchingSnapshot()
+        {
+            var observations = AnalysisFixture.Observations(200).Select((match, index) =>
+                new AnonymousMatchObservation(match.MatchHash, match.Scope, match.PlayedAt,
+                    match.Participants.Select((participant, p) => p == 0 ?
+                        new AnonymousParticipant(participant.Placement, participant.LastRound, participant.Units,
+                            participant.Traits, new[] { index < 100 ? "AUG" : "UNKNOWN" }) :
+                        p == 1 && index >= 100 ? new AnonymousParticipant(participant.Placement, participant.LastRound,
+                            participant.Units, participant.Traits, new[] { "AUG" }) : participant).ToArray())).ToArray();
+            var policy = new MetricPolicy(100, new MetricPolicyMetadata(AnalysisFixture.Identity(),
+                new Dictionary<string, AugmentPolicyKind> { ["AUG"] = AugmentPolicyKind.Standard }));
+            var snapshot = AnalysisService.BuildSnapshot(AnalysisFixture.Catalog(), AnalysisFixture.Identity(), observations, policy);
+            var blocked = snapshot.AllRows.Single(row => row.First.UnitIds.Contains("A"));
+            Assert.That(blocked.Presentation.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
+            AnalysisFilters writtenFilters = null;
+            IReadOnlyList<MetricPresentation> written = null;
+            _binding.Dispose();
+            _binding = new AnalysisTab(_tree.Q("analysis-tab"), _vm, () => "test.csv",
+                (path, rows, filters) => { written = rows; writtenFilters = filters; });
+            Submit("analysis-refresh");
+            _service.Pending.SetResult(snapshot);
+            yield return EditorWindowTestSupport.WaitForRender();
+            foreach (var selection in new[] { (name: "unit", value: "A"), (name: "item", value: "ITEM_A"), (name: "augment", value: "AUG") })
+            {
+                _tree.Q<DropdownField>("analysis-" + selection.name).value = selection.value;
+                while (_vm.IsBusy) yield return null;
+                yield return EditorWindowTestSupport.WaitForRender();
+            }
+            var selected = _vm.Rows.Single();
+            Assert.That(selected.Presentation.State, Is.EqualTo(MetricVisibility.Visible));
+            Assert.That(selected.Presentation.SampleCount, Is.EqualTo(100),
+                "AUG on a different participant must not make the other 100 observations match.");
+            Assert.That(selected.Presentation.Ratios.Single(r => r.Key == "top_four_rate").Numerator, Is.EqualTo(100));
+            Submit("analysis-export");
+            yield return EditorWindowTestSupport.WaitForRender();
+            Assert.That(written, Is.Not.Null);
+            Assert.That(writtenFilters.Unit, Is.EqualTo("A"));
+            Assert.That(writtenFilters.Item, Is.EqualTo("ITEM_A"));
+            Assert.That(writtenFilters.Augment, Is.EqualTo("AUG"));
+            var csv = AnalysisCsvExporter.Serialize(written, writtenFilters);
+            Assert.That(csv, Does.Contain("end_board_units_active_traits_v2").And.Contain(",A,,ITEM_A,AUG"));
+            Assert.That(csv, Does.Contain(",100,100,1,"));
+        }
+
+        [UnityTest]
         public IEnumerator TablesPageExplicitlyAndExportAllFilteredPagesFromApprovedPresentations()
         {
             Submit("analysis-refresh");
@@ -234,10 +279,15 @@ namespace TFTAnalyzer.Tests.UI
             Assert.That(_exported.Count, Is.EqualTo(36), "CSV must include all filtered pages.");
             Assert.That(_exported.All(value => value.Ratios.Count > 0), Is.True);
             _tree.Q<DropdownField>("analysis-unit").value = "A";
+            while (_vm.IsBusy) yield return null;
+            yield return EditorWindowTestSupport.WaitForRender();
             _tree.Q<DropdownField>("analysis-item").value = "ITEM_A";
+            while (_vm.IsBusy) yield return null;
             yield return EditorWindowTestSupport.WaitForRender();
             Assert.That(_tree.Q("analysis-rows").childCount, Is.EqualTo(1));
             Assert.That(_tree.Q("analysis-pairs").childCount, Is.EqualTo(7));
+            Assert.That(_tree.Q<DropdownField>("analysis-item").choices, Does.Contain("ITEM_B"),
+                "Previously available item choices remain selectable after filtering.");
             Submit("analysis-export");
             yield return EditorWindowTestSupport.WaitForRender();
             Assert.That(_exported.Count, Is.EqualTo(8));

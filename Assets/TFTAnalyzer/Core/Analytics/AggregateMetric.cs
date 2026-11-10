@@ -10,7 +10,8 @@ namespace TFTAnalyzer.Analytics
     {
         public MetricScope Scope { get; }
         public CompositionFingerprint Fingerprint { get; }
-        public IReadOnlyList<string> AugmentIds { get; }
+        private readonly SortedSet<string> _augmentIds = new SortedSet<string>(StringComparer.Ordinal);
+        public IReadOnlyList<string> AugmentIds => DomainValues.Copy(_augmentIds);
         public int Count { get; private set; }
         public long PlacementSum { get; private set; }
         public int TopFourCount { get; private set; }
@@ -29,13 +30,12 @@ namespace TFTAnalyzer.Analytics
         {
             Scope = scope;
             Fingerprint = fingerprint;
-            AugmentIds = DomainValues.Copy((augmentIds ?? throw new ArgumentNullException(nameof(augmentIds)))
-                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
+            _augmentIds.UnionWith(augmentIds ?? throw new ArgumentNullException(nameof(augmentIds)));
             FirstPlayedAt = LastPlayedAt = playedAt;
         }
 
         /// <summary>Adds one validated participant and updates its observed match-time range.</summary>
-        internal void Add(int placement, DateTimeOffset playedAt)
+        internal void Add(int placement, DateTimeOffset playedAt, IEnumerable<string> augmentIds)
         {
             checked
             {
@@ -44,6 +44,7 @@ namespace TFTAnalyzer.Analytics
                 if (placement <= 4) TopFourCount++;
                 if (placement == 1) FirstPlaceCount++;
             }
+            _augmentIds.UnionWith(augmentIds ?? throw new ArgumentNullException(nameof(augmentIds)));
             if (playedAt < FirstPlayedAt) FirstPlayedAt = playedAt;
             if (playedAt > LastPlayedAt) LastPlayedAt = playedAt;
         }

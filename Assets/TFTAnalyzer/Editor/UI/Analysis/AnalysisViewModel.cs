@@ -12,6 +12,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
     {
         private readonly IAnalysisService _service;
         private CancellationTokenSource _operation;
+        private AnalysisSnapshot _baseSnapshot;
         private int _generation;
         private bool _disposed;
         public event Action Changed;
@@ -19,6 +20,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         public CatalogIdentity ActiveIdentity { get; private set; }
         public AnalysisSnapshot Snapshot { get; private set; }
         public AnalysisFilters Filters { get; private set; } = new AnalysisFilters();
+        public IReadOnlyList<IReadOnlyList<string>> FilterOptions => _baseSnapshot?.FilterOptions;
         public IReadOnlyList<MetricRowViewModel> Rows { get; private set; } = Array.Empty<MetricRowViewModel>();
         public IReadOnlyList<MetricRowViewModel> Pairs { get; private set; } = Array.Empty<MetricRowViewModel>();
         public bool IsBusy => _operation != null;
@@ -39,7 +41,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (_disposed || minimumSamples == MinimumSamples) return;
             MinimumSamples = minimumSamples;
             _generation++; _operation?.Cancel();
-            ClearResults(); SetReadyStatus(); Notify();
+            _baseSnapshot = null; ClearResults(); SetReadyStatus(); Notify();
         }
 
         private void ClearResults()
@@ -62,14 +64,46 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (ReferenceEquals(Catalog, catalog) && AnalysisService.SameIdentity(ActiveIdentity, identity)) return;
             _generation++; _operation?.Cancel();
             Catalog = catalog; ActiveIdentity = identity;
-            ClearResults(); SetReadyStatus();
+            _baseSnapshot = null; ClearResults(); SetReadyStatus();
             Notify();
         }
 
         public void SetFilters(AnalysisFilters filters)
         {
             if (_disposed) return;
-            Filters = filters ?? new AnalysisFilters(); ApplyFilters(); Notify();
+            filters = filters ?? new AnalysisFilters();
+            if (SameFilters(Filters, filters)) return;
+            Filters = filters;
+            _generation++; _operation?.Cancel();
+            ClearResults();
+            if (_baseSnapshot == null) { SetReadyStatus(); Notify(); return; }
+            _ = RecalculateAsync(_baseSnapshot, filters);
+        }
+
+        private static bool SameFilters(AnalysisFilters a, AnalysisFilters b) =>
+            a.Region == b.Region && a.Queue == b.Queue && a.Tier == b.Tier && a.Unit == b.Unit &&
+            a.Trait == b.Trait && a.Item == b.Item && a.Augment == b.Augment;
+
+        private async Task RecalculateAsync(AnalysisSnapshot baseline, AnalysisFilters filters)
+        {
+            var operation = new CancellationTokenSource(); _operation = operation; var generation = _generation;
+            ErrorCode = ""; StatusText = "선택한 조건에 맞는 익명 관측으로 다시 집계하고 있습니다."; Notify();
+            try
+            {
+                var result = await Task.Run(() => baseline.Recalculate(filters, operation.Token), operation.Token);
+                operation.Token.ThrowIfCancellationRequested();
+                if (!Current(generation, operation)) return;
+                Snapshot = result; ApplyResults();
+            }
+            catch (OperationCanceledException)
+            { if (Current(generation, operation)) StatusText = "조건별 집계를 취소했습니다. 다시 갱신해 주세요."; }
+            catch (Exception)
+            { if (Current(generation, operation)) { ErrorCode = "analysis_recalculate_failed"; StatusText = "조건별 집계에 실패했습니다. 다시 갱신해 주세요."; } }
+            finally
+            {
+                if (ReferenceEquals(_operation, operation)) _operation = null;
+                operation.Dispose(); if (!_disposed) Notify();
+            }
         }
 
         public async Task RefreshAsync()
@@ -77,7 +111,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (!CanRefresh) return;
             var operation = new CancellationTokenSource(); _operation = operation;
             var generation = ++_generation; var catalog = Catalog; var identity = ActiveIdentity; var minimum = MinimumSamples;
-            ClearResults();
+            _baseSnapshot = null; ClearResults();
             ErrorCode = ""; StatusText = "로컬 익명 경기 기록을 읽고 집계 캐시를 갱신하고 있습니다."; Notify();
             try
             {
@@ -86,11 +120,25 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                 if (!Current(generation, operation)) return;
                 if (snapshot == null || !AnalysisService.SameIdentity(snapshot.Identity, identity) ||
                     snapshot.MinimumSamples < minimum) throw new InvalidOperationException();
-                Snapshot = snapshot; ApplyFilters();
+                _baseSnapshot = snapshot;
+                var filters = Filters;
+                var result = SameFilters(filters, new AnalysisFilters()) ? snapshot :
+                    await Task.Run(() => snapshot.Recalculate(filters, operation.Token), operation.Token);
+                operation.Token.ThrowIfCancellationRequested();
+                if (!Current(generation, operation)) return;
+                Snapshot = result;
+                ApplyResults();
             }
             catch (OperationCanceledException)
             {
                 if (Current(generation, operation)) { ErrorCode = ""; StatusText = "로컬 집계 갱신을 취소했습니다."; }
+            }
+            catch (TFTAnalyzer.Editor.Persistence.AggregateGenerationLimitException error)
+            {
+                if (Current(generation, operation))
+                { ErrorCode = "analysis_cache_limit"; StatusText = error.IsStagingLimit
+                    ? "미완성 분석 임시 작업이 32개에 도달했습니다. 작업이 끝난 뒤 저장소 aggregates/3/generations의 .staging- 폴더를 직접 정리해 주세요."
+                    : "분석 캐시가 32개에 도달했습니다. 저장소 aggregates/3/generations의 이전 generation- 폴더를 직접 정리해 주세요."; }
             }
             catch (Exception)
             {
@@ -107,21 +155,15 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         private bool Current(int generation, CancellationTokenSource operation) =>
             !_disposed && generation == _generation && ReferenceEquals(_operation, operation);
 
-        private void ApplyFilters()
+        private void ApplyResults()
         {
             if (Snapshot == null) return;
-            Rows = Array.AsReadOnly(Snapshot.AllRows.Where(x => ScopeMatches(x) && BoardMatches(x.First)).ToArray());
-            Pairs = Array.AsReadOnly(Snapshot.AllPairs.Where(x => ScopeMatches(x) && (BoardMatches(x.First) || BoardMatches(x.Second))).ToArray());
+            Rows = Snapshot.AllRows;
+            Pairs = Snapshot.AllPairs;
             if (!IsBusy || ErrorCode.Length == 0)
                 StatusText = Rows.Count == 0 && Pairs.Count == 0 ? "선택한 범위에 표시할 과거 관측 결과가 없습니다." :
                     "과거 관측 결과입니다. 지역·큐·티어 기록 라벨이 다른 범위는 합산하지 않습니다.";
         }
-        private bool ScopeMatches(MetricRowViewModel row) =>
-            Match(Filters.Region, row.Presentation.Scope.Region) && Match(Filters.Queue, row.Presentation.Scope.QueueId) && Match(Filters.Tier, row.Presentation.Scope.TierBucket);
-        private bool BoardMatches(CompositionDescriptor board) => board != null &&
-            Member(Filters.Unit, board.UnitIds) && Member(Filters.Trait, board.TraitIds) && Member(Filters.Item, board.ItemIds) && Member(Filters.Augment, board.AugmentIds);
-        private static bool Match(string selected, string actual) => string.IsNullOrEmpty(selected) || string.Equals(selected, actual, StringComparison.Ordinal);
-        private static bool Member(string selected, IReadOnlyList<string> values) => string.IsNullOrEmpty(selected) || values.Contains(selected, StringComparer.Ordinal);
         public void Cancel()
         {
             if (_disposed || _operation == null) return;

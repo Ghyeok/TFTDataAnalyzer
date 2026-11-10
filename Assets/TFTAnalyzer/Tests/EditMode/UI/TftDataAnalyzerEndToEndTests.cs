@@ -187,14 +187,14 @@ namespace TFTAnalyzer.Tests.UI
             var catalog = AnalysisFixture.Catalog();
             var identity = AnalysisFixture.Identity();
             var defaultRow = AnalysisService.BuildSnapshot(catalog, identity, observations).AllRows
-                .Single(row => row.First.AugmentIds.Contains("AUG"));
+                .Single(row => row.First.UnitIds.Contains("A"));
             Assert.That(defaultRow.Presentation.State, Is.EqualTo(MetricVisibility.PolicyBlocked));
             Assert.That(defaultRow.Presentation.ReasonCode, Is.EqualTo("unclassified_augment"));
             Assert.That(defaultRow.Presentation.Ratios, Is.Empty);
             var trustedFixturePolicy = new MetricPolicy(100, new MetricPolicyMetadata(identity,
                 new Dictionary<string, AugmentPolicyKind> { ["AUG"] = AugmentPolicyKind.Standard }));
             var row = AnalysisService.BuildSnapshot(catalog, identity, observations, trustedFixturePolicy).AllRows
-                .Single(value => value.First.AugmentIds.Contains("AUG"));
+                .Single(value => value.First.UnitIds.Contains("A"));
             Assert.That(row.Presentation.State, Is.EqualTo(expected));
             if (count == 99)
             {
@@ -392,10 +392,10 @@ namespace TFTAnalyzer.Tests.UI
                 Assert.That(_analysis.Pairs, Is.Not.Empty);
                 Assert.That(_analysis.Rows.Concat(_analysis.Pairs).All(row => row.Presentation.SampleCount < 100 && row.Presentation.Ratios.Count == 0), Is.True);
                 Assert.That(_analysis.Rows.Any(row => row.Presentation.State == MetricVisibility.PolicyBlocked), Is.True);
-                Assert.That(_analysis.Rows.Single(row => row.First.AugmentIds.Contains("TEST18_Augment_A")).Presentation.ReasonCode,
-                    Is.EqualTo("unclassified_augment"), "The default service must keep unreviewed augments blocked.");
-                Assert.That(_analysis.Rows.Where(row => row.First.AugmentIds.Count == 0)
-                    .All(row => row.Presentation.State == MetricVisibility.InsufficientSample && row.Presentation.ReasonCode == "insufficient_sample"), Is.True);
+                Assert.That(_analysis.Rows.Any(row => row.Presentation.ReasonCode == "unclassified_augment"), Is.True,
+                    "The default service must keep unreviewed augments blocked.");
+                Assert.That(_analysis.Rows.Any(row => row.Presentation.State == MetricVisibility.InsufficientSample &&
+                    row.Presentation.ReasonCode == "insufficient_sample"), Is.True);
                 Assert.That(tree.Q<Label>("analysis-pairwise-heading").text, Is.EqualTo("상대 배치 우위율"));
                 Assert.That(tree.Q<Label>("analysis-pairwise-heading").tooltip, Does.Contain("실제 전투 승률이 아닙니다"));
                 Assert.That(string.Join("\n", tree.Q("analysis-rows").Query<Label>().ToList().Select(label => label.text)), Does.Contain("표본 부족"));

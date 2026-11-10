@@ -19,10 +19,13 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             if (string.IsNullOrWhiteSpace(projectRoot)) throw new ArgumentException("analysis_export_project_required");
             _projectRoot = Path.GetFullPath(projectRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
-        public static string Serialize(IEnumerable<MetricPresentation> presentations)
+        public static string Serialize(IEnumerable<MetricPresentation> presentations, AnalysisFilters filters = null)
         {
             if (presentations == null) throw new ArgumentNullException(nameof(presentations));
-            var csv = new StringBuilder("purpose,kind,set_id,set_number,patch,source_game_version,source_profile,region,queue,tier_label,first_composition,second_composition,sample_count,average_placement,first_played_at_utc,last_played_at_utc,ambiguous_lobby_count,state,policy_note,metric,numerator,denominator,estimate_fraction,lower_fraction,upper_fraction\r\n");
+            filters = filters ?? new AnalysisFilters();
+            var suffix = string.Join(",", new[] { Text("end_board_units_active_traits_v2"), Text(filters.Region), Text(filters.Queue), Text(filters.Tier),
+                Text(filters.Unit), Text(filters.Trait), Text(filters.Item), Text(filters.Augment) });
+            var csv = new StringBuilder("purpose,kind,set_id,set_number,patch,source_game_version,source_profile,region,queue,tier_label,first_composition,second_composition,sample_count,average_placement,first_played_at_utc,last_played_at_utc,ambiguous_lobby_count,state,policy_note,metric,numerator,denominator,estimate_fraction,lower_fraction,upper_fraction,composition_basis,filter_region,filter_queue,filter_tier,filter_unit,filter_trait,filter_item,filter_augment\r\n");
             foreach (var value in presentations)
             {
                 if (value == null || value.Scope == null) throw new ArgumentException("analysis_export_invalid_presentation");
@@ -32,14 +35,14 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                     Text(value.Scope.Region), Text(value.Scope.QueueId), Text(value.Scope.TierBucket), Text(value.FirstFingerprint), Text(value.SecondFingerprint),
                     Number(value.SampleCount), value.AveragePlacement.HasValue ? Number(value.AveragePlacement.Value) : "",
                     Time(value.FirstPlayedAt), Time(value.LastPlayedAt), Number(value.AmbiguousLobbyCount), Text(value.State.ToString()), Text(value.ReasonCode) };
-                if (value.Ratios.Count == 0) csv.Append(string.Join(",", prefix)).Append(",,,,,,\r\n");
+                if (value.Ratios.Count == 0) csv.Append(string.Join(",", prefix)).Append(",,,,,,,").Append(suffix).Append("\r\n");
                 else foreach (var ratio in value.Ratios)
                     csv.Append(string.Join(",", prefix)).Append(',').Append(string.Join(",", new[] { Text(ratio.Key), Number(ratio.Numerator), Number(ratio.Denominator),
-                        Number(ratio.Rate), Number(ratio.Interval.Lower), Number(ratio.Interval.Upper) })).Append("\r\n");
+                        Number(ratio.Rate), Number(ratio.Interval.Lower), Number(ratio.Interval.Upper) })).Append(',').Append(suffix).Append("\r\n");
             }
             return csv.ToString();
         }
-        public void Save(string path, IEnumerable<MetricPresentation> presentations)
+        public void Save(string path, IEnumerable<MetricPresentation> presentations, AnalysisFilters filters = null)
         {
             // Mono's parent traversal can stay at the same device root forever. Reject before any IO.
             if (string.IsNullOrWhiteSpace(path) || IsDevicePath(path) || !Path.IsPathRooted(path))
@@ -53,7 +56,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             var directory = Path.GetDirectoryName(target);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException("analysis_export_directory_missing");
             EnsureExternalDirectory(directory);
-            var content = Serialize(presentations); var staging = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            var content = Serialize(presentations, filters); var staging = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
                 using (var stream = new FileStream(staging, FileMode.CreateNew, FileAccess.Write, FileShare.None))

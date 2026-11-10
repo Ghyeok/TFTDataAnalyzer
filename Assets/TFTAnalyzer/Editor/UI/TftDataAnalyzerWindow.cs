@@ -130,7 +130,7 @@ namespace TFTAnalyzer.Editor.UI
             var exporter = new AnalysisCsvExporter(Path.GetDirectoryName(Application.dataPath));
             _analysisBinding = new AnalysisTab(tree.Q("analysis-tab"), _analysis,
                 () => EditorUtility.SaveFilePanel("개인 연구용 과거 관측 CSV 저장", "", "tft-historical-observations", "csv"),
-                (path, rows) => exporter.Save(path, rows));
+                (path, rows, filters) => exporter.Save(path, rows, filters));
             if (_about == null)
                 _about = new AboutViewModel(new ComplianceSettingsStore(Path.GetDirectoryName(Application.dataPath)));
             _aboutBinding = new AboutTab(tree.Q("about-tab"), _about,

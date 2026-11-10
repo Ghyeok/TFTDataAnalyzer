@@ -17,7 +17,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
         private readonly VisualElement _tab;
         private readonly AnalysisViewModel _vm;
         private readonly Func<string> _chooseExportPath;
-        private readonly Action<string, IReadOnlyList<MetricPresentation>> _writeExport;
+        private readonly Action<string, IReadOnlyList<MetricPresentation>, AnalysisFilters> _writeExport;
         private readonly DropdownField[] _filters;
         private readonly IntegerField _minimum;
         private readonly Button _refresh, _cancel, _export, _rowsPrevious, _rowsNext, _pairsPrevious, _pairsNext;
@@ -28,6 +28,11 @@ namespace TFTAnalyzer.Editor.UI.Analysis
 
         public AnalysisTab(VisualElement tab, AnalysisViewModel model, Func<string> chooseExportPath,
             Action<string, IReadOnlyList<MetricPresentation>> writeExport)
+            : this(tab, model, chooseExportPath, writeExport == null ? null :
+                new Action<string, IReadOnlyList<MetricPresentation>, AnalysisFilters>((path, rows, filters) => writeExport(path, rows))) { }
+
+        public AnalysisTab(VisualElement tab, AnalysisViewModel model, Func<string> chooseExportPath,
+            Action<string, IReadOnlyList<MetricPresentation>, AnalysisFilters> writeExport)
         {
             _tab = tab ?? throw new ArgumentNullException(nameof(tab));
             _vm = model ?? throw new ArgumentNullException(nameof(model));
@@ -84,6 +89,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
             var rows = _vm.Rows;
             var pairs = _vm.Pairs;
             var visibleFilters = _filters.Select(field => field.value).ToArray();
+            var appliedFilters = snapshot.AppliedFilters;
             var presentations = Array.AsReadOnly(_vm.Rows.Concat(_vm.Pairs).Select(row => row.Presentation).ToArray());
             var status = _tab.Q<Label>("analysis-export-status");
             bool IsCurrent() => _vm.CanExport && ReferenceEquals(snapshot, _vm.Snapshot) && Equals(identity, _vm.ActiveIdentity) &&
@@ -111,7 +117,7 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                     try
                     {
                         if (!IsCurrent()) { Reject(); return; }
-                        _writeExport(path, presentations);
+                        _writeExport(path, presentations, appliedFilters);
                         status.text = "개인 연구용 CSV를 저장했습니다.";
                     }
                     catch (Exception) { status.text = "CSV를 저장하지 못했습니다. 저장 위치를 확인하고 다시 시도해 주세요."; }
@@ -166,20 +172,12 @@ namespace TFTAnalyzer.Editor.UI.Analysis
 
         private void RenderFilters()
         {
-            var rows = _vm.Snapshot?.AllRows ?? Array.Empty<MetricRowViewModel>();
-            var descriptors = rows.Select(row => row.First).Where(value => value != null).ToArray();
             var current = _vm.Filters;
             var selected = new[] { current.Region, current.Queue, current.Tier, current.Unit, current.Trait, current.Item, current.Augment };
-            var options = new IEnumerable<string>[]
-            {
-                rows.Select(row => row.Presentation.Scope?.Region), rows.Select(row => row.Presentation.Scope?.QueueId),
-                rows.Select(row => row.Presentation.Scope?.TierBucket), descriptors.SelectMany(value => value.UnitIds),
-                descriptors.SelectMany(value => value.TraitIds), descriptors.SelectMany(value => value.ItemIds),
-                descriptors.SelectMany(value => value.AugmentIds)
-            };
+            var options = _vm.FilterOptions;
             for (var index = 0; index < _filters.Length; index++)
             {
-                var choices = new[] { All }.Concat(options[index].Concat(new[] { selected[index] })
+                var choices = new[] { All }.Concat((options?[index] ?? Array.Empty<string>()).Concat(new[] { selected[index] })
                     .Where(value => !string.IsNullOrEmpty(value)).Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal)).ToList();
                 _filters[index].choices = choices;
                 _filters[index].SetValueWithoutNotify(string.IsNullOrEmpty(selected[index]) ? All : selected[index]);

@@ -11,8 +11,10 @@ namespace TFTAnalyzer.Analytics
         public MetricScope Scope { get; }
         public CompositionFingerprint First { get; }
         public CompositionFingerprint Second { get; }
-        public IReadOnlyList<string> FirstAugmentIds { get; }
-        public IReadOnlyList<string> SecondAugmentIds { get; }
+        private readonly SortedSet<string> _firstAugmentIds = new SortedSet<string>(StringComparer.Ordinal);
+        private readonly SortedSet<string> _secondAugmentIds = new SortedSet<string>(StringComparer.Ordinal);
+        public IReadOnlyList<string> FirstAugmentIds => DomainValues.Copy(_firstAugmentIds);
+        public IReadOnlyList<string> SecondAugmentIds => DomainValues.Copy(_secondAugmentIds);
         public int Count { get; private set; }
         public int FirstHigherCount { get; private set; }
         public int SecondHigherCount => Count - FirstHigherCount;
@@ -29,15 +31,14 @@ namespace TFTAnalyzer.Analytics
             Scope = scope;
             First = first;
             Second = second;
-            FirstAugmentIds = DomainValues.Copy((firstAugmentIds ?? throw new ArgumentNullException(nameof(firstAugmentIds)))
-                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
-            SecondAugmentIds = DomainValues.Copy((secondAugmentIds ?? throw new ArgumentNullException(nameof(secondAugmentIds)))
-                .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal));
+            _firstAugmentIds.UnionWith(firstAugmentIds ?? throw new ArgumentNullException(nameof(firstAugmentIds)));
+            _secondAugmentIds.UnionWith(secondAugmentIds ?? throw new ArgumentNullException(nameof(secondAugmentIds)));
             FirstPlayedAt = LastPlayedAt = playedAt;
         }
 
         /// <summary>Records at most one eligible result or one ambiguity exclusion for a coobserved lobby.</summary>
-        internal void Add(bool? firstHigher, DateTimeOffset playedAt)
+        internal void Add(bool? firstHigher, DateTimeOffset playedAt,
+            IEnumerable<string> firstAugmentIds, IEnumerable<string> secondAugmentIds)
         {
             checked
             {
@@ -47,6 +48,11 @@ namespace TFTAnalyzer.Analytics
                     Count++;
                     if (firstHigher.Value) FirstHigherCount++;
                 }
+            }
+            if (firstHigher.HasValue)
+            {
+                _firstAugmentIds.UnionWith(firstAugmentIds ?? throw new ArgumentNullException(nameof(firstAugmentIds)));
+                _secondAugmentIds.UnionWith(secondAugmentIds ?? throw new ArgumentNullException(nameof(secondAugmentIds)));
             }
             if (playedAt < FirstPlayedAt) FirstPlayedAt = playedAt;
             if (playedAt > LastPlayedAt) LastPlayedAt = playedAt;

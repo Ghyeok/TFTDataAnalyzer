@@ -52,26 +52,59 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                     if (SameIdentity(observation.Scope.ActiveCatalog, identity)) observations.Add(observation);
                 }
                 token.ThrowIfCancellationRequested();
-                var aggregate = AggregateBuilder.Build(observations);
-                var result = Present(catalog, identity, observations, aggregate, policy, token);
-                if (_aggregates != null)
-                    foreach (var scope in aggregate.Scopes) await _aggregates.SaveAsync(scope, token);
+                var data = new AnalysisData(catalog, identity, observations.ToArray(), policy, token);
+                var aggregate = AggregateBuilder.Build(observations, null, token);
+                var result = Present(data, observations, aggregate, new AnalysisFilters(), token);
                 token.ThrowIfCancellationRequested();
+                if (_aggregates != null)
+                    await _aggregates.SaveGenerationAsync(aggregate.Scopes, token);
                 return result;
             }, token), token);
         }
 
         public static AnalysisSnapshot BuildSnapshot(StaticCatalog catalog, CatalogIdentity identity,
-            IEnumerable<AnonymousMatchObservation> observations, MetricPolicy policy = null)
+            IEnumerable<AnonymousMatchObservation> observations, MetricPolicy policy = null, CancellationToken token = default)
         {
             if (!MatchesCatalog(catalog, identity)) throw new ArgumentException("analysis_catalog_invalid");
             if (observations == null) throw new ArgumentNullException(nameof(observations));
-            var copy = observations.Where(x => x != null && SameIdentity(x.Scope.ActiveCatalog, identity)).ToArray();
-            return Present(catalog, identity, copy, AggregateBuilder.Build(copy), policy ?? new MetricPolicy(), CancellationToken.None);
+            var copy = new List<AnonymousMatchObservation>();
+            foreach (var observation in observations)
+            {
+                token.ThrowIfCancellationRequested();
+                if (observation != null && SameIdentity(observation.Scope.ActiveCatalog, identity)) copy.Add(observation);
+            }
+            token.ThrowIfCancellationRequested();
+            var data = new AnalysisData(catalog, identity, copy.ToArray(), policy ?? new MetricPolicy(), token);
+            return Present(data, copy, AggregateBuilder.Build(copy, null, token), new AnalysisFilters(), token);
         }
 
-        private static AnalysisSnapshot Present(StaticCatalog catalog, CatalogIdentity identity,
-            IEnumerable<AnonymousMatchObservation> observations, AggregateSnapshot aggregate, MetricPolicy policy, CancellationToken token)
+        internal static AnalysisSnapshot Recalculate(AnalysisData data, AnalysisFilters filters, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            bool Match(string selected, string actual) => string.IsNullOrEmpty(selected) || string.Equals(selected, actual, StringComparison.Ordinal);
+            var scoped = new List<AnonymousMatchObservation>();
+            foreach (var observation in data.Observations)
+            {
+                token.ThrowIfCancellationRequested();
+                if (Match(filters.Region, observation.Scope.Region) && Match(filters.Queue, observation.Scope.QueueId) &&
+                    Match(filters.Tier, observation.Scope.TierBucket)) scoped.Add(observation);
+            }
+            token.ThrowIfCancellationRequested();
+            bool ParticipantMatches(AnonymousParticipant participant)
+            {
+                token.ThrowIfCancellationRequested();
+                var units = participant.Units.Where(unit => Match(filters.Unit, unit.StableId));
+                return ((string.IsNullOrEmpty(filters.Unit) && string.IsNullOrEmpty(filters.Item)) ||
+                        units.Any(unit => string.IsNullOrEmpty(filters.Item) || unit.ItemIds.Contains(filters.Item, StringComparer.Ordinal))) &&
+                    (string.IsNullOrEmpty(filters.Trait) || participant.Traits.Any(trait => trait.IsActive && trait.StableId == filters.Trait)) &&
+                    (string.IsNullOrEmpty(filters.Augment) || participant.AugmentIds.Contains(filters.Augment, StringComparer.Ordinal));
+            }
+            var aggregate = AggregateBuilder.Build(scoped, ParticipantMatches, token);
+            return Present(data, scoped, aggregate, filters, token);
+        }
+
+        private static AnalysisSnapshot Present(AnalysisData data,
+            IEnumerable<AnonymousMatchObservation> observations, AggregateSnapshot aggregate, AnalysisFilters filters, CancellationToken token)
         {
             var descriptors = new Dictionary<string, CompositionDescriptor>(StringComparer.Ordinal);
             foreach (var participant in observations.SelectMany(x => x.Participants))
@@ -86,18 +119,18 @@ namespace TFTAnalyzer.Editor.UI.Analysis
                 token.ThrowIfCancellationRequested();
                 foreach (var metric in scope.Metrics)
                 {
-                    var presentation = policy.Evaluate(metric, catalog);
+                    var presentation = data.Policy.Evaluate(metric, data.Catalog);
                     if (presentation.Scope == null) throw new InvalidOperationException("analysis_scope_invalid");
                     rows.Add(new MetricRowViewModel(presentation, descriptors[metric.Fingerprint.Value]));
                 }
                 foreach (var pair in scope.Pairs)
                 {
-                    var presentation = policy.Evaluate(pair, catalog);
+                    var presentation = data.Policy.Evaluate(pair, data.Catalog);
                     if (presentation.Scope == null) throw new InvalidOperationException("analysis_scope_invalid");
                     pairs.Add(new MetricRowViewModel(presentation, descriptors[pair.First.Value], descriptors[pair.Second.Value]));
                 }
             }
-            return new AnalysisSnapshot(identity, rows, pairs, policy.MinimumSamples);
+            return new AnalysisSnapshot(data.Identity, rows, pairs, data.Policy.MinimumSamples, data, filters);
         }
 
         internal static bool SameIdentity(CatalogIdentity first, CatalogIdentity second) =>
