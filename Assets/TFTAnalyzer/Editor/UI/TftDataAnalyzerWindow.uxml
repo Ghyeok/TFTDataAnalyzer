@@ -134,6 +134,15 @@
                         <ui:Label name="collection-rate-limit" class="tft-wrapped-text" />
                         <ui:Label name="collection-cancellation" class="tft-wrapped-text" />
                         <ui:Label name="collection-scan-limit" class="tft-wrapped-text" />
+                        <ui:Foldout name="collection-incomplete-records" text="불완전 수신 기록" value="false" class="tft-data-section">
+                            <ui:Label text="추가 확인 필요 · 정상 통계 제외. 기록은 직접 선택해 삭제할 수 있습니다." class="tft-wrapped-text" />
+                            <ui:Button name="incomplete-refresh" text="기록 새로 확인" />
+                            <ui:Label name="incomplete-status" class="tft-wrapped-text" />
+                            <ui:VisualElement name="incomplete-list" />
+                            <ui:VisualElement name="incomplete-detail" />
+                            <ui:Button name="incomplete-delete" text="선택한 기록 삭제" />
+                        </ui:Foldout>
+                        <ui:VisualElement name="collection-incomplete-candidate" class="tft-data-section tft-tab-hidden" />
                     </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>

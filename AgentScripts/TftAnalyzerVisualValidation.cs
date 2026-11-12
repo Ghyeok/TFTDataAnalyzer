@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using TFTAnalyzer.Analytics;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.RiotApi;
 using TFTAnalyzer.Editor.UI;
@@ -23,6 +24,7 @@ public static class CollectionScopedVisualValidation
     public static Task<object> RunQuarantine() => Execute(false, false, true);
     /// <summary>Captures six fabricated failure categories at both supported widths without calling the API.</summary>
     public static Task<object> RunFailures() => Execute(false, false, false, true);
+    public static Task<object> RunIncompleteDetails() => Execute(false, false, false, false, true);
 
     public static object CleanupLastOwned()
     {
@@ -41,7 +43,7 @@ public static class CollectionScopedVisualValidation
     }
 
     /// <summary>Owns one bounded capture run, closes its exact window, and verifies existing windows, frames and focus.</summary>
-    private static async Task<object> Execute(bool failAfterOpen, bool failBeforeShow=false, bool quarantine=false, bool failures=false)
+    private static async Task<object> Execute(bool failAfterOpen, bool failBeforeShow=false, bool quarantine=false, bool failures=false, bool details=false)
     {
         var previousFocus = EditorWindow.focusedWindow;
         var existing = Resources.FindObjectsOfTypeAll<EditorWindow>();
@@ -57,7 +59,7 @@ public static class CollectionScopedVisualValidation
         var root = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Library/TftAnalyzerValidation");
         var ownershipPath = Path.Combine(root, "collection-visual-owned.json");
         var service = new OfflineStatus(quarantine, failures);
-        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(quarantine || failures ? 8 : 5)))
+        using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(quarantine || failures || details ? 12 : 5)))
         {
             try
             {
@@ -82,10 +84,40 @@ public static class CollectionScopedVisualValidation
                     .GetField("_dataManager",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(owned);
                 var selected=data.Rows.First(value=>value.IsSelectable);
                 if (!data.SelectActiveCatalog(selected.Identity)) throw new InvalidOperationException("Catalog selection failed.");
+                stage="RebuildingCollection";
                 typeof(TftDataAnalyzerWindow).GetField("selectedTab",BindingFlags.NonPublic|BindingFlags.Instance)
                     .SetValue(owned,"collection-tab");
                 owned.CreateGUI();
-                if (quarantine || failures)
+                if (details)
+                {
+                    stage="PreparingSyntheticDetails";
+                    var catalog=selected.Catalog;
+                    var unit=catalog.Units.First();
+                    var factory=new IncompleteCandidateFactory(catalog,IncompleteCandidateContext.UnsupportedVersion,1100);
+                    var candidateUnit=factory.Unit(factory.Id(CandidateIdKind.Unit,unit.StableId),factory.Number(CandidateNumberKind.UnitTier,2),factory.Items(Array.Empty<CandidateIdField>()));
+                    var participant=factory.Participant(1,factory.Number(CandidateNumberKind.Placement,3),factory.Number(CandidateNumberKind.LastRound,20),factory.Units(new[]{candidateUnit}),factory.TraitsState(CandidateFieldState.Missing),factory.AugmentsState(CandidateFieldState.Missing));
+                    var candidate=factory.Match(factory.Number(CandidateNumberKind.SetNumber,18),factory.Number(CandidateNumberKind.QueueId,1100),factory.Participants(new[]{participant}));
+                    var editorAssembly=typeof(TftDataAnalyzerWindow).Assembly;
+                    var recordType=editorAssembly.GetType("TFTAnalyzer.Editor.Persistence.IncompleteStoredRecord",true);
+                    var record=Activator.CreateInstance(recordType,BindingFlags.Instance|BindingFlags.NonPublic,null,new object[]{"synthetic",candidate,catalog},null);
+                    var rendererType=editorAssembly.GetType("TFTAnalyzer.Editor.UI.Collection.IncompleteSyntheticCandidateTab",true);
+                    var host=owned.rootVisualElement.Q("incomplete-detail");
+                    var renderer=Activator.CreateInstance(rendererType,new object[]{host});
+                    rendererType.GetMethod("ShowRecord",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(renderer,new[]{record});
+                    owned.rootVisualElement.Q<Foldout>("collection-incomplete-records").value=true;
+                    owned.rootVisualElement.Q<Label>("incomplete-status").text="검증용 합성 기록";
+                    foreach(var width in new[]{940,500})
+                    {
+                        owned.position=new Rect(80,80,width,700);
+                        owned.Focus(); owned.Repaint();
+                        await Task.Delay(250,deadline.Token);
+                        owned.rootVisualElement.Q<ScrollView>("collection-scroll").ScrollTo(host);
+                        await Task.Delay(250,deadline.Token);
+                        stage="Details-"+width;
+                        captures.Add(Capture(owned,root,"details"));
+                    }
+                }
+                else if (quarantine || failures)
                 {
                     var model = (CollectionViewModel)typeof(TftDataAnalyzerWindow)
                         .GetField("_collection", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(owned);
@@ -95,6 +127,7 @@ public static class CollectionScopedVisualValidation
                         foreach (var scenario in failures ? new[] { "reasons" } : new[] { "saved", "failed", "truncated" })
                         {
                             service.Scenario = scenario;
+                            stage="RunningSynthetic-" + scenario;
                             await model.StartAsync(summary => true);
                             if (failures ? model.Progress.Failed != 6 : model.Progress.Quarantined != 2)
                                 throw new InvalidOperationException("Synthetic run did not settle.");
@@ -102,6 +135,7 @@ public static class CollectionScopedVisualValidation
                             await Task.Delay(200, deadline.Token);
                             if (failures)
                             {
+                                stage="ScrollingFailureReasons";
                                 owned.rootVisualElement.Q<ScrollView>("collection-scroll")
                                     .ScrollTo(owned.rootVisualElement.Q<Label>("collection-failure-reasons"));
                                 await Task.Delay(200, deadline.Token);
@@ -153,7 +187,7 @@ public static class CollectionScopedVisualValidation
         };
         var reportName=failBeforeShow ? "collection-visual-initialization-failure-cleanup.json" :
             failAfterOpen ? "collection-visual-failure-cleanup.json" : quarantine ? "collection-quarantine-visual-final.json" :
-            failures ? "collection-failure-reasons-visual-final.json" : "collection-visual-final.json";
+            failures ? "collection-failure-reasons-visual-final.json" : details ? "collection-incomplete-details-visual-final.json" : "collection-visual-final.json";
         File.WriteAllText(Path.Combine(root, reportName),
             JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
@@ -184,7 +218,7 @@ public static class CollectionScopedVisualValidation
             image.SetPixels(InternalEditorUtility.ReadScreenPixel(new Vector2(rect.x, rect.y), width, height));
             image.Apply();
             var path=Path.Combine(root, "collection-window-"+width+
-                (scenario==null ? "" : scenario=="reasons" ? "-failure-reasons" : "-quarantine-"+scenario)+".png");
+                (scenario==null ? "" : scenario=="reasons" ? "-failure-reasons" : scenario=="details" ? "-incomplete-details" : "-quarantine-"+scenario)+".png");
             File.WriteAllBytes(path,image.EncodeToPNG());
             var footer=window.rootVisualElement.Q<Label>("historical-data-disclaimer");
             var scroll=window.rootVisualElement.Q<ScrollView>("collection-scroll");
@@ -201,7 +235,7 @@ public static class CollectionScopedVisualValidation
                 if (reasons.worldBound.yMin<0 || reasons.worldBound.yMax>height)
                     throw new InvalidOperationException("Failure categories were not visible.");
             }
-            else if (scenario!=null)
+            else if (scenario!=null && scenario!="details")
             {
                 var expected=scenario=="saved" ? "보고서 저장됨" : scenario=="failed" ? "보고서 저장 실패" : "상한 도달로 일부 누락";
                 if (!diagnostic.text.Contains("격리 2") || !diagnostic.text.Contains(expected) || diagnostic.worldBound.yMax>height)
@@ -236,8 +270,8 @@ public static class CollectionScopedVisualValidation
             // The summary constructor is internal; reflection supplies only fabricated numeric status to this isolated UI host.
             var result = (MatchCollectionSummary)Activator.CreateInstance(typeof(MatchCollectionSummary),
                 BindingFlags.Instance | BindingFlags.NonPublic, null,
-                _failures ? new object[] {6,5,0,0,0,6,false,1,false,0,null,0,false,false,false,1,1,1,1,1} :
-                new object[] {3,3,1,0,2,0,false,1,false,0,null,2,Scenario!="failed",Scenario=="failed",Scenario=="truncated",0,0,0,0,0}, null);
+                _failures ? new object[] {6,5,0,0,0,6,false,1,false,0,null,0,false,false,false,1,1,1,1,1,0,0,0,0} :
+                new object[] {3,3,1,0,2,0,false,1,false,0,null,2,Scenario!="failed",Scenario=="failed",Scenario=="truncated",0,0,0,0,0,0,0,0,0}, null);
             return Task.FromResult(result);
         }
     }

@@ -21,6 +21,7 @@ namespace TFTAnalyzer.Editor.RiotApi
         private readonly RiotApiClient _client;
         private readonly EnvironmentSeedPuuidProvider _seeds;
         private readonly Action<CollectionQuarantineReport> _saveReport;
+        private readonly Func<MatchReadWithIncompleteResult, CatalogIdentity, CancellationToken, IncompleteSaveResult> _saveIncomplete;
 
         /// <summary>Uses the existing key-safe client and store; constructing a service causes no network or environment reads.</summary>
         public MatchCollectionService(StaticCatalog catalog, ObservationStore store, RiotApiClient client = null,
@@ -29,13 +30,15 @@ namespace TFTAnalyzer.Editor.RiotApi
 
         /// <summary>Injects only the anonymous report sink for deterministic publication-failure tests.</summary>
         internal MatchCollectionService(StaticCatalog catalog, ObservationStore store, RiotApiClient client,
-            EnvironmentSeedPuuidProvider seeds, Action<CollectionQuarantineReport> saveReport)
+            EnvironmentSeedPuuidProvider seeds, Action<CollectionQuarantineReport> saveReport,
+            Func<MatchReadWithIncompleteResult, CatalogIdentity, CancellationToken, IncompleteSaveResult> saveIncomplete = null)
         {
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _client = client ?? new RiotApiClient();
             _seeds = seeds ?? new EnvironmentSeedPuuidProvider();
             _saveReport = saveReport ?? new CollectionQuarantineReportStore(_store.Paths).Save;
+            _saveIncomplete = saveIncomplete;
         }
 
         /// <summary>Attempts at most the requested unique matches and ten ID pages; cancellation preserves committed records.</summary>
@@ -133,13 +136,38 @@ namespace TFTAnalyzer.Editor.RiotApi
                 {
                     state.Fetched++;
                     token.ThrowIfCancellationRequested();
-                    var result = anonymizer.Read(stream, request.Region, request.TierBucket);
+                    var parsed = anonymizer.ReadWithIncomplete(stream, request.Region, request.TierBucket,
+                        request.QueueId, id, token);
                     token.ThrowIfCancellationRequested();
-                    if (!result.IsAccepted)
+                    var stop = false;
+                    if (parsed.Failure != null)
+                    {
+                        if (parsed.Failure.Code == "catalog_mismatch") state.Filtered++;
+                        else state.RecordFailure(parsed.Failure.ReasonCode);
+                    }
+                    else if (!parsed.NormalResult.IsAccepted)
                     {
                         state.Filtered++;
-                        return state.Quarantine.Add(result.UnknownStaticIds);
+                        stop = state.Quarantine.Add(parsed.NormalResult.UnknownStaticIds);
                     }
+                    if (parsed.IncompleteCandidate != null)
+                    {
+                        try
+                        {
+                            if (_saveIncomplete == null) state.IncompleteFailed++;
+                            else switch (_saveIncomplete(parsed, request.ActiveCatalog, token))
+                            {
+                                case IncompleteSaveResult.Saved: state.IncompleteSaved++; break;
+                                case IncompleteSaveResult.Duplicate: state.IncompleteDuplicate++; break;
+                                case IncompleteSaveResult.Full: state.IncompleteFull++; break;
+                                default: state.IncompleteFailed++; break;
+                            }
+                        }
+                        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                        catch { state.IncompleteFailed++; }
+                    }
+                    if (parsed.Failure != null || !parsed.NormalResult.IsAccepted) return stop;
+                    var result = parsed.NormalResult;
                     var observation = result.Observation;
                     if (!string.Equals(observation.MatchHash, ContentHasher.Sha256Hex("match-v1|" + id), StringComparison.Ordinal))
                     {
@@ -192,6 +220,7 @@ namespace TFTAnalyzer.Editor.RiotApi
         private sealed class Counts
         {
             internal int Requested, Fetched, Stored, Duplicate, Filtered, IdPages, StatusCode;
+            internal int IncompleteSaved, IncompleteDuplicate, IncompleteFailed, IncompleteFull;
             private int _unsupportedVersion, _gameVersion, _augments, _payload, _api, _processing;
             private int Failed => _unsupportedVersion + _gameVersion + _augments + _payload + _api + _processing;
             internal bool Cancelled, ScanLimitReached;
@@ -228,7 +257,8 @@ namespace TFTAnalyzer.Editor.RiotApi
             internal MatchCollectionSummary Snapshot() => new MatchCollectionSummary(Requested, Fetched, Stored,
                 Duplicate, Filtered, Failed, Cancelled, IdPages, ScanLimitReached, StatusCode, RetryAfterUtc,
                 Quarantine.QuarantinedMatches, ReportSaved, ReportFailed, Quarantine.Truncated,
-                _unsupportedVersion, _gameVersion, _augments, _payload, _api);
+                _unsupportedVersion, _gameVersion, _augments, _payload, _api,
+                IncompleteSaved, IncompleteDuplicate, IncompleteFailed, IncompleteFull);
         }
     }
 }

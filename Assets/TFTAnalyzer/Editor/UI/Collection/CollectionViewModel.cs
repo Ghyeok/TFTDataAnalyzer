@@ -253,7 +253,8 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 statusCode, retryAfterUtc, Progress.Quarantined, Progress.QuarantineReportSaved,
                 Progress.QuarantineReportFailed, Progress.QuarantineReportTruncated, Progress.FailedUnsupportedVersion,
                 Progress.FailedGameVersion, Progress.FailedAugments, Progress.FailedPayload,
-                Progress.FailedApi + additionalApiFailures);
+                Progress.FailedApi + additionalApiFailures, Progress.IncompleteSaved, Progress.IncompleteDuplicate,
+                Progress.IncompleteFailed, Progress.IncompleteFull);
 
         private void ApplyResult(MatchCollectionSummary result)
         {
@@ -268,6 +269,8 @@ namespace TFTAnalyzer.Editor.UI.Collection
                 SetStatus(CollectionState.Failed, "요청 제한으로 수집을 중단했습니다(429). " +
                     (result.RetryAfterUtc.HasValue ? result.RetryAfterUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) + " 이후 " : "제한을 확인한 뒤 ") +
                     "수동으로 다시 시도해 주세요. 자동으로 재개하지 않습니다.", "RateLimited");
+            else if (result.IncompleteFull > 0)
+                SetStatus(CollectionState.Failed, "별도 보관 상한에 도달했습니다. 불완전 수신 기록에서 선택 삭제한 뒤 필요할 때 다시 시도해 주세요.", "IncompleteStoreFull");
             else if (result.Failed > 0)
                 SetStatus(CollectionState.Failed, "일부 요청 또는 저장이 실패하여 수집이 종료되었습니다. 저장 수를 확인하고 연결·설정을 점검한 뒤 수동으로 다시 시도해 주세요.", "PartialFailure");
             else if (result.QuarantineReportTruncated)

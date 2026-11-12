@@ -13,8 +13,9 @@ using TFTAnalyzer.Serialization;
 namespace TFTAnalyzer.Editor.RiotApi
 {
     /// <summary>Consumes one bounded memory stream and admits only anonymous, catalog-bound complete lobbies.</summary>
-    public sealed class MatchAnonymizer
+    public sealed partial class MatchAnonymizer
     {
+        private readonly StaticCatalog _referenceCatalog;
         private readonly CatalogIdentity _identity;
         private readonly Dictionary<string, HashSet<string>> _ids;
         private readonly string _release;
@@ -28,6 +29,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             var actual = catalog.Manifest.Identity ?? new CatalogIdentity(catalog.Manifest.Patch, CatalogSourceProfile.OfficialOnly);
             if (!actual.Equals(activeCatalog) || actual.Patch.SetNumber != activeCatalog.Patch.SetNumber)
                 throw new ArgumentException("Active catalog identity does not match.");
+            _referenceCatalog = catalog;
             _identity = activeCatalog;
             _release = Release(NumericVersion(activeCatalog.Patch.SourceGameVersion));
             _ids = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal)

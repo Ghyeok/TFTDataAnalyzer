@@ -38,5 +38,9 @@ namespace TFTAnalyzer.Tests.UI
             bool scanLimitReached = false, int statusCode = 0, DateTimeOffset? retryAfterUtc = null) =>
             new MatchCollectionSummary(requested, fetched, stored, duplicate, filtered, failed, cancelled,
                 idPages, scanLimitReached, statusCode, retryAfterUtc);
+
+        internal static MatchCollectionSummary SummaryWithIncomplete() =>
+            new MatchCollectionSummary(9, 8, 2, 1, 0, 4, false, 1, false, 0, null,
+                0, false, false, false, 1, 1, 1, 0, 0, 3, 2, 1, 4);
     }
 }

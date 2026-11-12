@@ -30,6 +30,28 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        [TestCase("cancel")]
+        [TestCase("api")]
+        [TestCase("processing")]
+        public async Task IncompleteCountersSurviveCancellationAndExceptionFallback(string ending)
+        {
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            _service.LastProgress.Report(new CollectionProgress(CollectionFakeService.SummaryWithIncomplete()));
+            pending.SetException(ending == "cancel" ? new OperationCanceledException() :
+                ending == "api" ? new RiotApiException(RiotApiFailure.HttpError, 503) : new InvalidOperationException());
+            await run;
+            var json = JObject.FromObject(_vm.Progress);
+            Assert.That(json.Value<int?>("IncompleteSaved"), Is.EqualTo(3));
+            Assert.That(json.Value<int?>("IncompleteDuplicate"), Is.EqualTo(2));
+            Assert.That(json.Value<int?>("IncompleteFailed"), Is.EqualTo(1));
+            Assert.That(json.Value<int?>("IncompleteFull"), Is.EqualTo(4));
+            Assert.That(_vm.Progress.Stored, Is.EqualTo(2));
+            Assert.That(_vm.Progress.Duplicate, Is.EqualTo(1));
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(ending == "cancel" ? 4 : 5));
+        }
+
         /// <summary>Preserves prior failures across cancellation or exception fallbacks and rejects stale callbacks after reset.</summary>
         [TestCase("cancel", 2, 2, 0)]
         [TestCase("api", 3, 2, 1)]

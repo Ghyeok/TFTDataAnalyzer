@@ -13,6 +13,7 @@ using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.RiotApi;
 using TFTAnalyzer.Serialization;
+using TFTAnalyzer.Validation;
 using UnityEngine;
 
 namespace TFTAnalyzer.Tests.RiotApi
@@ -71,6 +72,105 @@ namespace TFTAnalyzer.Tests.RiotApi
             Assert.That(summary.Requested, Is.EqualTo(2));
             Assert.That(summary.Filtered, Is.EqualTo(2));
             Assert.That(transport.Details, Is.EqualTo(new[] { "M1", "M2" }));
+        }
+
+        [Test]
+        public async Task IncompleteSavePreservesOriginalFailureAndCountsSeparateOutcome()
+        {
+            var transport = new Transport { Body = id =>
+            {
+                var value = JObject.Parse(Body(id));
+                value["metadata"]["data_version"] = "999";
+                return value.ToString();
+            }};
+            var calls = 0;
+            var fixtureCatalog = ValidIncompleteCatalog();
+            Assert.DoesNotThrow(() => CanonicalCatalogSerializer.Serialize(fixtureCatalog));
+            Assert.DoesNotThrow(() => new IncompleteCandidateFactory(fixtureCatalog, IncompleteCandidateContext.UnsupportedVersion, 1100));
+            using (var probe = new MemoryStream(Encoding.UTF8.GetBytes(transport.Body("M1"))))
+            {
+                var parsed = new MatchAnonymizer(fixtureCatalog, Identity()).ReadWithIncomplete(probe, "asia", "MASTER+", 1100, "M1");
+                Assert.That(parsed.IncompleteCandidate, Is.Not.Null, "Direct extraction did not produce a candidate.");
+            }
+            var service = new MatchCollectionService(fixtureCatalog, new ObservationStore(_paths),
+                new RiotApiClient(new EnvironmentRiotApiKeyProvider(() => "secret-key"), transport),
+                new EnvironmentSeedPuuidProvider(() => "seed-a"), null,
+                (result, identity, token) => { calls++; Assert.That(result.IncompleteCandidate, Is.Not.Null); return IncompleteSaveResult.Saved; });
+            var summary = await service.CollectAsync(Request(1), null, default);
+            Assert.That(calls, Is.EqualTo(1));
+            Assert.That(summary.FailedUnsupportedVersion, Is.EqualTo(1));
+            Assert.That(summary.Failed, Is.EqualTo(1));
+            Assert.That(summary.IncompleteSaved, Is.EqualTo(1));
+            Assert.That(summary.Stored, Is.Zero);
+            Assert.That(await Observations(), Is.Empty);
+        }
+
+        [Test]
+        public async Task CancellationAfterIncompleteCommitPreservesOriginalFailureAndSavedCount()
+        {
+            var transport = new Transport { Body = id =>
+            {
+                var value = JObject.Parse(Body(id));
+                value["metadata"]["data_version"] = "999";
+                return value.ToString();
+            }};
+            using (var cancel = new CancellationTokenSource())
+            {
+                var service = new MatchCollectionService(ValidIncompleteCatalog(), new ObservationStore(_paths),
+                    new RiotApiClient(new EnvironmentRiotApiKeyProvider(() => "secret-key"), transport),
+                    new EnvironmentSeedPuuidProvider(() => "seed-a"), null,
+                    (result, identity, token) => { cancel.Cancel(); return IncompleteSaveResult.Saved; });
+                var summary = await service.CollectAsync(Request(1), null, cancel.Token);
+                Assert.That(summary.Cancelled, Is.True);
+                Assert.That(summary.FailedUnsupportedVersion, Is.EqualTo(1));
+                Assert.That(summary.IncompleteSaved, Is.EqualTo(1));
+                Assert.That(summary.Stored, Is.Zero);
+            }
+        }
+
+        [Test]
+        public async Task IncompleteCollectionPersistsAndReloadsOutsideNormalObservations()
+        {
+            var paths = new StaticCatalogPaths(Path.Combine(_root, "Project"));
+            var catalog = ValidIncompleteCatalog();
+            var index = ScriptableObject.CreateInstance<CatalogIndex>();
+            try
+            {
+                var writer = new CatalogAssetWriter(paths);
+                var staging = paths.CreateStagingDirectory();
+                var staged = writer.WriteStagedCatalog(catalog, new CatalogValidator().Validate(catalog), staging);
+                writer.Publish(staged, paths.CanonicalFinalDirectory(Identity()));
+                writer.CleanupStaging(staging);
+                index.Upsert(Identity(), staged.ContentHash, paths.CatalogAssetPath(Identity()));
+                var published = new PublishedCatalogLoader(paths).Load(index).Single().Catalog;
+                Assert.That(published, Is.Not.Null);
+                var incomplete = new IncompleteMatchStore(_paths);
+                var transport = new Transport { Body = id =>
+                {
+                    var value = JObject.Parse(Body(id));
+                    value["metadata"]["data_version"] = "999";
+                    return value.ToString();
+                }};
+                var service = new MatchCollectionService(published, new ObservationStore(_paths),
+                    new RiotApiClient(new EnvironmentRiotApiKeyProvider(() => "secret-key"), transport),
+                    new EnvironmentSeedPuuidProvider(() => "seed-a"), null,
+                    (result, identity, token) => incomplete.Save(result, index, identity, token));
+                var summary = await service.CollectAsync(Request(1), null, default);
+                Assert.That(summary.FailedUnsupportedVersion, Is.EqualTo(1));
+                Assert.That(summary.IncompleteSaved, Is.EqualTo(1));
+                Assert.That(summary.Stored, Is.Zero);
+                var reloaded = new IncompleteMatchStore(_paths).ReadAll(index, Identity(), default);
+                Assert.That(reloaded.Count, Is.EqualTo(1));
+                Assert.That(reloaded[0].ReferenceAvailable, Is.True);
+                Assert.That(reloaded[0].Candidate.Participants.Values[0].Units.Values[0].StableId.Value, Is.EqualTo("TEST_UNIT"));
+                Assert.That(await Observations(), Is.Empty);
+                Assert.That(incomplete.Delete(reloaded[0].Handle, default), Is.True);
+                var again = await service.CollectAsync(Request(1), null, default);
+                Assert.That(again.IncompleteSaved, Is.EqualTo(1));
+                Assert.That(new IncompleteMatchStore(_paths).ReadAll(index, Identity(), default).Count, Is.EqualTo(1));
+                Assert.That(await Observations(), Is.Empty);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(index); }
         }
 
         /// <summary>Preserves only existing anonymous unknown-ID digests through the real collection path.</summary>
@@ -555,6 +655,16 @@ namespace TFTAnalyzer.Tests.RiotApi
             new[] { new TraitRecord("TEST_TRAIT", null, null, null, "", null) },
             new[] { new ItemRecord("TEST_ITEM", null, null, null, null, "", null) },
             new[] { new AugmentRecord("TEST_AUGMENT", null, "", null, null, null, "", null) });
+        private static StaticCatalog ValidIncompleteCatalog()
+        {
+            var name = new LocalizedText("", "Synthetic");
+            return new StaticCatalog(
+                new PatchManifest(2, Identity(), "Test", DateTime.UnixEpoch, "", null, DateTime.UnixEpoch, null, 0, 0, "", ""),
+                new[] { new UnitRecord("TEST_UNIT", name, 1, null, "", null) },
+                new[] { new TraitRecord("TEST_TRAIT", name, null, null, "", null) },
+                new[] { new ItemRecord("TEST_ITEM", name, null, null, null, "", null) },
+                new[] { new AugmentRecord("TEST_AUGMENT", name, "", null, null, null, "", null) });
+        }
         /// <summary>Changes only the fabricated match's identifying request key and queue.</summary>
         private static string Body(string id, int queue = 1100)
         {

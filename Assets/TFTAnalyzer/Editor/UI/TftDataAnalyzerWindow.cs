@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using TFTAnalyzer.Editor.Ingestion;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.UI.Data;
@@ -43,6 +44,7 @@ namespace TFTAnalyzer.Editor.UI
         private CatalogBrowserTab _browserBinding;
         private CollectionViewModel _collection;
         private CollectionTab _collectionBinding;
+        private IncompleteRecordsTab _incompleteRecordsBinding;
         private AnalysisViewModel _analysis;
         private AnalysisTab _analysisBinding;
         private AboutViewModel _about;
@@ -71,6 +73,8 @@ namespace TFTAnalyzer.Editor.UI
             _dataBinding = null;
             _collectionBinding?.Dispose();
             _collectionBinding = null;
+            _incompleteRecordsBinding?.Dispose();
+            _incompleteRecordsBinding = null;
             _analysisBinding?.Dispose();
             _analysisBinding = null;
             _aboutBinding?.Dispose();
@@ -127,6 +131,12 @@ namespace TFTAnalyzer.Editor.UI
             SyncCollectionCatalog();
             _collectionBinding = new CollectionTab(tree.Q("collection-tab"), _collection,
                 _confirmCollection ?? (summary => EditorUtility.DisplayDialog("과거 경기 수집 조건 확인", summary, "수집", "취소")));
+            var incompleteStore = new IncompleteMatchStore(new AnalyzerStorePaths(Path.GetDirectoryName(Application.dataPath)));
+            _incompleteRecordsBinding = new IncompleteRecordsTab(tree.Q("collection-incomplete-records"),
+                () => incompleteStore.ReadAll(AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath),
+                    _dataManager.ActiveIdentity, CancellationToken.None),
+                handle => incompleteStore.Delete(handle, CancellationToken.None),
+                summary => EditorUtility.DisplayDialog("불완전 수신 기록 삭제", summary, "삭제", "취소"));
             var exporter = new AnalysisCsvExporter(Path.GetDirectoryName(Application.dataPath));
             _analysisBinding = new AnalysisTab(tree.Q("analysis-tab"), _analysis,
                 () => EditorUtility.SaveFilePanel("개인 연구용 과거 관측 CSV 저장", "", "tft-historical-observations", "csv"),
@@ -151,6 +161,7 @@ namespace TFTAnalyzer.Editor.UI
 
         private void SyncCollectionCatalog()
         {
+            _incompleteRecordsBinding?.Invalidate();
             var row = _dataManager.Rows.FirstOrDefault(value => value.IsSelectable &&
                 value.Identity.Equals(_dataManager.ActiveIdentity));
             _collection?.SetCatalog(row?.Catalog, row?.Identity);
@@ -169,6 +180,8 @@ namespace TFTAnalyzer.Editor.UI
             _dataBinding = null;
             _collectionBinding?.Dispose();
             _collectionBinding = null;
+            _incompleteRecordsBinding?.Dispose();
+            _incompleteRecordsBinding = null;
             _analysisBinding?.Dispose();
             _analysisBinding = null;
             _aboutBinding?.Dispose();

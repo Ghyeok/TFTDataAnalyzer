@@ -17,6 +17,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
         public int FailedPayload { get; }
         public int FailedApi { get; }
         public int FailedProcessing { get; }
+        public int IncompleteSaved { get; }
+        public int IncompleteDuplicate { get; }
+        public int IncompleteFailed { get; }
+        public int IncompleteFull { get; }
         public int IdPages { get; }
         public bool Cancelled { get; }
         public bool ScanLimitReached { get; }
@@ -42,6 +46,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
             FailedPayload = summary.FailedPayload;
             FailedApi = summary.FailedApi;
             FailedProcessing = summary.FailedProcessing;
+            IncompleteSaved = summary.IncompleteSaved;
+            IncompleteDuplicate = summary.IncompleteDuplicate;
+            IncompleteFailed = summary.IncompleteFailed;
+            IncompleteFull = summary.IncompleteFull;
             IdPages = summary.IdPages;
             Cancelled = summary.Cancelled;
             ScanLimitReached = summary.ScanLimitReached;
