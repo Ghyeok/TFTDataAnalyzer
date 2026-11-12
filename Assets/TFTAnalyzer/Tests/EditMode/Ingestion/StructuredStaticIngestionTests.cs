@@ -124,6 +124,69 @@ namespace TFTAnalyzer.Tests.Ingestion
             return new DataDragonSnapshot(Pair("champions"), Pair("traits"), Pair("items"), Pair("augments"));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void OfficialAugments_DuplicateUnusedContainerIsSkippedWithWarning(bool metadataLast)
+        {
+            var source = OfficialSnapshot(Document("ko_kr"), Document("en_us"));
+            HttpResponseData AddContainer(HttpResponseData response)
+            {
+                const string metadata = "\"augment-container\":{\"name\":\"first\",\"name\":\"second\"}";
+                var json = metadataLast ? response.Utf8Body.Insert(response.Utf8Body.LastIndexOf('}'), "," + metadata) : response.Utf8Body.Insert(1, metadata + ",");
+                return new HttpResponseData(response.Url, response.StatusCode, Encoding.UTF8.GetBytes(json), response.ETag, response.ContentType, response.RetrievedUtc);
+            }
+            var pair = new DataDragonPayloadPair(AddContainer(source.Augments.KoKr), AddContainer(source.Augments.EnUs));
+            var snapshot = new DataDragonSnapshot(source.Champions, source.Traits, source.Items, pair);
+            var result = new DataDragonAdapter(new CommunityDragonShapeTests.ShapeTransport()).ParseWithDiagnostics(snapshot, Patch);
+            Assert.That(result.Issues.Any(x => x.Severity == ValidationSeverity.Error), Is.False);
+            Assert.That(result.Catalog.Augments.Count, Is.EqualTo(1));
+            Assert.That(result.Issues.Any(x => x.Code == "ddragon_augment_metadata_skipped"), Is.True);
+        }
+
+        [TestCase("root")]
+        [TestCase("data")]
+        [TestCase("other")]
+        [TestCase("malformed")]
+        [TestCase("trailing")]
+        [TestCase("item")]
+        [TestCase("metadata_trailing_comma")]
+        [TestCase("outside_trailing_comma")]
+        [TestCase("single_quotes")]
+        [TestCase("comments")]
+        [TestCase("nonfinite")]
+        [TestCase("nested_data")]
+        [TestCase("depth")]
+        [TestCase("size")]
+        public void OfficialAugments_RejectsDamageOutsideUnusedMetadata(string damage)
+        {
+            var source = OfficialSnapshot(Document("ko_kr"), Document("en_us"));
+            HttpResponseData Alter(HttpResponseData response)
+            {
+                var json = response.Utf8Body;
+                if (damage == "root") json = json.Insert(1, "\"augment-container\":{},\"augment-container\":{},");
+                if (damage == "data") json = json.Insert(1, "\"data\":{},");
+                if (damage == "other") json = json.Insert(1, "\"other\":{\"x\":1,\"x\":2},");
+                if (damage == "malformed") json = json.Insert(1, "\"augment-container\":{\"x\":[},");
+                if (damage == "trailing") json += " {}";
+                if (damage == "item") json = json.Insert(1, "\"augment-container\":{\"name\":1,\"name\":2},");
+                if (damage == "metadata_trailing_comma") json = json.Insert(1, "\"augment-container\":{\"name\":1,},");
+                if (damage == "outside_trailing_comma") json = json.Insert(1, "\"other\":{\"name\":1,},");
+                if (damage == "single_quotes") json = json.Insert(1, "\"augment-container\":{'name':1},");
+                if (damage == "comments") json = json.Insert(1, "\"augment-container\":{/*comment*/\"name\":1},");
+                if (damage == "nonfinite") json = json.Insert(1, "\"augment-container\":{\"name\":NaN},");
+                if (damage == "nested_data") { var pos = json.IndexOf('{', json.IndexOf("\"data\"", StringComparison.Ordinal)); json = json.Insert(pos + 1, "\"synthetic\":{\"x\":1,\"x\":2},"); }
+                if (damage == "depth") json = json.Insert(1, "\"augment-container\":{\"x\":" + new string('[', 65) + "0" + new string(']', 65) + "},");
+                if (damage == "size") json = json.Insert(1, "\"augment-container\":{\"x\":\"" + new string('x', 16 * 1024 * 1024) + "\"},");
+                return new HttpResponseData(response.Url, response.StatusCode, Encoding.UTF8.GetBytes(json), response.ETag, response.ContentType, response.RetrievedUtc);
+            }
+            var pair = new DataDragonPayloadPair(Alter(damage == "item" ? source.Items.KoKr : source.Augments.KoKr),
+                damage == "item" ? source.Items.EnUs : source.Augments.EnUs);
+            var snapshot = damage == "item" ? new DataDragonSnapshot(source.Champions, source.Traits, pair, source.Augments) :
+                new DataDragonSnapshot(source.Champions, source.Traits, source.Items, pair);
+            var result = new DataDragonAdapter(new CommunityDragonShapeTests.ShapeTransport()).ParseWithDiagnostics(snapshot, Patch);
+            Assert.That(result.Issues.Any(x => x.Severity == ValidationSeverity.Error), Is.True);
+        }
+
         [Test]
         public void StructuredStatic_OfficialSuppliesTypedStatsAndPreservesOldFlatEffects()
         {
@@ -150,6 +213,7 @@ namespace TFTAnalyzer.Tests.Ingestion
             internal int Requests, CommunityRequests;
             internal int IconRequests;
             internal bool AllowSupplement;
+            internal bool DuplicateAugmentMetadata;
             public Task<HttpResponseData> GetAsync(string url, CancellationToken token)
             {
                 token.ThrowIfCancellationRequested(); Requests++;
@@ -176,6 +240,8 @@ namespace TFTAnalyzer.Tests.Ingestion
                     url.EndsWith("tft-item.json") ? "items" : url.EndsWith("tft-augments.json") ? "augments" : throw new InvalidOperationException("Unexpected fake URL.");
                 var locale = url.Contains("ko_KR") ? "ko" : "en";
                 var body = OfficialSnapshot(Ko, En).AllResponses.Single(x => x.Url.Contains("/" + locale + "/") && x.Url.EndsWith("/" + kind)).Body;
+                if (kind == "augments" && DuplicateAugmentMetadata)
+                    body = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(body).Insert(1, "\"augment-container\":{\"name\":1,\"name\":2},"));
                 return Task.FromResult(new HttpResponseData(url, 200, body, "", "application/json", DateTime.UnixEpoch));
             }
         }
