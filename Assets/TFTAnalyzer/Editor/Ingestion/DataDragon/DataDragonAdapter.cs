@@ -221,7 +221,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
             var sources = PairSources(pair);
-            foreach (var record in Join(pair, patch, setPrefixes, true))
+            foreach (var record in Join(pair, patch, setPrefixes, true, issues))
             {
                 var structured = StructuredStaticReader.Read("augment", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("augment", record.KoKr, record.EnUs, false));
                 var value = new AugmentRecord(
@@ -243,10 +243,10 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             DataDragonPayloadPair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes,
-            bool includeGenericRecords)
+            bool includeGenericRecords, List<ValidationIssue> augmentIssues = null)
         {
-            var ko = ReadRecords(pair.KoKr);
-            var en = ReadRecords(pair.EnUs);
+            var ko = ReadRecords(pair.KoKr, augmentIssues);
+            var en = ReadRecords(pair.EnUs, augmentIssues);
             return ko.Keys
                 .Concat(en.Keys)
                 .Distinct(StringComparer.Ordinal)
@@ -273,9 +273,9 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 .Where(record => !string.IsNullOrWhiteSpace(record.Name.DisplayValue));
         }
 
-        private static Dictionary<string, SourceRecord> ReadRecords(HttpResponseData response)
+        private static Dictionary<string, SourceRecord> ReadRecords(HttpResponseData response, List<ValidationIssue> augmentIssues = null)
         {
-            var root = StructuredStaticReader.ParseDocument(response.Utf8Body);
+            var root = augmentIssues == null ? StructuredStaticReader.ParseDocument(response.Utf8Body) : ParseAugmentDocument(response.Utf8Body, augmentIssues);
             var data = root["data"] as JObject;
             if (data == null)
             {
@@ -297,6 +297,140 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
             }
 
             return result;
+        }
+
+        // Data Dragon's augment-container is unused metadata, not a catalog record.
+        // Keep the rest of the document strict, including duplicate root and data keys.
+        private static JObject ParseAugmentDocument(string json, List<ValidationIssue> issues)
+        {
+            const int maxCharacters = 16 * 1024 * 1024;
+            if (json.Length > maxCharacters) throw new JsonSerializationException("augment_document_too_large");
+            StrictJsonSyntax.Validate(json);
+            using (var reader = new JsonTextReader(new System.IO.StringReader(json)) { DateParseHandling = DateParseHandling.None, MaxDepth = 64 })
+            {
+                if (!reader.Read() || reader.TokenType != JsonToken.StartObject) throw new JsonSerializationException("invalid_augment_document");
+                var root = new JObject();
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                while (reader.Read() && reader.TokenType != JsonToken.EndObject)
+                {
+                    if (reader.TokenType != JsonToken.PropertyName) throw new JsonSerializationException("invalid_augment_document");
+                    var name = (string)reader.Value;
+                    if (!seen.Add(name) || !reader.Read()) throw new JsonSerializationException("invalid_augment_document");
+                    if (name == "augment-container")
+                    {
+                        if (reader.TokenType != JsonToken.StartObject) throw new JsonSerializationException("invalid_augment_container");
+                        reader.Skip();
+                        if (!issues.Any(x => x.Code == "ddragon_augment_metadata_skipped"))
+                            issues.Add(new ValidationIssue(ValidationSeverity.Warning, "ddragon_augment_metadata_skipped", "",
+                                "공식 증강 자료의 사용하지 않는 부가 정보를 제외했습니다. 증강 목록은 별도로 검증합니다."));
+                    }
+                    else
+                    {
+                        root.Add(name, JToken.ReadFrom(reader, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error }));
+                    }
+                }
+                if (reader.TokenType != JsonToken.EndObject || reader.Read()) throw new JsonSerializationException("invalid_augment_document");
+                return root;
+            }
+        }
+
+        // JsonTextReader accepts extensions such as comments and trailing commas. Validate
+        // standard JSON separately before skipping the one unused metadata object.
+        private sealed class StrictJsonSyntax
+        {
+            private readonly string _text;
+            private int _offset;
+            private StrictJsonSyntax(string text) { _text = text; }
+            internal static void Validate(string text)
+            {
+                var parser = new StrictJsonSyntax(text);
+                parser.Value(0); parser.Space();
+                if (parser._offset != text.Length) throw Invalid();
+            }
+            private static JsonSerializationException Invalid() => new JsonSerializationException("invalid_augment_json_syntax");
+            private void Space() { while (_offset < _text.Length && (_text[_offset] == ' ' || _text[_offset] == '\t' || _text[_offset] == '\r' || _text[_offset] == '\n')) _offset++; }
+            private bool Take(char value) { if (_offset < _text.Length && _text[_offset] == value) { _offset++; return true; } return false; }
+            private void Require(char value) { if (!Take(value)) throw Invalid(); }
+            private void Value(int depth)
+            {
+                if (depth > 64) throw Invalid();
+                Space();
+                if (_offset >= _text.Length) throw Invalid();
+                var ch = _text[_offset];
+                if (ch == '{') { Object(depth + 1); return; }
+                if (ch == '[') { Array(depth + 1); return; }
+                if (ch == '"') { String(); return; }
+                if (ch == 't') { Literal("true"); return; }
+                if (ch == 'f') { Literal("false"); return; }
+                if (ch == 'n') { Literal("null"); return; }
+                Number();
+            }
+            private void Object(int depth)
+            {
+                Require('{'); Space(); if (Take('}')) return;
+                while (true)
+                {
+                    Space(); String(); Space(); Require(':'); Value(depth); Space();
+                    if (Take('}')) return;
+                    Require(','); Space();
+                }
+            }
+            private void Array(int depth)
+            {
+                Require('['); Space(); if (Take(']')) return;
+                while (true)
+                {
+                    Value(depth); Space(); if (Take(']')) return;
+                    Require(','); Space();
+                }
+            }
+            private void String()
+            {
+                Require('"');
+                while (_offset < _text.Length)
+                {
+                    var ch = _text[_offset++];
+                    if (ch == '"') return;
+                    if (ch < 0x20) throw Invalid();
+                    if (ch != '\\') continue;
+                    if (_offset >= _text.Length) throw Invalid();
+                    ch = _text[_offset++];
+                    if (ch == 'u')
+                    {
+                        for (var i = 0; i < 4; i++)
+                        {
+                            if (_offset >= _text.Length || !IsHex(_text[_offset++])) throw Invalid();
+                        }
+                    }
+                    else if (ch != '"' && ch != '\\' && ch != '/' && ch != 'b' && ch != 'f' && ch != 'n' && ch != 'r' && ch != 't') throw Invalid();
+                }
+                throw Invalid();
+            }
+            private static bool IsHex(char ch) => ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F';
+            private static bool Digit(char ch) => ch >= '0' && ch <= '9';
+            private void Literal(string value)
+            {
+                foreach (var ch in value) Require(ch);
+            }
+            private void Number()
+            {
+                Take('-');
+                if (_offset >= _text.Length) throw Invalid();
+                if (Take('0')) { if (_offset < _text.Length && Digit(_text[_offset])) throw Invalid(); }
+                else
+                {
+                    if (_text[_offset] < '1' || _text[_offset] > '9') throw Invalid();
+                    while (_offset < _text.Length && Digit(_text[_offset])) _offset++;
+                }
+                if (Take('.')) Digits();
+                if (Take('e') || Take('E')) { if (!Take('+')) Take('-'); Digits(); }
+            }
+            private void Digits()
+            {
+                var start = _offset;
+                while (_offset < _text.Length && Digit(_text[_offset])) _offset++;
+                if (_offset == start) throw Invalid();
+            }
         }
 
         private static IReadOnlyCollection<string> DiscoverSetPrefixes(

@@ -100,6 +100,18 @@ namespace TFTAnalyzer.Tests.Persistence
             Assert.That(Directory.GetDirectories(_paths.StagingDirectory), Is.Empty);
         }
 
+        [Test]
+        public async Task OfficialAugments_MetadataWarningReachesImportReportAndManifest()
+        {
+            var transport = Transport(); transport.DuplicateAugmentMetadata = true;
+            var result = await NetworkPipeline(transport, new Index()).RunAsync(Request(false), default);
+            Assert.That(result.Published, Is.True, string.Join(",", result.Validation.Issues.Select(x => x.Code)));
+            Assert.That(result.Validation.Issues.Count(x => x.Code == "ddragon_augment_metadata_skipped"), Is.EqualTo(1));
+            var manifest = JObject.Parse(File.ReadAllText(Path.Combine(result.FinalDirectory, "manifest.json")));
+            Assert.That(manifest.Value<int>("validationWarningCount"), Is.EqualTo(result.Validation.WarningCount));
+            Assert.That(result.Catalog.Augments.Single().StableId, Is.EqualTo("TFT_Shape_Augment_A"));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task StructuredStatic_OfficialParseErrorReachesReportWithoutPromotionOrPublication(bool supplement)
