@@ -271,6 +271,9 @@ namespace TFTAnalyzer.Editor.UI.Collection
                     "수동으로 다시 시도해 주세요. 자동으로 재개하지 않습니다.", "RateLimited");
             else if (result.IncompleteFull > 0)
                 SetStatus(CollectionState.Failed, "별도 보관 상한에 도달했습니다. 불완전 수신 기록에서 선택 삭제한 뒤 필요할 때 다시 시도해 주세요.", "IncompleteStoreFull");
+            else if (result.IncompleteFailed > 0)
+                SetStatus(CollectionState.Failed, (result.Failed > 0 ? "일부 요청 또는 저장이 실패했습니다. " : "") +
+                    "불완전 수신 기록의 별도 보관에 실패했습니다. 저장 공간과 설정을 확인한 뒤 필요할 때 수동으로 다시 시도해 주세요.", "IncompleteStoreFailed");
             else if (result.Failed > 0)
                 SetStatus(CollectionState.Failed, "일부 요청 또는 저장이 실패하여 수집이 종료되었습니다. 저장 수를 확인하고 연결·설정을 점검한 뒤 수동으로 다시 시도해 주세요.", "PartialFailure");
             else if (result.QuarantineReportTruncated)

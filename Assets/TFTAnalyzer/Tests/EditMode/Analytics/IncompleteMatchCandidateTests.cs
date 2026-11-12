@@ -99,6 +99,13 @@ namespace TFTAnalyzer.Tests.Analytics
             Assert.That(f.Augments(new CandidateIdField[] { null }).State, Is.EqualTo(CandidateFieldState.InvalidFormat));
         }
 
+        [Test]
+        public void CatalogUnconfirmedArrayMeaningRemainsUnverifiedEvenForConfirmedContext()
+        {
+            var f = Factory(IncompleteCandidateContext.SupportedVersionPatchConfirmed);
+            Assert.That(f.AugmentsState(CandidateFieldState.CatalogUnconfirmed).Meaning, Is.EqualTo(CandidateMeaning.Unverified));
+        }
+
         [TestCase(CandidateIdKind.Unit, "UNIT_A")]
         [TestCase(CandidateIdKind.Item, "ITEM_A")]
         [TestCase(CandidateIdKind.Trait, "TRAIT_A")]

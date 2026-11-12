@@ -30,6 +30,19 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        [TestCase(0)]
+        [TestCase(1)]
+        public async Task IncompleteStorageFailureIsReportedSeparatelyFromNormalFailures(int failed)
+        {
+            _service.Run = token => Task.FromResult(new MatchCollectionSummary(1, 1, 0, 0, 1, failed,
+                false, 1, false, 0, null, incompleteFailed: 1));
+            await _vm.StartAsync(summary => true);
+            Assert.That(_vm.State, Is.EqualTo(CollectionState.Failed));
+            Assert.That(_vm.StatusText, Does.Contain("별도 보관").And.Contain("실패"));
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(failed));
+            Assert.That(_vm.Progress.IncompleteFailed, Is.EqualTo(1));
+        }
+
         [TestCase("cancel")]
         [TestCase("api")]
         [TestCase("processing")]

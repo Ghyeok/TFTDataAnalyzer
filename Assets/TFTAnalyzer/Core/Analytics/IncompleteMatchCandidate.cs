@@ -296,7 +296,7 @@ namespace TFTAnalyzer.Analytics
         {
             RequireNonvalueState(state);
             if (state == CandidateFieldState.OutOfRange) throw new ArgumentException("Invalid array field state.");
-            return new CandidateList<T>(_owner, _meaning, kind, state);
+            return new CandidateList<T>(_owner, state == CandidateFieldState.CatalogUnconfirmed ? CandidateMeaning.Unverified : _meaning, kind, state);
         }
 
         private void RequireOwner(IncompleteCandidateNode value)
