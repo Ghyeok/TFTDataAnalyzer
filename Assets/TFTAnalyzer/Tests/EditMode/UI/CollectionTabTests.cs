@@ -50,6 +50,21 @@ namespace TFTAnalyzer.Tests.UI
             }
         }
 
+        [UnityTest]
+        public IEnumerator SeparateIncompleteCountsDoNotReplaceNormalOutcomes()
+        {
+            _service.Run = token => Task.FromResult(CollectionFakeService.SummaryWithIncomplete());
+            _approve = true;
+            Submit("collection-start");
+            yield return CollectionUITestSupport.WaitForSettled(_vm);
+            var text = _tree.Q<Label>("collection-counts").text;
+            Assert.That(text, Does.Contain("저장 2").And.Contain("중복 1").And.Contain("실패 4"));
+            Assert.That(text, Does.Contain("별도 보관 성공 3").And.Contain("중복 건너뜀 2")
+                .And.Contain("별도 보관 실패 1").And.Contain("상한 도달 4"));
+            Assert.That(text, Does.Contain("최대 128건").And.Contain("선택해 삭제"));
+            Assert.That(_tree.Q<Label>("collection-status").text, Does.Contain("선택 삭제"));
+        }
+
         /// <summary>Keeps settled failure counts visible through readiness checks and removes them when a new successful run completes.</summary>
         [UnityTest]
         public IEnumerator FailureReasonsRenderConfirmedEventsAndClearForNextRun()

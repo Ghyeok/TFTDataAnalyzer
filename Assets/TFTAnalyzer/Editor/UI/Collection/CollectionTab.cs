@@ -91,7 +91,10 @@ namespace TFTAnalyzer.Editor.UI.Collection
             _tab.Q<Label>("collection-status").text = _vm.StatusText;
             var progress = _vm.Progress;
             _tab.Q<Label>("collection-counts").text = $"상세 시도 {progress.Requested} · 가져옴 {progress.Fetched} · 저장 {progress.Stored}\n" +
-                $"중복 {progress.Duplicate} · 필터 제외 {progress.Filtered} · 실패 {progress.Failed}";
+                $"중복 {progress.Duplicate} · 필터 제외 {progress.Filtered} · 실패 {progress.Failed}\n" +
+                $"별도 보관 성공 {progress.IncompleteSaved} · 중복 건너뜀 {progress.IncompleteDuplicate} · " +
+                $"별도 보관 실패 {progress.IncompleteFailed} · 상한 도달 {progress.IncompleteFull}" +
+                (progress.IncompleteFull > 0 ? "\n별도 보관은 최대 128건입니다. 불완전 수신 기록에서 필요한 기록을 선택해 삭제한 뒤 다시 시도해 주세요." : "");
             _tab.Q<Label>("collection-failure-reasons").text = DescribeFailures(progress);
             _tab.Q<Label>("collection-rate-limit").text = progress.RetryAfterUtc.HasValue
                 ? "요청 제한: " + progress.RetryAfterUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) + " 이후 수동 재시도"

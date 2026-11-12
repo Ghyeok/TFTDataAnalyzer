@@ -30,6 +30,41 @@ namespace TFTAnalyzer.Tests.UI
         [TearDown]
         public void TearDown() => _vm.Dispose();
 
+        [TestCase(0)]
+        [TestCase(1)]
+        public async Task IncompleteStorageFailureIsReportedSeparatelyFromNormalFailures(int failed)
+        {
+            _service.Run = token => Task.FromResult(new MatchCollectionSummary(1, 1, 0, 0, 1, failed,
+                false, 1, false, 0, null, incompleteFailed: 1));
+            await _vm.StartAsync(summary => true);
+            Assert.That(_vm.State, Is.EqualTo(CollectionState.Failed));
+            Assert.That(_vm.StatusText, Does.Contain("별도 보관").And.Contain("실패"));
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(failed));
+            Assert.That(_vm.Progress.IncompleteFailed, Is.EqualTo(1));
+        }
+
+        [TestCase("cancel")]
+        [TestCase("api")]
+        [TestCase("processing")]
+        public async Task IncompleteCountersSurviveCancellationAndExceptionFallback(string ending)
+        {
+            var pending = new TaskCompletionSource<MatchCollectionSummary>();
+            _service.Run = token => pending.Task;
+            var run = _vm.StartAsync(summary => true);
+            _service.LastProgress.Report(new CollectionProgress(CollectionFakeService.SummaryWithIncomplete()));
+            pending.SetException(ending == "cancel" ? new OperationCanceledException() :
+                ending == "api" ? new RiotApiException(RiotApiFailure.HttpError, 503) : new InvalidOperationException());
+            await run;
+            var json = JObject.FromObject(_vm.Progress);
+            Assert.That(json.Value<int?>("IncompleteSaved"), Is.EqualTo(3));
+            Assert.That(json.Value<int?>("IncompleteDuplicate"), Is.EqualTo(2));
+            Assert.That(json.Value<int?>("IncompleteFailed"), Is.EqualTo(1));
+            Assert.That(json.Value<int?>("IncompleteFull"), Is.EqualTo(4));
+            Assert.That(_vm.Progress.Stored, Is.EqualTo(2));
+            Assert.That(_vm.Progress.Duplicate, Is.EqualTo(1));
+            Assert.That(_vm.Progress.Failed, Is.EqualTo(ending == "cancel" ? 4 : 5));
+        }
+
         /// <summary>Preserves prior failures across cancellation or exception fallbacks and rejects stale callbacks after reset.</summary>
         [TestCase("cancel", 2, 2, 0)]
         [TestCase("api", 3, 2, 1)]

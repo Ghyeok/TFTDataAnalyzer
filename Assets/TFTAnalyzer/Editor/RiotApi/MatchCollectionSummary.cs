@@ -17,6 +17,10 @@ namespace TFTAnalyzer.Editor.RiotApi
         public int FailedPayload { get; }
         public int FailedApi { get; }
         public int FailedProcessing { get; }
+        public int IncompleteSaved { get; }
+        public int IncompleteDuplicate { get; }
+        public int IncompleteFailed { get; }
+        public int IncompleteFull { get; }
         public bool Cancelled { get; }
         public int IdPages { get; }
         public bool ScanLimitReached { get; }
@@ -32,11 +36,16 @@ namespace TFTAnalyzer.Editor.RiotApi
             bool cancelled, int idPages, bool scanLimitReached, int statusCode, DateTimeOffset? retryAfterUtc,
             int quarantined = 0, bool quarantineReportSaved = false, bool quarantineReportFailed = false,
             bool quarantineReportTruncated = false, int failedUnsupportedVersion = 0, int failedGameVersion = 0,
-            int failedAugments = 0, int failedPayload = 0, int failedApi = 0)
+            int failedAugments = 0, int failedPayload = 0, int failedApi = 0,
+            int incompleteSaved = 0, int incompleteDuplicate = 0, int incompleteFailed = 0, int incompleteFull = 0)
         {
             var classified = (long)failedUnsupportedVersion + failedGameVersion + failedAugments + failedPayload + failedApi;
             if (failed < 0 || failedUnsupportedVersion < 0 || failedGameVersion < 0 || failedAugments < 0 ||
                 failedPayload < 0 || failedApi < 0 || classified > failed) throw new ArgumentOutOfRangeException(nameof(failed));
+            if (incompleteSaved < 0 || incompleteDuplicate < 0 || incompleteFailed < 0 || incompleteFull < 0)
+                throw new ArgumentOutOfRangeException(nameof(incompleteSaved));
+            IncompleteSaved = incompleteSaved; IncompleteDuplicate = incompleteDuplicate;
+            IncompleteFailed = incompleteFailed; IncompleteFull = incompleteFull;
             FailedUnsupportedVersion = failedUnsupportedVersion; FailedGameVersion = failedGameVersion;
             FailedAugments = failedAugments; FailedPayload = failedPayload; FailedApi = failedApi;
             FailedProcessing = failed - (int)classified;

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using TFTAnalyzer.Domain;
 using TFTAnalyzer.Editor.Persistence;
 using TFTAnalyzer.Editor.RiotApi;
+using UnityEditor;
 
 namespace TFTAnalyzer.Editor.UI.Collection
 {
@@ -35,8 +36,14 @@ namespace TFTAnalyzer.Editor.UI.Collection
         }
 
         public Task<MatchCollectionSummary> CollectAsync(StaticCatalog catalog, MatchCollectionRequest request,
-            IProgress<CollectionProgress> progress, CancellationToken token) =>
-            AnalyzerStoreOperations.Shared.RunAsync(() =>
-                new MatchCollectionService(catalog, _store, _client, _seeds).CollectAsync(request, progress, token), token);
+            IProgress<CollectionProgress> progress, CancellationToken token)
+        {
+            var index = AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath);
+            var incomplete = new IncompleteMatchStore(_store.Paths);
+            return AnalyzerStoreOperations.Shared.RunAsync(() =>
+                new MatchCollectionService(catalog, _store, _client, _seeds, null,
+                    (result, identity, cancellation) => incomplete.Save(result, index, identity, cancellation))
+                    .CollectAsync(request, progress, token), token);
+        }
     }
 }
