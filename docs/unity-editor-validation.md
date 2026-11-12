@@ -71,3 +71,9 @@ Console에는 검증 전 발생한 Pipeline `/api/commands` 통신 오류 2건�
 과거 JSON·PNG는 Git 제외 `Library/TftAnalyzerValidation/`에 있으며 지워질 수 있다. 현재 규칙의 근거와 당시 계획 변경은 [계획 재검토](../Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/refined/PlanReReview.md), 최신 검증과 재개 위치는 [현재 체크포인트](../Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)를 참고한다. 과거 통과를 새 실행 결과로 보고하지 않는다.
 
 등록 범위: 프로젝트 지침·색인은 전역 스킬 설치와 구분한다. 문서 변경은 내용·링크·Markdown 형식을 확인하며, 위 실행 결과는 별도 재개 검증에서 얻었다. 작성 실행의 실제 모델·추론·사용량은 독립 확인 정보가 없다.
+
+## 명시적 네트워크 테스트 선택 주의 (2026-11-13)
+
+Unity CLI `test --filter TFTAnalyzer.Tests`처럼 네임스페이스를 넓게 지정하면 `[Explicit]`로 표시된 Riot API 테스트도 선택되어 실행될 수 있다. 2026-11-13 격리 전체 회귀에서 이 필터로 사용자 승인 없이 Riot 경기 ID 목록 요청 한 번이 발생했고 401로 실패했다. 이 결과를 오프라인 전체 테스트로 보고하지 않는다.
+
+경기 API 테스트는 사용자의 구체적 승인 없이 선택하지 않는다. 전체 회귀 전에는 실행 대상 목록과 명시적 테스트 선택 방식을 확인한다. 새로 띄우는 격리 테스트 프로세스에서는 해당 프로세스의 `RIOT_API_KEY`와 `RIOT_TFT_SEED_PUUIDS`를 비워 우발 요청을 방지하고, 현재 실행 중인 Editor는 이미 상속한 환경값이 별개이므로 셸 환경변수 변경만으로 차단됐다고 가정하지 않는다. API 키·식별자 값을 출력하거나 기록하지 않는다.
