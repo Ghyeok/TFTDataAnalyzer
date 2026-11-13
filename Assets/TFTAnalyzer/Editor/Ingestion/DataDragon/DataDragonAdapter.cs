@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -112,15 +115,29 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 0,
                 "",
                 "");
-            var setPrefixes = DiscoverSetPrefixes(snapshot.Champions, patch);
+            // Keep every source row until both locales have been checked. An ID-keyed
+            // dictionary here would erase the evidence needed for scope and prefix checks.
+            var pairs = new[]
+            {
+                new SourcePair("unit", snapshot.Champions, false),
+                new SourcePair("trait", snapshot.Traits, false),
+                new SourcePair("item", snapshot.Items, true),
+                new SourcePair("augment", snapshot.Augments, true, issues)
+            };
+            var setPrefixes = DiscoverSetPrefixes(pairs[0], patch);
+            ValidateSourceIds(pairs, patch, setPrefixes, issues);
+            if (issues.Any(x => x.Severity == ValidationSeverity.Error))
+                return new StaticCatalog(manifest, null, null, null, null);
+            // Out-of-scope collision groups must not participate in later discovery or joins.
+            setPrefixes = DiscoverSetPrefixes(pairs[0], patch);
 
             var origins = new List<FieldOrigin>();
             var catalog = new StaticCatalog(
                 manifest,
-                ParseUnits(origins, snapshot.Champions, patch, setPrefixes, issues),
-                ParseTraits(origins, snapshot.Traits, patch, setPrefixes, issues),
-                ParseItems(origins, snapshot.Items, patch, setPrefixes, issues),
-                ParseAugments(origins, snapshot.Augments, patch, setPrefixes, issues));
+                ParseUnits(origins, pairs[0], patch, setPrefixes, issues),
+                ParseTraits(origins, pairs[1], patch, setPrefixes, issues),
+                ParseItems(origins, pairs[2], patch, setPrefixes, issues),
+                ParseAugments(origins, pairs[3], patch, setPrefixes, issues));
             return new StaticCatalog(catalog.Manifest, catalog.Units, catalog.Traits, catalog.Items, catalog.Augments, origins);
         }
 
@@ -143,11 +160,11 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<UnitRecord> ParseUnits(
             List<FieldOrigin> origins,
-            DataDragonPayloadPair pair,
+            SourcePair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
-            var sources = PairSources(pair);
+            var sources = PairSources(pair.Payload);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 var structured = StructuredStaticReader.Read("unit", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("unit", record.KoKr, record.EnUs, false));
@@ -169,11 +186,11 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<TraitRecord> ParseTraits(
             List<FieldOrigin> origins,
-            DataDragonPayloadPair pair,
+            SourcePair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
-            var sources = PairSources(pair);
+            var sources = PairSources(pair.Payload);
             foreach (var record in Join(pair, patch, setPrefixes, false))
             {
                 var structured = StructuredStaticReader.Read("trait", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("trait", record.KoKr, record.EnUs, false));
@@ -192,11 +209,11 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<ItemRecord> ParseItems(
             List<FieldOrigin> origins,
-            DataDragonPayloadPair pair,
+            SourcePair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
-            var sources = PairSources(pair);
+            var sources = PairSources(pair.Payload);
             foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 var structured = StructuredStaticReader.Read("item", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("item", record.KoKr, record.EnUs, false));
@@ -216,12 +233,12 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static IEnumerable<AugmentRecord> ParseAugments(
             List<FieldOrigin> origins,
-            DataDragonPayloadPair pair,
+            SourcePair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
         {
-            var sources = PairSources(pair);
-            foreach (var record in Join(pair, patch, setPrefixes, true, issues))
+            var sources = PairSources(pair.Payload);
+            foreach (var record in Join(pair, patch, setPrefixes, true))
             {
                 var structured = StructuredStaticReader.Read("augment", record.Id, record.KoKr, record.EnUs, sources[0], sources[1], StructuredStaticReader.ConsumedFields("augment", record.KoKr, record.EnUs, false));
                 var value = new AugmentRecord(
@@ -240,13 +257,13 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
         }
 
         private static IEnumerable<JoinedRecord> Join(
-            DataDragonPayloadPair pair,
+            SourcePair pair,
             PatchKey patch,
             IReadOnlyCollection<string> setPrefixes,
-            bool includeGenericRecords, List<ValidationIssue> augmentIssues = null)
+            bool includeGenericRecords)
         {
-            var ko = ReadRecords(pair.KoKr, augmentIssues);
-            var en = ReadRecords(pair.EnUs, augmentIssues);
+            var ko = pair.KoKr.Where(x => !pair.ExcludedIds.Contains(x.Id)).ToDictionary(x => x.Id, StringComparer.Ordinal);
+            var en = pair.EnUs.Where(x => !pair.ExcludedIds.Contains(x.Id)).ToDictionary(x => x.Id, StringComparer.Ordinal);
             return ko.Keys
                 .Concat(en.Keys)
                 .Distinct(StringComparer.Ordinal)
@@ -273,7 +290,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 .Where(record => !string.IsNullOrWhiteSpace(record.Name.DisplayValue));
         }
 
-        private static Dictionary<string, SourceRecord> ReadRecords(HttpResponseData response, List<ValidationIssue> augmentIssues = null)
+        private static IReadOnlyList<SourceRecord> ReadRecords(HttpResponseData response, List<ValidationIssue> augmentIssues = null)
         {
             var root = augmentIssues == null ? StructuredStaticReader.ParseDocument(response.Utf8Body) : ParseAugmentDocument(response.Utf8Body, augmentIssues);
             var data = root["data"] as JObject;
@@ -282,7 +299,7 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 throw new JsonSerializationException($"Data Dragon response has no data object: {response.Url}");
             }
 
-            var result = new Dictionary<string, SourceRecord>(StringComparer.Ordinal);
+            var result = new List<SourceRecord>();
             foreach (var property in data.Properties())
             {
                 var record = property.Value as JObject;
@@ -293,10 +310,110 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
                 var id = ReadString(record, "id");
                 id = string.IsNullOrWhiteSpace(id) ? property.Name : id;
-                result[id] = new SourceRecord(id, property.Name, record);
+                result.Add(new SourceRecord(id, property.Name, record));
             }
 
             return result;
+        }
+
+        private static void ValidateSourceIds(IEnumerable<SourcePair> pairs, PatchKey patch,
+            IReadOnlyCollection<string> setPrefixes, List<ValidationIssue> issues)
+        {
+            const int maxDetails = 20;
+            var total = 0;
+            var errors = 0;
+            var errorDetails = new List<KeyValuePair<int, ValidationIssue>>();
+            var warningDetails = new List<KeyValuePair<int, ValidationIssue>>();
+            foreach (var pair in pairs.OrderBy(x => x.Kind, StringComparer.Ordinal))
+            {
+                var allById = pair.KoKr.Concat(pair.EnUs).ToLookup(x => x.Id, StringComparer.Ordinal);
+                foreach (var locale in new[] { "en_US", "ko_KR" })
+                foreach (var group in (locale == "ko_KR" ? pair.KoKr : pair.EnUs)
+                    .GroupBy(x => x.Id, StringComparer.Ordinal).Where(x => x.Count() > 1)
+                    .OrderBy(x => x.Key, StringComparer.Ordinal))
+                {
+                    var id = group.Key;
+                    var rows = allById[id].ToArray();
+                    var selected = rows.Any(x => SourceBelongsToSet(x, patch)) ||
+                        BelongsToSet(id, patch) || BelongsToPrefix(id, setPrefixes) ||
+                        pair.IncludeGeneric && !HasExplicitSetPrefix(id);
+                    var blocks = selected || !ClearlyOneOtherSet(rows, patch);
+                    total++;
+                    if (blocks) errors++;
+                    // Remove both locales for this ID rather than choosing a representative.
+                    pair.ExcludedIds.Add(id);
+                    var details = blocks ? errorDetails : warningDetails;
+                    if (details.Count >= maxDetails) continue;
+                    var keys = group.Select(x => x.SourceKey).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                    var keyText = string.Join(", ", keys.Take(4).Select(DiagnosticText));
+                    details.Add(new KeyValuePair<int, ValidationIssue>(total,
+                        new ValidationIssue(blocks ? ValidationSeverity.Error : ValidationSeverity.Warning,
+                        "ddragon_duplicate_source_id", DiagnosticText(id),
+                        $"범위 {DiagnosticText(patch.SetId)} · {pair.Kind} · {locale} · ID {DiagnosticText(id)} · " +
+                        (blocks ? "선택 범위 또는 경계 불명확으로 중단" : "확정된 비선택 세트의 충돌 그룹 전체 제외") +
+                        $" · 원본 키 {keys.Length}개: {keyText}" + (keys.Length > 4 ? " … (일부 생략)" : ""))));
+                }
+            }
+            if (total > 0)
+            {
+                // Reserve room for blocking evidence, then retain canonical ordering of
+                // the displayed subset so warnings cannot hide a later failing ID.
+                issues.AddRange(errorDetails.Concat(warningDetails.Take(maxDetails - errorDetails.Count))
+                    .OrderBy(x => x.Key).Select(x => x.Value));
+                issues.Add(new ValidationIssue(errors > 0 ? ValidationSeverity.Error : ValidationSeverity.Warning,
+                    "ddragon_duplicate_source_id_summary", "",
+                    $"범위 {DiagnosticText(patch.SetId)} · 공식 원본 ID 충돌 그룹 총 {total}개 (오류 {errors}개, 경고 {total - errors}개). " +
+                    $"오류 상세 우선, 종류·언어·ID·원본 키 순으로 상세 {Math.Min(total, maxDetails)}개 표시 (최대 {maxDetails}개)."));
+            }
+        }
+
+        private static bool ClearlyOneOtherSet(IEnumerable<SourceRecord> rows, PatchKey patch)
+        {
+            int? otherSet = null;
+            foreach (var row in rows)
+            {
+                var evidence = new HashSet<int>();
+                foreach (Match match in Regex.Matches(row.SourceKey, @"/(?:TFTSet|TFT|TEST)([0-9]+)(?=/)",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
+                    if (!int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var set)) return false;
+                    evidence.Add(set);
+                }
+                if (HasExplicitSetPrefix(row.Id))
+                {
+                    var match = Regex.Match(row.Id, @"^(?:TFTSet|TFT|TEST)([0-9]+)_",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                    if (!match.Success || !int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var set)) return false;
+                    evidence.Add(set);
+                }
+                if (evidence.Count != 1 || evidence.Contains(patch.SetNumber)) return false;
+                var current = evidence.Single();
+                if (otherSet.HasValue && otherSet.Value != current) return false;
+                otherSet = current;
+            }
+            return otherSet.HasValue;
+        }
+
+        // Source keys and IDs are untrusted display text. Escape markup/control/format
+        // characters and bound the final text, without splitting UTF-16 surrogate pairs.
+        private static string DiagnosticText(string value)
+        {
+            const int limit = 128;
+            var result = new StringBuilder();
+            for (var i = 0; i < value.Length; i++)
+            {
+                var ch = value[i];
+                var category = char.GetUnicodeCategory(ch);
+                var escaped = char.IsControl(ch) || category == UnicodeCategory.Format ||
+                    category == UnicodeCategory.LineSeparator || category == UnicodeCategory.ParagraphSeparator ||
+                    ch == '<' || ch == '>' || char.IsSurrogate(ch) &&
+                    !(char.IsHighSurrogate(ch) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]));
+                var text = escaped ? "\\u" + ((int)ch).ToString("x4", CultureInfo.InvariantCulture) :
+                    char.IsHighSurrogate(ch) ? value.Substring(i++, 2) : ch.ToString();
+                if (result.Length + text.Length > limit - 1) { result.Append('…'); break; }
+                result.Append(text);
+            }
+            return result.ToString();
         }
 
         // Data Dragon's augment-container is unused metadata, not a catalog record.
@@ -434,11 +551,11 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
         }
 
         private static IReadOnlyCollection<string> DiscoverSetPrefixes(
-            DataDragonPayloadPair champions,
+            SourcePair champions,
             PatchKey patch)
         {
-            return ReadRecords(champions.KoKr).Values
-                .Concat(ReadRecords(champions.EnUs).Values)
+            return champions.KoKr.Concat(champions.EnUs)
+                .Where(record => !champions.ExcludedIds.Contains(record.Id))
                 .Where(record => SourceBelongsToSet(record, patch))
                 .Select(record => ReadNamespacePrefix(record.Id))
                 .Where(prefix => !string.IsNullOrWhiteSpace(prefix))
@@ -652,6 +769,26 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
                 Id = id;
                 SourceKey = sourceKey;
                 Value = value;
+            }
+        }
+
+        private sealed class SourcePair
+        {
+            public string Kind { get; }
+            public DataDragonPayloadPair Payload { get; }
+            public bool IncludeGeneric { get; }
+            public IReadOnlyList<SourceRecord> KoKr { get; }
+            public IReadOnlyList<SourceRecord> EnUs { get; }
+            public HashSet<string> ExcludedIds { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+            public SourcePair(string kind, DataDragonPayloadPair payload, bool includeGeneric,
+                List<ValidationIssue> augmentIssues = null)
+            {
+                Kind = kind;
+                Payload = payload;
+                IncludeGeneric = includeGeneric;
+                KoKr = ReadRecords(payload.KoKr, augmentIssues);
+                EnUs = ReadRecords(payload.EnUs, augmentIssues);
             }
         }
     }
