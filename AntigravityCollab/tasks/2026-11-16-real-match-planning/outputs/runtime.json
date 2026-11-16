@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-16-real-match-planning",
+  "inputDigest": "7b43ab44384ee9e5709a828290691f4cb7cc23b472354938928f6942403d5c79",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.9",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 32232,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 13746,
+    "output_tokens": 6258,
+    "thinking_tokens": 4848,
+    "cache_read_tokens": 0,
+    "total_tokens": 20004
+  },
+  "responseSeconds": 95.0643826,
+  "exitCode": 0,
+  "durationSeconds": 103.76
+}
