@@ -1,6 +1,12 @@
 # 실제 경기 분석 지원 체크포인트
 
-2026-11-16 승인(현재 위치): 사용자가 1단계 구현 계획 3판을 승인했다. 단계를 개발로 전환한다. 실제 실행(TODO 9)은 사용자의 키 재설정 알림 후에만 한다. 먼저 기획 기록과 기획 B 역할 변경 지침을 문서 PR로 반영하고, 최신 main에서 짧은 경로의 격리 작업트리를 만들어 TODO 1~8을 TDD로 구현한다.
+2026-11-16 독립 검수 반영(현재 위치): 독립 코드검수(Claude 서브에이전트 `opus`·high)가 P1 1·P2 1·P3 7건을 냈다([raw/Reviewer.md](raw/Reviewer.md)). P1(1ms 미만 대기 버림으로 간격 루프가 정지 판정 → 예산 소진으로 오분류)은 Master가 코드로 확인했다. P2(단독 IPv4 앞 두 그룹 원값 노출)는 계획 내 규칙 충돌을 개인정보 우선으로 정리해 계획을 정정했다(앞 두 그룹 1~2자리일 때만 원값, IPv4 형태면 자릿수만). 같은 구현 에이전트가 커밋 2개(`8634d36`, `2aacee0`)로 8건을 반영했고(P3-6은 TODO 9의 수동 파일 트리 해시 대조로 보완), RED 101 중 21 실패 후 GREEN Diagnostics 101/101, 회귀 161/161(`MatchAnonymizerTests` 61, `RiotApiClientTests` 60, `MatchCollectionServiceTests` 40, Explicit 제외)이다. 모든 실행에서 Riot 환경 변수를 제거했고 XML에 Explicit 테스트 실행 기록이 없음을 Master가 확인했다. 전체 EditMode는 변경이 `Editor/Diagnostics/`에 한정돼 재실행하지 않았다(직전 전체 1,438/1,434/0/4). 같은 검수자가 수정 커밋(`3b83f0f..2aacee0`)을 재검수해 P1·P2 없음, P3 2건(글자가 붙은 IPv4 감지 한계를 계획에 기록, 계획 문서를 코드와 함께 커밋)을 냈고 둘 다 반영했다. 다음은 push·PR·CodeRabbit 요청이다.
+
+2026-11-16 구현 완료·독립 검수 중: 작업트리 `Library/wt/ki003`(main `320e632`, 체크아웃 시 줄바꿈 변환 끔), 브랜치 `claude/ki003-shape-diagnostic`에서 구현 서브에이전트(Claude `opus`·high, 약 40분, 토큰 338,809, 도구 104회)가 TODO 1~7을 TDD로 구현해 로컬 커밋 5개(`f30bd82`~`3b83f0f`, 39개 파일 +3,582)를 만들었다. 새 진단 테스트 88개가 통과했고, 회귀는 `MatchAnonymizerTests` 61/61, `IncompleteMatchExtractionTests` 39/39, `RiotApiClientTests` 60/60, `MatchCollectionServiceTests` 40 통과·1 Explicit 제외다. 공용 파서 가시성 변경(`StrictReader`·`StrictSyntaxReader`·`BoundedInput` internal) 때문에 전체 EditMode도 실행해 1,438개 중 1,434개 통과·실패 0·제외 4였다. 짧은 경로와 LF 체크아웃으로 E2E와 `LegacyCatalogResolverTests`도 통과했다(KI-004 미재현). TODO 8(독립 코드검수·CodeRabbit)은 진행 중, TODO 9는 키 재설정 알림 대기.
+
+**승인 범위 이탈 1건**: 구현 에이전트가 기준선 확인용으로 네임스페이스 필터(`TFTAnalyzer.Tests.RiotApi` 등)를 실행해 `[Explicit]` 테스트 `MatchCollectionServiceTests.ConfiguredSeedCanCallOneIdPage`가 선택됐고, 사용자 환경 변수의 키·seed로 실제 목록 요청 1회(asia, count=1)가 나가 401로 실패했다(약 06:19Z). 받은 데이터는 없고 키 값은 읽거나 출력하지 않았다. 이후 실행은 `RIOT_API_KEY`·`RIOT_TFT_SEED_PUUIDS`를 제거하고 클래스 필터만 썼다. PR #34에 이은 같은 유형의 두 번째 사고다. 이 요청은 1단계 진단 실행(TODO 9)이 아니다.
+
+2026-11-16 승인: 사용자가 1단계 구현 계획 3판을 승인했다. 단계를 개발로 전환한다. 실제 실행(TODO 9)은 사용자의 키 재설정 알림 후에만 한다. 먼저 기획 기록과 기획 B 역할 변경 지침을 문서 PR로 반영하고, 최신 main에서 짧은 경로의 격리 작업트리를 만들어 TODO 1~8을 TDD로 구현한다.
 
 2026-11-16 재검토 완료·승인 대기: 사용자 결정으로 실제 실행은 N=20, 사용자가 만료된 API 키를 재설정했다고 알린 뒤에만 한다. 수정안 2판을 A·B에 재검토받아 A pass, B revise(P1 1·P2 4·P3 1)였다. 반영한 3판을 B가 pass(P3 3건)로 확인했고 P3도 반영했다. A의 3판 재확인은 하지 않았다. 승인 대상은 [ImplementationPlan.md](refined/ImplementationPlan.md) 3판이다. 제품 코드 변경 없음, 실제 API 호출 없음. 재개 시 첫 행동: 사용자 승인 여부를 확인하고, 승인되면 격리 브랜치에서 TODO 1~8을 TDD로 구현한다(TODO 9는 키 재설정 알림 후).
 

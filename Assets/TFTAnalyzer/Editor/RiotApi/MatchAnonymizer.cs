@@ -164,7 +164,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) => throw new NotSupportedException();
         }
 
-        private sealed class StrictReader : JsonTextReader
+        internal sealed class StrictReader : JsonTextReader
         {
             private readonly Stack<HashSet<string>> _properties = new Stack<HashSet<string>>();
             /// <summary>Tracks only property names while consuming JSON once.</summary>
@@ -184,7 +184,7 @@ namespace TFTAnalyzer.Editor.RiotApi
 
         // JsonTextReader accepts JavaScript extensions and normalizes octal/hex numbers.
         // Check lexical spelling while streaming, before those original characters are lost.
-        private sealed class StrictSyntaxReader : TextReader
+        internal sealed class StrictSyntaxReader : TextReader
         {
             private readonly TextReader _input;
             private readonly StringBuilder _token = new StringBuilder();
@@ -263,7 +263,7 @@ namespace TFTAnalyzer.Editor.RiotApi
             }
         }
 
-        private sealed class BoundedInput : Stream
+        internal sealed class BoundedInput : Stream
         {
             private readonly Stream _input;
             private int _read;
