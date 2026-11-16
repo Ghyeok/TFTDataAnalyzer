@@ -2,5 +2,7 @@
 language: "ko-KR"
 reviews:
   auto_review:
-    enabled: true
+    # 2026-11-16: 자동 리뷰는 Gemini Code Assist가 맡고, CodeRabbit은 중요한 PR에서
+    # `@coderabbitai review` 댓글로만 수동 실행한다.
+    enabled: false
     drafts: false
