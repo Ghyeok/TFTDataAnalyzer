@@ -123,6 +123,51 @@ namespace TFTAnalyzer.Tests.Ingestion
             Assert.That(result.Catalog.Augments.Single().StableId, Is.EqualTo("TEST18_Record"));
         }
 
+        [TestCase("champions", "ko")]
+        [TestCase("champions", "en")]
+        [TestCase("traits", "ko")]
+        [TestCase("traits", "en")]
+        [TestCase("items", "ko")]
+        [TestCase("items", "en")]
+        [TestCase("augments", "ko")]
+        [TestCase("augments", "en")]
+        public void DuplicateSourceId_SetIdThatPrefixesAnotherSetNumberDoesNotSelectThatSet(string kind, string locale)
+        {
+            // "TFTSet1" is a string prefix of "TFTSet10_*" but a different set.
+            var set1 = new PatchKey("TFTSet1", 1, "1.1", "16.18.1");
+            var documents = DuplicateDocuments("TEST1_Record");
+            var data = documents[locale][kind]["data"];
+            data["/TFTSet10/a"] = new JObject { ["id"] = "TFTSet10_Old", ["name"] = "first" };
+            data["/TFTSet10/b"] = new JObject { ["id"] = "TFTSet10_Old", ["name"] = "second" };
+            data["/TFTSet10/single"] = new JObject { ["id"] = "TFTSet10_Single", ["name"] = "single" };
+            var result = new DataDragonAdapter(new FakeTransport()).ParseWithDiagnostics(DuplicateSnapshot(documents), set1);
+            Assert.That(result.Issues.Where(x => x.Severity == ValidationSeverity.Error), Is.Empty);
+            Assert.That(result.Issues.Any(x => x.Code == "ddragon_duplicate_source_id" && x.Severity == ValidationSeverity.Warning), Is.True);
+            Assert.That(result.Catalog.Units.Single().StableId, Is.EqualTo("TEST1_Record"));
+            Assert.That(result.Catalog.Traits.Single().StableId, Is.EqualTo("TEST1_Record"));
+            Assert.That(result.Catalog.Items.Single().StableId, Is.EqualTo("TEST1_Record"));
+            Assert.That(result.Catalog.Augments.Single().StableId, Is.EqualTo("TEST1_Record"));
+        }
+
+        [Test]
+        public void Parse_SetIdPrefixMatchStopsAtTheSetNumberBoundary()
+        {
+            // No duplicates and no "/TFTSet1/" source keys: only the SetId prefix decides.
+            var set1 = new PatchKey("TFTSet1", 1, "1.1", "16.18.1");
+            var documents = DuplicateDocuments("TEST1_Record");
+            foreach (var locale in new[] { "ko", "en" })
+            {
+                var data = documents[locale]["champions"]["data"];
+                data["unit"] = new JObject { ["id"] = "TFTSet1_Unit", ["name"] = "selected", ["cost"] = 1 };
+                data["lower"] = new JObject { ["id"] = "tftset1_Lower", ["name"] = "selected", ["cost"] = 1 };
+                data["other"] = new JObject { ["id"] = "TFTSet10_Single", ["name"] = "other set", ["cost"] = 1 };
+            }
+            var result = new DataDragonAdapter(new FakeTransport()).ParseWithDiagnostics(DuplicateSnapshot(documents), set1);
+            Assert.That(result.Issues.Where(x => x.Severity == ValidationSeverity.Error), Is.Empty);
+            Assert.That(result.Catalog.Units.Select(x => x.StableId),
+                Is.EquivalentTo(new[] { "TEST1_Record", "TFTSet1_Unit", "tftset1_Lower" }));
+        }
+
         [TestCase("selected-other-locale")]
         [TestCase("selected-source-key")]
         [TestCase("unknown-boundary")]
@@ -278,11 +323,11 @@ namespace TFTAnalyzer.Tests.Ingestion
             finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         }
 
-        private static Dictionary<string, JObject> DuplicateDocuments()
+        private static Dictionary<string, JObject> DuplicateDocuments(string selectedId = "TEST18_Record")
         {
             return new[] { "ko", "en" }.ToDictionary(locale => locale, locale => new JObject(
                 new[] { "champions", "traits", "items", "augments" }.Select(kind => new JProperty(kind,
-                    new JObject { ["data"] = new JObject { ["TEST18_Record"] = new JObject { ["id"] = "TEST18_Record", ["name"] = locale + " name", ["cost"] = 1 } } }))));
+                    new JObject { ["data"] = new JObject { [selectedId] = new JObject { ["id"] = selectedId, ["name"] = locale + " name", ["cost"] = 1 } } }))));
         }
 
         private static JObject ReverseProperties(JObject value) => new JObject(value.Properties().Reverse()

@@ -592,7 +592,12 @@ namespace TFTAnalyzer.Editor.Ingestion.DataDragon
 
         private static bool BelongsToSet(string stableId, PatchKey patch)
         {
-            if (stableId.StartsWith(patch.SetId, StringComparison.OrdinalIgnoreCase))
+            // "TFTSet1" is a string prefix of "TFTSet10_*". When the set ID ends in a
+            // digit, a further digit means a different set number, not this set.
+            var setId = patch.SetId;
+            if (stableId.StartsWith(setId, StringComparison.OrdinalIgnoreCase) &&
+                !(char.IsDigit(setId[setId.Length - 1]) &&
+                  stableId.Length > setId.Length && char.IsDigit(stableId[setId.Length])))
             {
                 return true;
             }
