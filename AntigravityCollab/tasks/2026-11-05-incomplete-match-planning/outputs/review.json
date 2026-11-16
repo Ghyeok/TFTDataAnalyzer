@@ -1,0 +1,38 @@
+{
+  "findings": [
+    {
+      "action": "미지원 data_version에 대해 추출 가능한 필드의 엄격한 화이트리스트(숫자·열거형·검증된 식별자 패턴만 허용, 원문 문자열·PUUID·경기 ID·키 차단)와 '값 없음(empty)' 대 '미제공/해석 불가(unknown)'의 삼진 상태 모델을 정의하고, 관측된 경기(data_version 1~5 외, augments 미제공)에서 실제로 사용자에게 유용한 비식별 필드가 남는지 합성 데이터로 선행 검증하십시오.",
+      "impact": "미지원 data_version(1~5 외)은 기존 DTO 필드 의미를 보장할 수 없어 임의 필드를 그대로 보관·표시하면 거짓 경기 사실을 진실처럼 노출하거나 미확인 문자열을 통해 원본 응답·식별 정보가 유출될 수 있으며, 기존 AnonymousParticipant처럼 null 증강을 빈 목록으로 바꾸면 '증강 없음'과 '증강 미제공'이 혼동됩니다. 또한 화이트리스트 적용 후 남는 정보가 없으면 기능이 사실상 사용 불능이 됩니다.",
+      "inScope": true,
+      "reference": "inputs/scope.md, inputs/technical-context.md (MatchAnonymizer / AnonymousParticipant / 미지원 schema 검증)",
+      "severity": "P1"
+    },
+    {
+      "action": "기존 정상 관측 경로와 기존 저장 파일·카탈로그·환경 변수를 일체 변경하지 않는 전제에서, 스트림 재파싱 없이(또는 검증된 8MiB·문법·깊이·중복 키 한도 내 단일 추출 구조로) 다중 불완전 사유와 비식별 요약만 생성하도록 설계하고, 수집 중 취소·예외·소유 EditorWindow 종료 시 원본 버퍼와 민감 데이터를 즉시 정리하는 수명주기 계약을 명시하십시오.",
+      "impact": "MatchAnonymizer가 첫 확정 실패 이유만 반환하는 상태에서 DTO 실패 후 동일 스트림을 재파싱하면 정상 수집 동작 회귀, 메모리 내 원문 JSON 잔류, 예외·취소·EditorWindow 종료 시 개인 데이터 및 원문 로그 누출 위험이 발생합니다.",
+      "inScope": true,
+      "reference": "inputs/scope.md, inputs/technical-context.md (MatchAnonymizer 재파싱 위험 및 EditorWindow 수명주기)",
+      "severity": "P1"
+    },
+    {
+      "action": "불완전 기록 전용 자료 모델과 별도 저장 경로를 정의하여 ObservationStore·정상 중복 인덱스·AggregateBuilder·CSV와 물리적/논리적으로 완전 분리하고, 전용 도메인 구분 해시(원본 ID 비보관)·최대 행 수/바이트 상한·보존 기간(거나 오래된 항목 회전)·원자적 쓰기·임시 꼬리 복구·reparse point 방어 및 향후 정상 관측과의 중복/승격(또는 승격 미지원 읽기 전용 파기) 규칙을 확정하십시오.",
+      "impact": "불완전 기록이 ObservationStore, 처리 인덱스, AggregateBuilder, CSV 경로와 격리되지 않으면 정상 통계가 오염되며, 별도 보관소에 용량·행 수·보존 기간 상한과 도메인 분리 해시 및 경로 방어가 없으면 무한 보존·디스크 고갈·경로 공격 및 경기 희귀 속성을 통한 재식별 위험에 노출됩니다.",
+      "inScope": true,
+      "reference": "inputs/technical-context.md (ObservationStore 격리, 보존 상한, 재식별 및 승격 정책)",
+      "severity": "P1"
+    },
+    {
+      "action": "UI에서 세트·날짜 기반 자동 패치 추정을 금지하고 사용자가 로컬 보유 카탈로그를 직접 선택해 대조할 때 '참고용 카탈로그(실제 패치 미확정)'와 '추가 확인 필요/알 수 없음' 배지를 상시 표시하며, (1) 합성 데이터 기반 저장 가능성·유용성 검증 -> (2) 상한·방어가 적용된 격리 읽기 전용 저장소 -> (3) 참고 카탈로그 대조 UI 및 창 종료 정리 순의 최소 구현 단계와 단계별 합격 기준을 기획에 명시하십시오.",
+      "impact": "game_version 숫자 패턴이 불일치하는 경기에 대해 참고용 카탈로그의 해석 결과를 확정 사실처럼 표시하거나 미매칭 ID를 그대로 출력하면 사용자가 실제 패치 데이터로 오인할 수 있으며, 단계별 검증 기준이 없으면 단순 오류 보고만 반복하거나 효용 없는 UI를 구현하게 됩니다.",
+      "inScope": true,
+      "reference": "inputs/scope.md, inputs/technical-context.md (참고 카탈로그 UX 및 최소 구현 단계)",
+      "severity": "P2"
+    }
+  ],
+  "inputDigest": "6c8303c95987334c4147b98c4533b1dc6c8d9ed7b399366e59a1d2da9459a27c",
+  "taskId": "2026-11-05-incomplete-match-planning",
+  "unverified": [
+    "제공된 두 입력 문서 외 실제 코드베이스·파일·네트워크·외부 도구는 제약에 따라 접근하거나 실행하지 않았으며, 실제 런타임 접근 차단 여부 및 실제 API 응답 원문 구조는 검증하지 않음."
+  ],
+  "verdict": "revise"
+}

@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-13-official-duplicate-id-integrated",
+  "inputDigest": "0279039759d144b09010eeb102439b326ac8e8feeedbb59b1ad879ed49678236",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.7",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 29788,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 9520,
+    "output_tokens": 5204,
+    "thinking_tokens": 4473,
+    "cache_read_tokens": 0,
+    "total_tokens": 14724
+  },
+  "responseSeconds": 78.303967,
+  "exitCode": 0,
+  "durationSeconds": 87.301
+}

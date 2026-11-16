@@ -1,0 +1,13 @@
+{
+  "taskId": "2026-11-06-incomplete-match-integrated-review",
+  "baseCommit": "ba50db8ad5ef8dc6ef58153cee57da0f8555588c",
+  "files": [
+    {
+      "copy": "inputs/plan.md",
+      "source": "불완전 경기 통합 계획 비식별 문서",
+      "sha256": "2f49e06034045afa23ed9ef42339bdcd0d0b76d99f68f09ab240154fb904d617"
+    }
+  ],
+  "inputDigest": "66da0d875c4c5374ce2ae0fd37bd1f89c257e3eaa564cf4de97e37a9b8e2eb76",
+  "inputBytes": 6262
+}

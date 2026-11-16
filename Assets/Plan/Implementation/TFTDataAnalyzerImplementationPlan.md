@@ -2,6 +2,8 @@
 
 > 모델 선택은 [AGENTS.md](../../../AGENTS.md), 단계·역할·기록은 [개발 워크플로](../Workflow/README.md)를 따른다. 단계별 계획은 구현 절차이며 현재 진행 상태와 과거 실행 근거를 구분한다.
 
+> 아래 날짜가 붙은 진행 기록은 작성 당시의 이력이다. ‘현재’·‘최신’·‘다음’은 그 날짜를 기준으로 하며 이후 승인·병합 상태를 반영하지 않는다. 현재 제품 개요와 알려진 한계는 [README](../../../README.md)와 [알려진 문제](../../../docs/known-issues.md)를 확인한다.
+
 **Goal:** Build a policy-bounded Unity Editor tool that imports patch-versioned TFT static data, ingests Riot Match API responses without persisting identity-bearing payloads, and displays anonymous historical aggregate statistics.
 
 **Architecture:** The implementation is split into three independently testable plans. Phase 1 produces a usable static-data catalog and patch-diff tool; Phase 2 adds memory-only match ingestion, anonymized local observations, and deterministic aggregates; Phase 3 adds the UI Toolkit Editor experience and compliance gates.
@@ -10,7 +12,7 @@
 
 **Spec:** `Assets/Plan/TFTDataPipeline.md`
 
-## 2026-10-20 구현 검토와 다음 작업
+## 2026-10-20 구현 검토와 당시 다음 작업
 
 - Phase1~3의 계획된 주요 기능과 Task6 커밋은 구현됐고 PR14가 main `fa0df4d`에 병합됐다. PR14 병합 기준 제품 트리는 당시 전체620/619통과/0실패/호스트 링크1제외의 실행 버전과 같았다. 이후 아래 준비 안내 수정 후 전체631개 중630통과/0실패/호스트 링크1제외를 실제 실행했다.
 - [KI-001](../../../docs/known-issues.md)은 미해결 기록 후 개발 계속이다. 실제 Riot API 사용 검증·증강 신뢰 분류 공급·최소 표본 달성은 구현된 기본 경로와 분리해 다룬다.
@@ -18,9 +20,9 @@
 
 [검토된 증강 분류 공급 경로](../Workflow/Cycles/2026-10-20-augment-policy-provider/Checkpoint.md)는 기획 A/B 검토·사용자 승인 후 구현·코드검수·QA를 통과했다. 초기 head bfb5231의 전체680개/679P/0F/1호스트제약 제외를 확인했고 [PR #16](https://github.com/Ghyeok/TFTDataAnalyzer/pull/16)의 검수 보완을 반영했다. 제품 코드 변경 없이 강화한 서비스 테스트7/7을 실행했다. 사용자 재개 후 최신 cc62282의 CodeRabbit SUCCESS·inline thread0·별도 CI0을 확인했고 새 outside-diff 의견1건은 현재 저장·취소 계약에 대조해 미반영으로 판단했다. 최초 자동 승인 검토의 명시적 병합 승인 부족은 사용자 “병합 승인 거절 근거를 찾고 해결한 뒤 다시 병합해줘” 요청으로 해소했다. PR16은 main57891e0에 squash 병합됐고 원격 MERGED·커밋을 확인했다. 사용자 최종 결과 승인은 별도이며 실제 분류 자료 등록 전 비율 차단은 유지된다. 다음 범위는 자료 확보·검토·등록의 기획이다.
 
-## Global Constraints
+## 과거 진행 기록과 공통 제약
 
-2026-10-26 최신: PR22는 main f997472에 병합했고 최신 검수 head와 전체 트리가 같다. 다음 [구조화 정적 데이터 계획](../Workflow/Cycles/2026-10-26-structured-static-data/Checkpoint.md)은 schema4의 기물 수치·시너지 구간·아이템 제한·비실행 확장 자료와 구 schema1/2/3 불변 보존을 기획한다. 아직 제품 구현 미승인이며 아래 이전 ‘PR통합단계’는 당시 기록이다. 실제API·분류등록0·실제n100/입도·KI-001·사용자 최종 확인의 잔여를 유지한다.
+2026-10-26 당시: PR22는 main f997472에 병합했고 당시 검수 head와 전체 트리가 같았다. 다음 [구조화 정적 데이터 계획](../Workflow/Cycles/2026-10-26-structured-static-data/Checkpoint.md)은 schema4의 기물 수치·시너지 구간·아이템 제한·비실행 확장 자료와 구 schema1/2/3 불변 보존을 기획했다. 이 시점에는 제품 구현 승인 전이었으며 이후 상태는 해당 체크포인트와 README를 따른다. 당시 실제 API·분류등록·실제 n100/입도·KI-001·사용자 최종 확인은 별도로 남아 있었다.
 
 2026-10-26 현재: 필드별 출처 기록은PR21/main5a67afb에병합됐다. [보완 정적 자료 형식 호환](../Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은새기획A/B·사용자승인후구현·독립코드검수·전체826/824P0F/호스트2제외와최종QA통과를확인했고PR통합단계다. 같은요청official catalog로global범위를검증하며제외ID경고도bounded표본으로보존한다. 새능력치/시너지구간/아이템제한구조모델과실제API·분류등록·n100은여전히잔여다. 아래이전날짜의현재표시는각시점이력이다.
 
@@ -55,7 +57,7 @@
 3. [Phase 3 — Editor UI and Compliance](2026-09-17-tft-analyzer-editor-ui.md)
    - Deliverable: the complete `TFT Data Analyzer` window exposes import, collection, and analysis workflows with policy and build gates.
 
-Each phase must pass its own EditMode suite before the next phase begins. Network tests remain `[Explicit]`; the default suite uses fabricated fixtures and never requires a Riot API key.
+The original phase plan required each phase's EditMode suite before the next phase. For current changes, use the scope-based verification rule in [AGENTS.md](../../../AGENTS.md#보존과-검증). Network tests remain `[Explicit]`; the default suite uses fabricated fixtures and never requires a Riot API key.
 
 ## Standard Verification Commands
 
@@ -66,7 +68,7 @@ After adding or changing scripts:
 & 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command recompile_status --project-path 'C:\Unity\TFTDataAnalyzer' --format json
 ```
 
-Run the full EditMode suite:
+변경 기능과 관련된 테스트를 먼저 실행한다. 코드와 의존 관계 검토에서 영향이 넓다고 판단하거나 필수 검사로 명시된 경우, 다음과 같이 전체 EditMode suite를 실행할 수 있다([현재 검증 규칙](../../../AGENTS.md#보존과-검증)).
 
 ```powershell
 & 'C:\Users\gulww\AppData\Local\Unity\bin\unity.exe' command run_tests --project-path 'C:\Unity\TFTDataAnalyzer' --mode editor --filter_type assembly --filter TFTAnalyzer.Tests.EditMode --timeout 300 --format json

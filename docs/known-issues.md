@@ -9,13 +9,20 @@
 - 근거: `Library/TftAnalyzerValidation/official-duplicate-full.xml`, `official-duplicate-d-diagnostic-e2e.xml`, `official-duplicate-d-baseline-e2e.xml`, `exception-diagnostic-e2e-fixture.xml`. 이는 로컬 실행 자료이며 원격 CI 통과 증거가 아니다.
 - 2026-11-16 재발: `Library/TftAnalyzerValidation/official-duplicate-id-worktree` 작업트리의 전체 EditMode 실행 2회에서 모두 같은 테스트가 실패했고, 진단 단언이 `System.IO.DirectoryNotFoundException`과 `CatalogAssetWriter.StoreRawSources` → `File.WriteAllBytes` 경로를 기록했다. 이 PC는 Windows 긴 경로가 꺼져 있고(`LongPathsEnabled=0`), 이 작업트리에서 E2E 원본 파일 경로는 268~284자로 260자 제한을 넘는다(같은 계산으로 main 프로젝트는 207~223자). 이전 실패도 비슷한 깊이의 `static-augment-worktree`에서 났고, 짧은 경로(D 드라이브 임시 프로젝트)에서는 통과했다. **원인 후보는 깊은 작업트리 경로의 260자 제한**이다. 같은 코드를 짧은 경로에서 다시 돌려 대조하지는 않았으므로 확정하지 않는다. 같은 실행에서 함께 실패한 `LegacyCatalogResolverTests`의 해시 차이는 이 작업트리의 `core.autocrlf=true` 줄바꿈 변환 때문이며(작업트리 파일 CR 36,096개, 커밋 원본 0개) 별개 문제다.
 
+## KI-003: 실제 경기 수집 후 익명화 입력 오류
+
+- 상태: **원인 미확정, 진단 반복 중단**. 실제 수집에서 상세 시도 5·가져옴 5·저장 0·중복 0·필터 제외 0·실패 5가 보고됐다. 앞선 401은 사용자 환경 변수와 Unity 프로세스의 키 불일치를 확인해 재시작 후 일치시켰고, 이후 상세 5건을 가져왔다.
+- 재현 범위를 한 건으로 제한한 별도 읽기 전용 진단은 경기 목록과 상세를 요청해 메모리에서 기존 익명화기를 실행했다. 결과는 `invalid_match_payload`이며 관측·경기 원문·식별자·키를 저장하거나 출력하지 않았다. 이는 진단한 한 건의 결과이지 최초 5건 모두의 개별 오류 코드가 아니다.
+- 해당 오류는 형식·필수 값·버전 문자열 등 여러 지점에서 발생할 수 있으므로 구체적인 원인을 단정하지 않는다. 버전 불일치로 판정된 경우는 필터 제외이지만, 파싱 오류가 먼저 발생하면 그 판정에 도달하지 않을 수 있다. 저장 단계 결함이나 자료 손상으로도 단정하지 않는다.
+- 사용자 승인 후 합성 안전 검증을 거쳐 단일 추가 진단을 수행했다. 해당 한 건은 세트 일치, game_version 타입/형식 오류 범주, data_version 1·2 외, 참가자 증강 항목 누락이 확인됐다. 증강 누락은 기존 필수 속성 계약과 충돌하지만 원래 5건 각각의 원인이나 최초 예외 위치는 미확정이다. 세부 근거는 [진단 계획](../Assets/Plan/Workflow/Cycles/2026-11-02-match-failure-diagnosis/refined/ImplementationPlan.md)에 기록한다. 추가 경기 요청은 중단한다. 원문을 남기지 않는 안전한 세부 진단과 필요한 승인 범위를 검토한 후에만 재개한다. 진단 스크립트는 `Library/TftAnalyzerValidation/riot-single-match-diagnostic.cs`이며 실제 사용자 자료를 포함하지 않는다.
+
 ## KI-002: Unity 내부 빌드 프로세스 종료 후 검증 중단
 
 - 관측일: 2026-10-21(KST). 현재 상태: **새 Editor 연결·컴파일 정상, 충돌 근본 원인 미확정**. 아래는 당시 중단과 복구 이력이다. 최소 표본 설정 UI 연결 뒤 `bee_backend.exe`가 `ExitCode: -1073741819`로 종료했고 `BuildFinishedMessage`를 받지 못했다는 오류가 기록됐다. C# 오류가 없는 것만으로 새 코드의 컴파일 성공을 주장하지 않는다.
 - 실행 중인 Bee 프로세스가 0개임을 확인한 뒤 재컴파일을 한 번 요청했지만, CLI는 이전 실패 상태 때문에 실제 컴파일을 시작하지 않았다. 두 번째 네이티브 충돌로 세지 않는다. 추가 Unity 호출·테스트 재실행·캐시 삭제·강제 종료는 멈추고 사용자에게 저장 후 Editor 재시작을 요청했다.
-- 마지막 유효 증거는 정책35/35·서비스12/12·VM22/22 통과 및 UI 연결 전12개 중5실패/7통과다. 연결 후 UI GREEN·전체 회귀·새 화면 캡처는 아직 미실행이다. 이 상태로 PR 통과나 병합을 진행하지 않는다.
+- 당시 중단 시점의 증거는 정책35/35·서비스12/12·VM22/22 통과 및 UI 연결 전12개 중5실패/7통과다. 이후 재시작과 검증을 거쳐 최소 표본 기능은 PR #18로 병합됐다. 후속 전체 회귀와 화면 검증은 [체크포인트](../Assets/Plan/Workflow/Cycles/2026-10-20-minimum-samples/Checkpoint.md)를 확인한다. 이는 Bee 충돌의 근본 원인 해결을 의미하지 않는다.
 - 로그·명령 원문: `Library/TftAnalyzerValidation/minimum-samples-bee-failure-log.txt`, `minimum-samples-bee-failure.traceevents`, `minimum-samples-task2-ui-{green-status,recovery-compile,recovery-status}.json`. 기존 KI-001 가져오기 간헐 실패와는 별개다.
-- 재개: 새 Editor 연결·현재 컴파일 상태를 먼저 확인하고, 실제 UI 회귀에서 CSV 대화상자 중 `100→200→100` 변경의 저장 차단을 확인한다. 이는 현재 정적 검수의 미검증 가설이며 실행된 실패로 기록하지 않는다. 재현되면 같은 테스트를 기준으로 수정한다.
+- 당시 재개 조건은 새 Editor 연결·컴파일 상태 확인과 CSV 대화상자 중 `100→200→100` 변경의 저장 차단 검증이었다. 현재 연결 상태와 새 실행 결과는 별도로 확인해야 한다.
 
 ## KI-001: 수동 전체 흐름 검증의 마지막 카탈로그 가져오기 간헐 실패
 
@@ -38,3 +45,5 @@ PID/시작시각/기존ExitCode/단일잠금소유를 재검증한 뒤 해당 �
 
 
 2026-10-21 후속: 새 정상 Editor PID15640/정확한 프로젝트 잠금소유를 확인해 컴파일정상·UI회귀/화면검증을 재개했다. 이전충돌의근본원인해결로확대하지않는다. 사용자현재지시로Chrome창/탭은보존하며Windows재시작·Chrome종료를진행하지않는다. 이복구검증에서해당조작0이다.
+
+2026-11-02 KI-003 추가 진단: 사용자가 한 건의 제한 조회를 추가 승인해 세트·큐 조건 일치, 게임 버전 문자열 패턴 불일치, data_version 1~5 외, 참가자 증강 누락을 확인했다. 원래 5건과 동일한 경기인지는 확인하지 않았고 원문·식별자는 저장하지 않았다. 실제 저장 가능 여부와 미지원 자료의 공식 의미는 미확인이다.

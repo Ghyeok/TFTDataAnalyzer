@@ -1,6 +1,6 @@
 # 정적 카탈로그 비교 검토 체크포인트
 
-상태: 비교 화면 원문 표시 구현·실행 검증·독립 QA 완료, PR 준비. 기준 main ba50db8ad5ef8dc6ef58153cee57da0f8555588c, 브랜치 codex/static-diff-readability. 활성 목표의 2번 정적 데이터 기능을 살펴보며 기존 검색·패치 비교 구현을 중복 개발하지 않는다.
+상태: 비교 화면 원문 표시 수정은 [PR #26](https://github.com/Ghyeok/TFTDataAnalyzer/pull/26)으로 main `7c24679`에 병합됐다. 비교 계산의 구조 충돌 수정은 [PR #27](https://github.com/Ghyeok/TFTDataAnalyzer/pull/27)로 main `d186d39`에 병합됐다. 최신 주석 전용 커밋의 CodeRabbit 재검수는 사용자 지시로 생략했다. 아래는 기준 main `ba50db8`, 당시 브랜치 `codex/static-diff-readability`에서의 진행 이력이다.
 
 비교 화면은 외부 자료를 동적 Label/Foldout에 직접 전달하며 기존 탐색 창과 달리 리치 텍스트를 명시적으로 끄지 않는다. Unity 6000.3.8f1의 합성 Label에 대해 `enableRichText` 기본값 true를 직접 확인했다. 아직 기존 비교 화면의 실제 PNG에서 숨김을 재현하지 않았으므로 화면 재현은 미실행이다. 내장 Foldout Label probe 두 번은 각각 확장 메서드 범위·오버로드 모호성으로 컴파일 실패했다. 같은 관찰을 반복하지 않고 실제 합성 UI 검증 시 정확한 쿼리를 사용한다. 기존 창을 새로 만들지 않았다.
 
@@ -20,4 +20,4 @@ Antigravity 기획 A 입력 두 문서는 `AntigravityCollab/tasks/2026-11-05-st
 
 후속 구현: 비교 하위 Label의 rich text를 끄고 원문을 보존한다. 신규3 RED 후 DataManagerTabTests 10/10, 전체 1021건 중1019통과/0실패/2건너뜀을 확인했다. 최신 합성 940/500px 8PNG를 직접 확인하고 정상·표시 전/후 예외에서 기존 창9/native1·포커스 보존과 소유0을 확인했다. 독립 코드검수의 긴 문자열과 검증 경고 보완 후 재검수 통과, 최종 QA 진행 중. 자세한 한계는 [결과](DisplayFixResults.md). 비교 계산의 충돌은 미수정이며 별도로 해결한다.
 
-독립 최종 QA는 최신 8PNG와 정상·예외 정리 증거를 직접 대조하여 필수 지적 없이 통과했다. 실행 테스트 수치는 root가 수행한 결과이고 QA가 직접 테스트를 실행했다고 주장하지 않는다. 다음은 이 표시 수정의 PR과 최신 head 검수다. 데이터 비교 계산의 구분자 충돌은 별도 작업으로 남는다.
+독립 최종 QA는 당시 최신 8PNG와 정상·예외 정리 증거를 직접 대조하여 필수 지적 없이 통과했다. 실행 테스트 수치는 root가 수행한 결과이고 QA가 직접 테스트를 실행했다고 주장하지 않는다. 표시 수정의 후속 PR 검수·병합 및 비교 계산 충돌의 별도 작업은 위 현재 상태를 따른다.

@@ -1,0 +1,40 @@
+{
+  "findings": [
+    {
+      "action": "Group preserved raw rows by (entityKind, locale, effectiveId) where effectiveId = explicitId ?? sourceKey before scope filtering, and permit a warning-only downgrade only when every row in the collision group is positively classified as a non-selected set in both locales; fail closed if any member row is in-scope, crosses set boundaries, or has ambiguous/unprefixed set membership.",
+      "impact": "Filtering to in-scope rows before duplicate detection would reduce a cross-boundary collision (one in-scope row and one out-of-scope row sharing an ID) to a single surviving row, silently missing the collision or causing ko/en join divergence.",
+      "inScope": true,
+      "reference": "inputs/plan.md; inputs/technical-objection.md",
+      "severity": "P2"
+    },
+    {
+      "action": "Require champion prefix discovery to run over preserved raw rows with an explicit fail-closed check if any champion duplicate-ID group touches target-set candidate prefixes or if discovered prefixes vary under duplicate-row inclusion, exclusion, or source-key reordering.",
+      "impact": "Because scope classification for champions and dependent entities (items, traits, augments) depends on discovered champion prefixes, an unguarded duplicate in champion records could shift prefix discovery and misclassify downstream scope boundaries.",
+      "inScope": true,
+      "reference": "inputs/plan.md; inputs/technical-objection.md",
+      "severity": "P2"
+    },
+    {
+      "action": "Enforce atomic abort prior to catalog write if either ko or en encounters a blocking collision or if an ID permitted in one locale is tainted by a boundary-crossing/ambiguous collision in the other, and ensure official-to-supplemental (CommunityDragon) ID joins cannot silently overwrite duplicate IDs.",
+      "impact": "Asymmetric collisions across ko/en documents or during supplemental enrichment could corrupt cross-language pairing or drop supplemental fields without triggering a single-locale in-scope check.",
+      "inScope": true,
+      "reference": "inputs/plan.md",
+      "severity": "P2"
+    },
+    {
+      "action": "Sort collision groups and participating source keys deterministically by (entityKind, locale, effectiveId, sourceKey) and cap detailed warning entries while reporting exact total counts and preserving raw response hashes.",
+      "impact": "Unordered or unbounded warning output for historical out-of-scope collisions could make import reports non-deterministic across JSON key orderings and brittle in regression tests.",
+      "inScope": true,
+      "reference": "inputs/plan.md",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "0279039759d144b09010eeb102439b326ac8e8feeedbb59b1ad879ed49678236",
+  "taskId": "2026-11-13-official-duplicate-id-integrated",
+  "unverified": [
+    "No repository files, Unity parser/test runners, or 16.22.1 official/supplemental payloads were inspected or executed in this review (per no-tools constraint).",
+    "Implementation of raw-row preservation, prefix-discovery invariance checks, and synthetic collision test cases remains unexecuted pending user approval.",
+    "Image assets and live CommunityDragon supplemental collision behaviors remain unverified without separate runtime evidence."
+  ],
+  "verdict": "pass"
+}

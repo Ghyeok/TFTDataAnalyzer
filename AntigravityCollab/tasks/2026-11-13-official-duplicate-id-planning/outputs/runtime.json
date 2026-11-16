@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-13-official-duplicate-id-planning",
+  "inputDigest": "a5099664e3b329664357292d2d5d81756b4f6255e003cd6c762ea417a720ade1",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.6",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 45496,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 9119,
+    "output_tokens": 1477,
+    "thinking_tokens": 263,
+    "cache_read_tokens": 0,
+    "total_tokens": 10596
+  },
+  "responseSeconds": 28.5534735,
+  "exitCode": 0,
+  "durationSeconds": 36.854
+}
