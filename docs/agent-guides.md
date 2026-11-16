@@ -1,6 +1,6 @@
 # 작업 지침·관련 스킬 색인
 
-갱신일: 2026-10-19
+갱신일: 2026-11-16
 
 프로젝트 지침의 기본 진입점은 루트 [AGENTS.md](../AGENTS.md)다. 이 색인은 작업에 필요한 상세 문서와 관련 스킬을 찾는 용도다. 실제 승인 범위와 실행 권한은 사용자 지시 및 현재 작업 상태를 따른다.
 
@@ -18,7 +18,8 @@
 | 모델·추론 선택의 상세 기준, GPT·Claude 대응 | [모델 선택 지침](agent-model-policy.md) |
 | 서브에이전트 생성·재사용 운영 점검 | [2026-10-20 운영 점검](agent-execution-audit-2026-10-20.md) |
 | Hermes 요청·자료·결과 전달 | [Hermes 협업 규칙](../HermesCollab/README.md) |
-| CodeRabbit 5분 점검·알림 범위 | [검수 모니터 지침](coderabbit-monitoring.md) |
+| PR 검수 경로(로컬 Claude Code → Gemini 자동 → 중요 PR만 CodeRabbit 수동) | [AGENTS.md의 PR 검수 대기](../AGENTS.md#pr-검수-대기), [Gemini 검수 기준](../.gemini/styleguide.md) |
+| CodeRabbit을 요청한 PR의 5분 점검·알림 범위 | [검수 모니터 지침](coderabbit-monitoring.md) |
 | Notion 개발 일지 구성·문체·확인 사항 | [Notion 작성 가이드](notion-writing-guide.md) |
 
 현재 진행 위치는 해당 작업 사이클의 `Checkpoint.md`, 당시 증거는 날짜가 있는 보고서와 `raw/`에서 확인한다. 현재 코드와 더 새로운 실행 결과가 체크포인트보다 앞서면 그 차이를 기록하고 갱신한다.
