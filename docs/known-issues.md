@@ -15,6 +15,7 @@
 - 재현 범위를 한 건으로 제한한 별도 읽기 전용 진단은 경기 목록과 상세를 요청해 메모리에서 기존 익명화기를 실행했다. 결과는 `invalid_match_payload`이며 관측·경기 원문·식별자·키를 저장하거나 출력하지 않았다. 이는 진단한 한 건의 결과이지 최초 5건 모두의 개별 오류 코드가 아니다.
 - 해당 오류는 형식·필수 값·버전 문자열 등 여러 지점에서 발생할 수 있으므로 구체적인 원인을 단정하지 않는다. 버전 불일치로 판정된 경우는 필터 제외이지만, 파싱 오류가 먼저 발생하면 그 판정에 도달하지 않을 수 있다. 저장 단계 결함이나 자료 손상으로도 단정하지 않는다.
 - 사용자 승인 후 합성 안전 검증을 거쳐 단일 추가 진단을 수행했다. 해당 한 건은 세트 일치, game_version 타입/형식 오류 범주, data_version 1·2 외, 참가자 증강 항목 누락이 확인됐다. 증강 누락은 기존 필수 속성 계약과 충돌하지만 원래 5건 각각의 원인이나 최초 예외 위치는 미확정이다. 세부 근거는 [진단 계획](../Assets/Plan/Workflow/Cycles/2026-11-02-match-failure-diagnosis/refined/ImplementationPlan.md)에 기록한다. 추가 경기 요청은 중단한다. 원문을 남기지 않는 안전한 세부 진단과 필요한 승인 범위를 검토한 후에만 재개한다. 진단 스크립트는 `Library/TftAnalyzerValidation/riot-single-match-diagnostic.cs`이며 실제 사용자 자료를 포함하지 않는다.
+- 2026-11-16 1단계 형태 진단 실행: 승인된 비식별 진단 도구(PR #38)로 경기 20건을 1회 측정했다(요청 21회, 저장소·캐시·카탈로그 해시 불변). 20건 모두 `game_version`이 기존 정규식과 맞지 않아 릴리스를 추출할 수 없었고, `data_version`은 한 자리 값 6이며, 참가자 `augments` 필드가 없었다. 결과 분류는 `c_or_d`(`release_unextractable`)다. 최초 실패 5건이 같은 경로로 실패했는지는 경기 ID를 저장하지 않아 대응할 수 없으므로 원인은 여전히 확정하지 않는다. 다음은 2단계 기획이다. 근거: [체크포인트](../Assets/Plan/Workflow/Cycles/2026-11-16-real-match-analysis/Checkpoint.md), [집계 보고서](../Assets/Plan/Workflow/Cycles/2026-11-16-real-match-analysis/raw/match-shape-report-20261116T102829Z-20b8e538.json).
 
 ## KI-002: Unity 내부 빌드 프로세스 종료 후 검증 중단
 
