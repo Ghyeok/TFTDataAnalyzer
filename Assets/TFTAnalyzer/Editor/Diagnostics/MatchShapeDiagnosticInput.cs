@@ -7,7 +7,7 @@ using TFTAnalyzer.Editor.RiotApi;
 namespace TFTAnalyzer.Editor.Diagnostics
 {
     /// <summary>Immutable, non-identifying inputs of one shape diagnostic run, copied from a verified local catalog.</summary>
-    public sealed class MatchShapeDiagnosticInput
+    internal sealed class MatchShapeDiagnosticInput
     {
         private static readonly Regex ReleasePattern = new Regex(@"\A[0-9]{1,5}\.[0-9]{1,5}\z", RegexOptions.CultureInvariant);
 

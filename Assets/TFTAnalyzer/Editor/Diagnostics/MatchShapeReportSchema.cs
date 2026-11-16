@@ -14,7 +14,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
     {
         private const int MaxCount = 100000;
         private static readonly string[] Reasons = { "unauthorized", "forbidden", "not_found", "rate_limited",
-            "server_error", "http_error", "transport_error", "invalid_response", "budget_exhausted" };
+            "server_error", "http_error", "transport_error", "invalid_response", "budget_exhausted", "clock_stalled",
+            "internal_error" };
         private static readonly HashSet<string> StopReasons = new HashSet<string>(
             new[] { "none", "cancelled" }.Concat(new[] { "list", "detail" }.SelectMany(stage => Reasons.Select(reason => stage + "_" + reason))),
             StringComparer.Ordinal);
@@ -133,7 +134,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
             var classification = Object(token, "result", "reason", "targetSampleCount", "threshold",
                 "gameVersionSignatureCount", "dataVersionSignatureCount", "unobservedShapeUpper95");
             Enumeration(classification["result"], "undecidable", "c_or_d", "shape_conditions_met_pending_external_evidence");
-            Enumeration(classification["reason"], "partial_run", "insufficient_sample", "multiple_game_version_signatures",
+            Enumeration(classification["reason"], "partial_run", "insufficient_sample", "unreadable_details",
+                "multiple_game_version_signatures",
                 "release_unextractable", "release_mismatch", "none");
             Integer(classification["targetSampleCount"], 0, MatchShapeDiagnostic.DetailLimit);
             Integer(classification["threshold"], MatchShapeAccumulator.DecisionThreshold, MatchShapeAccumulator.DecisionThreshold);

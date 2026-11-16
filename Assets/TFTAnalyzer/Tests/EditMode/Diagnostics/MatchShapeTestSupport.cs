@@ -77,6 +77,9 @@ namespace TFTAnalyzer.Tests.Diagnostics
             };
         }
 
+        internal static RiotApiResponse ThrowingDispose(string json, string message)
+            => new RiotApiResponse(200, new ThrowingDisposeStream(Encoding.UTF8.GetBytes(json), message));
+
         internal static bool IsList(Uri uri) => uri.AbsolutePath.EndsWith("/ids", StringComparison.Ordinal);
 
         /// <summary>Creates an owned temporary project root inside this project's Library, never in system temp.</summary>
@@ -98,16 +101,34 @@ namespace TFTAnalyzer.Tests.Diagnostics
         }
     }
 
+    /// <summary>A body whose disposal fails with a sentinel-bearing message (a non-transport failure).</summary>
+    internal sealed class ThrowingDisposeStream : MemoryStream
+    {
+        private readonly string _message;
+        public ThrowingDisposeStream(byte[] bytes, string message) : base(bytes, false) { _message = message; }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) throw new InvalidOperationException(_message);
+            base.Dispose(disposing);
+        }
+    }
+
     internal sealed class FakeClock
     {
         public DateTimeOffset Now = new DateTimeOffset(2026, 11, 16, 0, 0, 0, TimeSpan.Zero);
         public readonly List<TimeSpan> Delays = new List<TimeSpan>();
+        /// <summary>Mimics Task.Delay(TimeSpan), which drops sub-millisecond remainders.</summary>
+        public bool TruncateDelays;
+        /// <summary>A clock that never advances, to prove the spacing loop cannot spin forever.</summary>
+        public bool Frozen;
 
         public Task Delay(TimeSpan duration, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             Delays.Add(duration);
-            Now += duration;
+            var applied = TruncateDelays
+                ? TimeSpan.FromTicks((long)duration.TotalMilliseconds * TimeSpan.TicksPerMillisecond) : duration;
+            if (!Frozen) Now += applied;
             return Task.CompletedTask;
         }
     }
@@ -183,6 +204,14 @@ namespace TFTAnalyzer.Tests.Diagnostics
     {
         public readonly List<byte[]> Published = new List<byte[]>();
         public Action<CancellationToken> OnPublish;
+        public bool PreflightFails;
+        public int Preflights;
+
+        public void Preflight()
+        {
+            Preflights++;
+            if (PreflightFails) throw new IOException("preflight " + MatchShapeTestSupport.FakeKey);
+        }
 
         public void Publish(byte[] utf8Json, CancellationToken token)
         {

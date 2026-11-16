@@ -97,7 +97,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
         {
             var first = new DiagnosticHarness(ids: 2) { SinkOverride = Sink() };
             Assert.That((await first.RunAsync()).ReportPublished, Is.True);
-            var path = Path.Combine(ReportDirectory, MatchShapeReportFileSink.FileName);
+            var path = Directory.GetFiles(ReportDirectory).Single();
             var previous = File.ReadAllBytes(path);
 
             var sink = Sink();
@@ -106,7 +106,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
             var result = await failing.RunAsync();
             Assert.That(result.ReportPublished, Is.False);
             Assert.That(result.ReportFailureCode, Is.EqualTo("report_publish_failed"));
-            Assert.That(Directory.GetFiles(ReportDirectory).Select(Path.GetFileName), Is.EqualTo(new[] { MatchShapeReportFileSink.FileName }));
+            Assert.That(Directory.GetFiles(ReportDirectory), Is.EqualTo(new[] { path }));
             Assert.That(File.ReadAllBytes(path), Is.EqualTo(previous));
         }
 
@@ -118,7 +118,9 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That(result.ReportPublished, Is.True);
             Assert.That(result.Classification, Is.EqualTo("shape_conditions_met_pending_external_evidence"));
             var files = Directory.GetFiles(ReportDirectory);
-            Assert.That(files.Select(Path.GetFileName), Is.EqualTo(new[] { MatchShapeReportFileSink.FileName }));
+            Assert.That(files, Has.Length.EqualTo(1));
+            Assert.That(Path.GetFileName(files[0]), Does.Match(@"\Amatch-shape-report-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}\.json\z"));
+            Assert.That(((MatchShapeReportFileSink)harness.SinkOverride).LastReportPath, Is.EqualTo(files[0]));
             var bytes = File.ReadAllBytes(files[0]);
             Assert.That(bytes.Take(3), Is.Not.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }));
             var report = JObject.Parse(Encoding.UTF8.GetString(bytes));
@@ -208,13 +210,18 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That(sink.ReportDirectory, Does.Not.StartWith(Path.GetFullPath(StoreRoot) + Path.DirectorySeparatorChar));
             Assert.That(sink.ReportDirectory, Does.Not.StartWith(Path.Combine(_root, "Assets")));
             var external = Path.Combine(_root, "external-store");
-            Assert.DoesNotThrow(() => new MatchShapeReportFileSink(_root, new[] { StoreRoot, external }));
+            Assert.DoesNotThrow(() => new MatchShapeReportFileSink(_root, new[] { StoreRoot, external }).Preflight());
+            Assert.That(Directory.GetFiles(ReportDirectory), Is.Empty, "The writability probe leaves nothing behind.");
             foreach (var overlapping in new[]
             {
                 Path.Combine(_root, "Library", "TftAnalyzerDiagnostics"), ReportDirectory,
                 Path.Combine(ReportDirectory, "nested"), Path.Combine(_root, "Library"), _root
             })
-                Assert.Throws<ArgumentException>(() => new MatchShapeReportFileSink(_root, new[] { overlapping }), overlapping);
+            {
+                var overlapSink = new MatchShapeReportFileSink(_root, new[] { overlapping });
+                Assert.Throws<IOException>(() => overlapSink.Preflight(), overlapping);
+                Assert.Throws<IOException>(() => overlapSink.Publish(Encoding.UTF8.GetBytes("{}"), CancellationToken.None), overlapping);
+            }
             Assert.Throws<ArgumentException>(() => new MatchShapeReportFileSink(_root, null));
         }
 
@@ -236,10 +243,74 @@ namespace TFTAnalyzer.Tests.Diagnostics
             try
             {
                 Assert.Throws<IOException>(() => Sink().Publish(Encoding.UTF8.GetBytes("{}"), CancellationToken.None));
+                Assert.Throws<IOException>(() => Sink().Preflight());
+                var harness = new DiagnosticHarness { SinkOverride = Sink() };
+                var result = harness.RunAsync().GetAwaiter().GetResult();
+                Assert.That(result.Status, Is.EqualTo("precondition_failed"));
+                Assert.That(result.ReasonCode, Is.EqualTo("report_path_unavailable"));
+                Assert.That(harness.Transport.Sent, Is.Empty);
+                Assert.That(harness.Lock.Locks, Is.Zero);
                 Assert.That(Directory.GetFileSystemEntries(external).Select(Path.GetFileName), Is.EqualTo(new[] { "sentinel.txt" }));
                 Assert.That(File.ReadAllText(Path.Combine(external, "sentinel.txt")), Is.EqualTo("original"));
             }
             finally { if (Directory.Exists(link)) Directory.Delete(link); }
+        }
+
+        [Test]
+        public async Task ReportPathPreflightFailureIsAPreconditionWithZeroSendsAndNoReport()
+        {
+            var harness = new DiagnosticHarness();
+            harness.Sink.PreflightFails = true;
+            var result = await harness.RunAsync();
+            Assert.That(result.Status, Is.EqualTo("precondition_failed"));
+            Assert.That(result.ReasonCode, Is.EqualTo("report_path_unavailable"));
+            Assert.That(result.RunConsumed, Is.False);
+            Assert.That(harness.Transport.Sent, Is.Empty);
+            Assert.That(harness.Sink.Published, Is.Empty);
+            Assert.That(harness.Lock.Locks, Is.Zero);
+            Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(result), Does.Not.Contain(FakeKey));
+
+            var ok = new DiagnosticHarness();
+            await ok.RunAsync();
+            Assert.That(ok.Sink.Preflights, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void EachPublicationGetsAUniqueNameAndNeverOverwritesAnExistingReport()
+        {
+            var clock = new DateTimeOffset(2026, 11, 16, 7, 8, 9, TimeSpan.Zero);
+            var first = Sink();
+            first.Publish(Encoding.UTF8.GetBytes("{\"run\":1}"), CancellationToken.None);
+            var second = Sink();
+            second.Publish(Encoding.UTF8.GetBytes("{\"run\":2}"), CancellationToken.None);
+            Assert.That(first.LastReportPath, Is.Not.EqualTo(second.LastReportPath));
+            Assert.That(Directory.GetFiles(ReportDirectory), Has.Length.EqualTo(2));
+
+            var fixedA = new MatchShapeReportFileSink(_root, new[] { StoreRoot }, () => clock, () => "0123abcd");
+            fixedA.Publish(Encoding.UTF8.GetBytes("{\"run\":3}"), CancellationToken.None);
+            Assert.That(Path.GetFileName(fixedA.LastReportPath), Is.EqualTo("match-shape-report-20261116T070809Z-0123abcd.json"));
+            var fixedB = new MatchShapeReportFileSink(_root, new[] { StoreRoot }, () => clock, () => "0123abcd");
+            Assert.Throws<IOException>(() => fixedB.Publish(Encoding.UTF8.GetBytes("{\"run\":4}"), CancellationToken.None));
+            Assert.That(fixedB.LastReportPath, Is.Null);
+            Assert.That(File.ReadAllText(fixedA.LastReportPath), Is.EqualTo("{\"run\":3}"));
+            Assert.That(Directory.GetFiles(ReportDirectory), Has.Length.EqualTo(3), "No temporary file remains after the refused move.");
+            Assert.Throws<IOException>(() => new MatchShapeReportFileSink(_root, new[] { StoreRoot }, () => clock, () => "../x").Publish(
+                Encoding.UTF8.GetBytes("{}"), CancellationToken.None));
+        }
+
+        [Test]
+        public async Task UnreadableDetailsMakeTheResultUndecidable()
+        {
+            var harness = new DiagnosticHarness(12);
+            var inner = harness.Transport.Respond;
+            harness.Transport.Respond = (uri, i) => i == 4 ? Json("{\"info\":{'queue_id':1100}}") : inner(uri, i);
+            var result = await harness.RunAsync();
+            Assert.That(result.Status, Is.EqualTo("completed"));
+            Assert.That((int)harness.Sink.Last["unreadableDetails"], Is.EqualTo(1));
+            Assert.That((int)harness.Sink.Last["classification"]["targetSampleCount"], Is.EqualTo(11));
+            Assert.That(result.Classification, Is.EqualTo("undecidable"));
+            Assert.That((string)harness.Sink.Last["classification"]["reason"], Is.EqualTo("unreadable_details"));
+            Assert.That(MatchShapeReportSchema.IsValid(harness.Sink.Last), Is.True);
         }
     }
 }

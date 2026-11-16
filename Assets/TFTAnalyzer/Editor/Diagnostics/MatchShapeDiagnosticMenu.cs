@@ -28,39 +28,42 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 if (EditorUtility.DisplayCancelableProgressBar(Title, "요청 진행 중입니다(최대 21회). 취소하면 남은 요청을 보내지 않습니다.", 0.5f))
                     cancellation.Cancel();
             };
+            MatchShapeRunResult result = null;
+            MatchShapeReportFileSink sink = null;
             try
             {
                 var root = Path.GetDirectoryName(Application.dataPath);
+                sink = new MatchShapeReportFileSink(root, new[] { new AnalyzerStorePaths(root).RootDirectory });
+                var reportSink = sink;
                 var entry = new MatchShapeDiagnosticEntryPoint(
                     new PublishedCatalogMatchShapeSource(new StaticCatalogPaths(root),
                         () => AssetDatabase.LoadAssetAtPath<CatalogIndex>(StaticCatalogPaths.CatalogIndexAssetPath)),
                     () => new MatchShapeDiagnostic(new UnityRiotApiTransport(), new EnvironmentRiotApiKeyProvider(),
-                        new EnvironmentSeedPuuidProvider(),
-                        new MatchShapeReportFileSink(root, new[] { new AnalyzerStorePaths(root).RootDirectory }),
+                        new EnvironmentSeedPuuidProvider(), reportSink,
                         new DialogConfirmation(() => EditorApplication.update += poll), new ReloadLock()));
-                var result = await entry.RunAsync(cancellation.Token);
-                EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog(Title, Describe(result), "확인");
+                result = await entry.RunAsync(cancellation.Token);
             }
-            catch
-            {
-                EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog(Title, "진단을 완료하지 못했습니다. 세부 정보는 표시하지 않습니다.", "확인");
-            }
+            catch { result = null; }
             finally
             {
+                // The poll and progress bar are always gone before the result dialog is shown.
                 EditorApplication.update -= poll;
                 EditorUtility.ClearProgressBar();
                 cancellation.Dispose();
                 _running = false;
             }
+            EditorUtility.DisplayDialog(Title, result == null
+                ? "진단을 완료하지 못했습니다. 세부 정보는 표시하지 않습니다."
+                : Describe(result, sink?.LastReportPath), "확인");
         }
 
-        /// <summary>Shows only controlled codes and counts.</summary>
-        private static string Describe(MatchShapeRunResult result)
+        /// <summary>Shows only controlled codes, counts and the report file name.</summary>
+        private static string Describe(MatchShapeRunResult result, string reportPath)
             => "상태: " + result.Status + "\n사유: " + result.ReasonCode +
                "\n물리 전송: 목록 " + result.ListSends + "회, 상세 " + result.DetailSends + "회" +
-               "\n보고서: " + (result.ReportPublished ? "Library/TftAnalyzerDiagnostics/match-shape/" + MatchShapeReportFileSink.FileName : "없음 (" + result.ReportFailureCode + ")") +
+               "\n보고서: " + (result.ReportPublished && reportPath != null
+                   ? "Library/TftAnalyzerDiagnostics/match-shape/" + Path.GetFileName(reportPath)
+                   : "없음 (" + result.ReportFailureCode + ")") +
                "\n결과 분류: " + result.Classification +
                "\n실행 소모: " + (result.RunConsumed ? "예" : "아니요");
 

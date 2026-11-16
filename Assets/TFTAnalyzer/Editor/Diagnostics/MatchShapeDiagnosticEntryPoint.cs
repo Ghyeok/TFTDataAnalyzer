@@ -7,7 +7,7 @@ using TFTAnalyzer.Editor.RiotApi;
 namespace TFTAnalyzer.Editor.Diagnostics
 {
     /// <summary>Static facts copied from one verified local catalog.</summary>
-    public sealed class MatchShapeCatalogSelection
+    internal sealed class MatchShapeCatalogSelection
     {
         public int SetNumber { get; }
         public string Release { get; }
@@ -24,7 +24,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
     }
 
     /// <summary>Loads a verified local catalog read-only; returns null and a fixed code when none is usable.</summary>
-    public interface IMatchShapeCatalogSource
+    internal interface IMatchShapeCatalogSource
     {
         MatchShapeCatalogSelection Load(out string failureCode);
     }
@@ -33,7 +33,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
     /// Testable body of the Editor menu item: builds the immutable inputs from a verified catalog, stopping before any
     /// confirmation or network access when none is usable, then runs one diagnostic.
     /// </summary>
-    public sealed class MatchShapeDiagnosticEntryPoint
+    internal sealed class MatchShapeDiagnosticEntryPoint
     {
         public const string Platform = "KR";
         public const int TargetQueueId = 1100;
@@ -57,7 +57,10 @@ namespace TFTAnalyzer.Editor.Diagnostics
                     selection.Release, selection.UnitIds, selection.ItemIds, selection.TraitIds, selection.AugmentIds);
             }
             catch { return MatchShapeRunResult.PreconditionFailed("catalog_unavailable"); }
-            return await _diagnostic().RunAsync(input, token);
+            MatchShapeDiagnostic diagnostic;
+            try { diagnostic = _diagnostic(); }
+            catch { return MatchShapeRunResult.PreconditionFailed("diagnostic_unavailable"); }
+            return await diagnostic.RunAsync(input, token);
         }
     }
 }

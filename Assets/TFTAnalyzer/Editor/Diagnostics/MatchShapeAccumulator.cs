@@ -110,7 +110,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
             };
         }
 
-        /// <summary>Applies the approved ordered rules: partial/n&lt;k, multiple game_version signatures, release, otherwise shape met.</summary>
+        /// <summary>Applies the approved ordered rules: partial/n&lt;k, unreadable details, multiple game_version signatures, release, otherwise shape met.</summary>
         private JObject Classify(MatchShapeRunSummary run)
         {
             _queues.TryGetValue(TargetQueue, out var target);
@@ -120,6 +120,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
             string result, reason;
             if (run.Partial) { result = "undecidable"; reason = "partial_run"; }
             else if (n < DecisionThreshold) { result = "undecidable"; reason = "insufficient_sample"; }
+            else if (_unreadable > 0) { result = "undecidable"; reason = "unreadable_details"; }
             else if (gameSignatures >= 2) { result = "undecidable"; reason = "multiple_game_version_signatures"; }
             else if (target.ReleaseUnextractable > 0) { result = "c_or_d"; reason = "release_unextractable"; }
             else if (target.ReleaseMismatch > 0) { result = "c_or_d"; reason = "release_mismatch"; }

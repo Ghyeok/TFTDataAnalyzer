@@ -14,6 +14,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
     {
         public const int ListLimit = 1;
         public static readonly TimeSpan MinimumInterval = TimeSpan.FromMilliseconds(1200);
+        internal const string ClockStalled = "diagnostic_budget_clock_stalled";
         private const int MaximumSpacingWaits = 100;
         private readonly IRiotApiTransport _inner;
         private readonly int _detailLimit;
@@ -54,8 +55,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 {
                     var remaining = _lastStart.Value + MinimumInterval - _utcNow();
                     if (remaining <= TimeSpan.Zero) break;
-                    if (waits >= MaximumSpacingWaits) throw new InvalidOperationException("diagnostic_budget_clock_stalled");
-                    await _delay(remaining, token);
+                    if (waits >= MaximumSpacingWaits) throw new InvalidOperationException(ClockStalled);
+                    await _delay(WholeMilliseconds(remaining), token);
                 }
                 token.ThrowIfCancellationRequested();
                 Admit(list);
@@ -64,6 +65,16 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 return await _inner.SendAsync(uri, headers, token);
             }
             finally { _inFlight = false; }
+        }
+
+        /// <summary>
+        /// Rounds a wait up to whole milliseconds (minimum 1 ms): Task.Delay(TimeSpan) truncates sub-millisecond
+        /// remainders to zero, which would otherwise spin the spacing loop until it reports a false clock stall.
+        /// </summary>
+        internal static TimeSpan WholeMilliseconds(TimeSpan remaining)
+        {
+            var milliseconds = (long)Math.Ceiling(remaining.Ticks / (double)TimeSpan.TicksPerMillisecond);
+            return TimeSpan.FromTicks(Math.Max(1L, milliseconds) * TimeSpan.TicksPerMillisecond);
         }
 
         /// <summary>Rejects a send outside the approved plan without touching the inner transport.</summary>

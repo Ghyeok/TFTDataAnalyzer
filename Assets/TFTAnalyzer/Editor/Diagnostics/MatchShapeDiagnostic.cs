@@ -13,7 +13,7 @@ using TFTAnalyzer.Editor.RiotApi;
 namespace TFTAnalyzer.Editor.Diagnostics
 {
     /// <summary>Asks the user to confirm the run preconditions that code cannot observe.</summary>
-    public interface IMatchShapeConfirmation
+    internal interface IMatchShapeConfirmation
     {
         /// <summary>The user restarted Unity after renewing the key so the process environment holds it.</summary>
         bool ConfirmUnityRestartedAfterKeyRenewal(string summary);
@@ -22,20 +22,22 @@ namespace TFTAnalyzer.Editor.Diagnostics
     }
 
     /// <summary>Blocks domain reloads while requests are outstanding.</summary>
-    public interface IAssemblyReloadLock
+    internal interface IAssemblyReloadLock
     {
         void Lock();
         void Unlock();
     }
 
     /// <summary>Receives a schema-validated aggregate report.</summary>
-    public interface IMatchShapeReportSink
+    internal interface IMatchShapeReportSink
     {
+        /// <summary>Verifies the report location (outside stores, no links, writable) before any network send.</summary>
+        void Preflight();
         void Publish(byte[] utf8Json, CancellationToken token);
     }
 
     /// <summary>Controlled outcome codes only; never carries URLs, keys, identifiers or exception text.</summary>
-    public sealed class MatchShapeRunResult
+    internal sealed class MatchShapeRunResult
     {
         public string Status { get; }
         public string ReasonCode { get; }
@@ -63,7 +65,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
     /// Measures real match response shapes with a hard request budget, separate from the collection path.
     /// It never uses RiotApiClient retries, MatchCollectionService, MatchAnonymizer.Read or any Persistence store.
     /// </summary>
-    public sealed class MatchShapeDiagnostic
+    internal sealed class MatchShapeDiagnostic
     {
         public const int DetailLimit = 20;
         private const int MaximumIdListBytes = 64 * 1024;
@@ -101,6 +103,9 @@ namespace TFTAnalyzer.Editor.Diagnostics
             try { listUri = RiotRouting.MatchIds(input.Region, _seeds.GetSeeds()[0], 0, DetailLimit); }
             catch { return Precondition("seed_unavailable"); }
             if (!Confirm(input)) return Precondition("confirmation_declined");
+            // The report location must be usable before any request is sent; otherwise nothing is sent and no report is written.
+            try { _sink.Preflight(); }
+            catch { return Precondition("report_path_unavailable"); }
 
             var headers = new ReadOnlyDictionary<string, string>(
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Riot-Token"] = key });
@@ -114,7 +119,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 locked = true;
                 try { await ExecuteAsync(input, listUri, headers, budget, accumulator, state, token); }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { state.Cancelled = true; }
-                catch { if (state.Reason == null) Stop(state, budget, state.Stage ?? "list", "transport_error"); }
+                // Failures outside the transport (e.g. body disposal or aggregation) keep a distinct, text-free code.
+                catch { if (state.Reason == null) Stop(state, budget, state.Stage ?? "list", "internal_error"); }
                 budget.Close();
                 return Publish(accumulator, state, budget, token);
             }
@@ -188,7 +194,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (InvalidOperationException error) when (error.Message.StartsWith("diagnostic_budget", StringComparison.Ordinal))
             {
-                Stop(state, budget, stage, "budget_exhausted");
+                Stop(state, budget, stage, error.Message == DiagnosticRequestBudget.ClockStalled ? "clock_stalled" : "budget_exhausted");
                 return null;
             }
             catch

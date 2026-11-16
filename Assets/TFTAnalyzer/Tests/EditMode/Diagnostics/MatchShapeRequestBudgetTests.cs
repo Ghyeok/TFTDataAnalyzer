@@ -65,6 +65,63 @@ namespace TFTAnalyzer.Tests.Diagnostics
             await Task.CompletedTask;
         }
 
+        /// <summary>Regression: Task.Delay(TimeSpan) truncates sub-millisecond waits, which used to spin into a false stall.</summary>
+        [Test]
+        public async Task SubMillisecondRemaindersAreRoundedUpSoTruncatingDelaysStillComplete()
+        {
+            var harness = new DiagnosticHarness(ids: 5);
+            harness.Clock.TruncateDelays = true;
+            harness.Transport.BeforeRespond = _ => harness.Clock.Now += TimeSpan.FromTicks(3);
+            var result = await harness.RunAsync();
+            Assert.That(result.Status, Is.EqualTo("completed"), result.ReasonCode);
+            Assert.That(harness.Transport.Sent, Has.Count.EqualTo(6));
+            for (var i = 1; i < 6; i++)
+                Assert.That(harness.Transport.Sent[i].At - harness.Transport.Sent[i - 1].At,
+                    Is.GreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1200)));
+            Assert.That(harness.Clock.Delays, Is.Not.Empty);
+            Assert.That(harness.Clock.Delays.All(delay => delay.Ticks % TimeSpan.TicksPerMillisecond == 0 &&
+                delay >= TimeSpan.FromMilliseconds(1)), Is.True, "Every wait is a whole number of milliseconds, at least 1 ms.");
+            Assert.That(harness.Clock.Delays.Count, Is.EqualTo(5), "One wait per detail send; no spinning.");
+        }
+
+        [Test]
+        public async Task AStalledClockStopsWithItsOwnReasonInsteadOfBudgetExhausted()
+        {
+            var harness = new DiagnosticHarness(ids: 3);
+            harness.Clock.Frozen = true;
+            var result = await harness.RunAsync();
+            Assert.That(harness.Transport.Sent, Has.Count.EqualTo(1));
+            Assert.That(result.Status, Is.EqualTo("aborted"));
+            Assert.That(result.ReasonCode, Is.EqualTo("detail_clock_stalled"));
+            Assert.That((string)harness.Sink.Last["stop"]["reason"], Is.EqualTo("detail_clock_stalled"));
+            Assert.That(harness.Clock.Delays.All(delay => delay >= TimeSpan.FromMilliseconds(1)), Is.True);
+        }
+
+        /// <summary>Failures outside the transport are labelled internal_error and never carry exception text.</summary>
+        [TestCase(0, "list_internal_error")]
+        [TestCase(2, "detail_internal_error")]
+        public async Task NonTransportFailuresAreInternalErrorsWithoutExceptionText(int failingIndex, string reason)
+        {
+            var harness = new DiagnosticHarness(ids: 3);
+            var inner = harness.Transport.Respond;
+            harness.Transport.Respond = (uri, i) =>
+            {
+                if (i != failingIndex) return inner(uri, i);
+                using (var normal = inner(uri, i))
+                using (var reader = new System.IO.StreamReader(normal.TakeBody()))
+                    return ThrowingDispose(reader.ReadToEnd(), "dispose failed " + FakeKey + " " + uri.AbsoluteUri);
+            };
+            var result = await harness.RunAsync();
+            Assert.That(result.ReasonCode, Is.EqualTo(reason));
+            Assert.That(result.Status, Is.EqualTo("aborted"));
+            Assert.That(harness.Transport.Sent, Has.Count.EqualTo(failingIndex + 1));
+            var report = System.Text.Encoding.UTF8.GetString(harness.Sink.Published.Single());
+            Assert.That(report, Does.Contain(reason));
+            foreach (var forbidden in new[] { FakeKey, "dispose failed", "riotgames", MatchId(0) })
+                Assert.That(report, Does.Not.Contain(forbidden));
+            Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(result), Does.Not.Contain(FakeKey));
+        }
+
         [TestCase(401, "list_unauthorized")]
         [TestCase(403, "list_forbidden")]
         [TestCase(429, "list_rate_limited")]

@@ -93,7 +93,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That(result.ReportPublished, Is.True);
             Assert.That(temps, Has.Count.EqualTo(1));
             AssertClean(Encoding.UTF8.GetString(temps[0]), "temporary file");
-            AssertClean(File.ReadAllText(sink.ReportPath, Encoding.UTF8), "report");
+            AssertClean(File.ReadAllText(sink.LastReportPath, Encoding.UTF8), "report");
             AssertClean(Describe(result), "result");
             AssertClean(harness.Confirmation.Summary.Replace("지역 경로: asia", ""), "confirmation summary outside the region line");
             lock (_logs) Assert.That(_logs, Is.Empty, "The diagnostic must not log.");
@@ -118,7 +118,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
                 var result = await harness.RunAsync();
                 AssertClean(Describe(result), "result");
                 foreach (var temp in temps) AssertClean(Encoding.UTF8.GetString(temp), "temporary file");
-                if (File.Exists(sink.ReportPath)) AssertClean(File.ReadAllText(sink.ReportPath), "report");
+                if (sink.LastReportPath != null) AssertClean(File.ReadAllText(sink.LastReportPath), "report");
             }
 
             var (publish, publishSink, _) = Harness(2);

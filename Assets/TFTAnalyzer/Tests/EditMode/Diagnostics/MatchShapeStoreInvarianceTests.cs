@@ -174,6 +174,18 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That(thrown, Is.EqualTo("catalog_unavailable"));
         }
 
+        [Test]
+        public async Task DiagnosticConstructionFailureIsAPreconditionBeforeAnySend()
+        {
+            PublishCatalog();
+            var entry = new MatchShapeDiagnosticEntryPoint(new PublishedCatalogMatchShapeSource(_paths, () => _index),
+                () => throw new ArgumentException("factory " + FakeKey));
+            var result = await entry.RunAsync(CancellationToken.None);
+            Assert.That(result.Status, Is.EqualTo("precondition_failed"));
+            Assert.That(result.ReasonCode, Is.EqualTo("diagnostic_unavailable"));
+            Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(result), Does.Not.Contain(FakeKey));
+        }
+
         private static readonly Type[] PersistenceBoundary = { typeof(PublishedCatalogMatchShapeSource), typeof(MatchShapeDiagnosticMenu) };
 
         private static bool IsBoundary(Type type)
