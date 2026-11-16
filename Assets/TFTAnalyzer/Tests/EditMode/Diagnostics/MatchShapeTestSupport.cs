@@ -115,7 +115,10 @@ namespace TFTAnalyzer.Tests.Diagnostics
 
     internal sealed class FakeClock
     {
-        public DateTimeOffset Now = new DateTimeOffset(2026, 11, 16, 0, 0, 0, TimeSpan.Zero);
+        public static readonly DateTimeOffset Start = new DateTimeOffset(2026, 11, 16, 0, 0, 0, TimeSpan.Zero);
+        public DateTimeOffset Now = Start;
+        /// <summary>The fake monotonic elapsed time handed to the budget.</summary>
+        public TimeSpan Elapsed() => Now - Start;
         public readonly List<TimeSpan> Delays = new List<TimeSpan>();
         /// <summary>Mimics Task.Delay(TimeSpan), which drops sub-millisecond remainders.</summary>
         public bool TruncateDelays;
@@ -242,7 +245,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
 
         public MatchShapeDiagnostic Build() => new MatchShapeDiagnostic(Transport,
             new EnvironmentRiotApiKeyProvider(Key), new EnvironmentSeedPuuidProvider(Seeds),
-            SinkOverride ?? Sink, Confirmation, Lock, () => Clock.Now, Clock.Delay);
+            SinkOverride ?? Sink, Confirmation, Lock, Clock.Elapsed, Clock.Delay);
 
         public Task<MatchShapeRunResult> RunAsync(CancellationToken token = default, MatchShapeDiagnosticInput input = null)
             => Build().RunAsync(input ?? MatchShapeTestSupport.Input(), token);

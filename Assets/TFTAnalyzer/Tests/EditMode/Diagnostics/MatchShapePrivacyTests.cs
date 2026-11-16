@@ -139,7 +139,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
                 Assert.That(readError.InnerException, Is.Null);
             }
             var budgetError = Assert.ThrowsAsync<InvalidOperationException>(() =>
-                new DiagnosticRequestBudget(new ScriptedTransport(new FakeClock(), null), 1, () => DateTimeOffset.UtcNow, (d, t) => Task.CompletedTask)
+                new DiagnosticRequestBudget(new ScriptedTransport(new FakeClock(), null), 1, () => TimeSpan.Zero, (d, t) => Task.CompletedTask)
                     .SendAsync(new Uri("https://asia.api.riotgames.com/tft/match/v1/matches/" + MatchId(1)),
                         new Dictionary<string, string> { ["X-Riot-Token"] = FakeKey }, CancellationToken.None));
             Assert.That(budgetError.Message, Does.Not.Contain(MatchId(1)).And.Not.Contain(FakeKey));

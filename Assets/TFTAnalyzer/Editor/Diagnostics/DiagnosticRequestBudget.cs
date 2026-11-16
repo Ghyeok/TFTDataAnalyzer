@@ -18,18 +18,20 @@ namespace TFTAnalyzer.Editor.Diagnostics
         private const int MaximumSpacingWaits = 100;
         private readonly IRiotApiTransport _inner;
         private readonly int _detailLimit;
-        private readonly Func<DateTimeOffset> _utcNow;
+        private readonly Func<TimeSpan> _elapsed;
         private readonly Func<TimeSpan, CancellationToken, Task> _delay;
-        private DateTimeOffset? _lastStart;
+        private TimeSpan? _lastStart;
         private bool _closed, _inFlight;
 
-        public DiagnosticRequestBudget(IRiotApiTransport inner, int detailLimit, Func<DateTimeOffset> utcNow,
+        /// <param name="elapsed">A monotonic elapsed-time source (Stopwatch in production); never the wall clock, so a
+        /// clock adjustment cannot shorten the spacing.</param>
+        public DiagnosticRequestBudget(IRiotApiTransport inner, int detailLimit, Func<TimeSpan> elapsed,
             Func<TimeSpan, CancellationToken, Task> delay)
         {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             if (detailLimit < 0) throw new ArgumentOutOfRangeException(nameof(detailLimit));
             _detailLimit = detailLimit;
-            _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
+            _elapsed = elapsed ?? throw new ArgumentNullException(nameof(elapsed));
             _delay = delay ?? throw new ArgumentNullException(nameof(delay));
         }
 
@@ -53,7 +55,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
             {
                 for (var waits = 0; _lastStart.HasValue; waits++)
                 {
-                    var remaining = _lastStart.Value + MinimumInterval - _utcNow();
+                    var remaining = _lastStart.Value + MinimumInterval - _elapsed();
                     if (remaining <= TimeSpan.Zero) break;
                     if (waits >= MaximumSpacingWaits) throw new InvalidOperationException(ClockStalled);
                     await _delay(WholeMilliseconds(remaining), token);
@@ -61,7 +63,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 token.ThrowIfCancellationRequested();
                 Admit(list);
                 if (list) ListSends++; else DetailSends++;
-                _lastStart = _utcNow();
+                _lastStart = _elapsed();
                 return await _inner.SendAsync(uri, headers, token);
             }
             finally { _inFlight = false; }

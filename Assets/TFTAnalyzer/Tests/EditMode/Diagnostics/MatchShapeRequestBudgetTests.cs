@@ -22,7 +22,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
         {
             var clock = new FakeClock();
             var inner = new ScriptedTransport(clock, null, ids: 2);
-            var budget = new DiagnosticRequestBudget(inner, 2, () => clock.Now, clock.Delay);
+            var budget = new DiagnosticRequestBudget(inner, 2, clock.Elapsed, clock.Delay);
             Assert.ThrowsAsync<InvalidOperationException>(() => budget.SendAsync(DetailUri(0), Headers, default),
                 "A detail send before the single list send is outside the plan.");
             (await budget.SendAsync(ListUri, Headers, default)).Dispose();
@@ -41,7 +41,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
         {
             var clock = new FakeClock();
             var inner = new ScriptedTransport(clock, null, ids: 3);
-            var budget = new DiagnosticRequestBudget(inner, 3, () => clock.Now, clock.Delay);
+            var budget = new DiagnosticRequestBudget(inner, 3, clock.Elapsed, clock.Delay);
             (await budget.SendAsync(ListUri, Headers, default)).Dispose();
             clock.Now += TimeSpan.FromMilliseconds(300);
             for (var i = 0; i < 3; i++) (await budget.SendAsync(DetailUri(i), Headers, default)).Dispose();
@@ -56,7 +56,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
         {
             var clock = new FakeClock();
             var inner = new ScriptedTransport(clock, null) { Respond = (uri, i) => throw new RiotApiException(RiotApiFailure.TransportError) };
-            var budget = new DiagnosticRequestBudget(inner, 20, () => clock.Now, clock.Delay);
+            var budget = new DiagnosticRequestBudget(inner, 20, clock.Elapsed, clock.Delay);
             Assert.ThrowsAsync<RiotApiException>(() => budget.SendAsync(ListUri, Headers, default));
             Assert.That(budget.ListSends, Is.EqualTo(1));
             budget.Close();
@@ -120,6 +120,55 @@ namespace TFTAnalyzer.Tests.Diagnostics
             foreach (var forbidden in new[] { FakeKey, "dispose failed", "riotgames", MatchId(0) })
                 Assert.That(report, Does.Not.Contain(forbidden));
             Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(result), Does.Not.Contain(FakeKey));
+        }
+
+        /// <summary>Spacing depends only on a monotonic elapsed source; no wall-clock input exists that an adjustment could move.</summary>
+        [Test]
+        public void SpacingTakesNoWallClockInput()
+        {
+            const System.Reflection.BindingFlags all = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            foreach (var type in new[] { typeof(DiagnosticRequestBudget), typeof(MatchShapeDiagnostic) })
+            {
+                var fields = type.GetFields(all).Select(f => f.FieldType).ToArray();
+                Assert.That(fields, Has.None.EqualTo(typeof(Func<DateTimeOffset>)), type.Name);
+                Assert.That(fields, Has.None.EqualTo(typeof(DateTimeOffset?)), type.Name);
+                Assert.That(type.GetConstructors(all).SelectMany(c => c.GetParameters()).Select(p => p.ParameterType),
+                    Has.None.EqualTo(typeof(Func<DateTimeOffset>)), type.Name);
+            }
+        }
+
+        /// <summary>The fake monotonic source alone governs spacing, whatever the wall clock does meanwhile.</summary>
+        [Test]
+        public async Task MonotonicSourceEnforcesTheMinimumGapAcrossAWallClockJump()
+        {
+            var harness = new DiagnosticHarness(ids: 3);
+            var wall = DateTimeOffset.UtcNow;
+            harness.Transport.BeforeRespond = _ => wall += TimeSpan.FromHours(1);
+            var result = await harness.RunAsync();
+            Assert.That(result.Status, Is.EqualTo("completed"));
+            Assert.That(wall - DateTimeOffset.UtcNow, Is.GreaterThan(TimeSpan.FromHours(3)));
+            for (var i = 1; i < harness.Transport.Sent.Count; i++)
+                Assert.That(harness.Transport.Sent[i].At - harness.Transport.Sent[i - 1].At,
+                    Is.GreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1200)));
+        }
+
+        /// <summary>The production default (per-run Stopwatch and Task.Delay) keeps a real 1.2 s gap.</summary>
+        [Test]
+        public void DefaultStopwatchSourceKeepsTheRealGap()
+        {
+            var measured = System.Diagnostics.Stopwatch.StartNew();
+            var starts = new List<TimeSpan>();
+            var transport = new ScriptedTransport(new FakeClock(), null, ids: 1);
+            transport.BeforeRespond = _ => starts.Add(measured.Elapsed);
+            var run = Task.Run(() => new MatchShapeDiagnostic(transport, new EnvironmentRiotApiKeyProvider(() => FakeKey),
+                new EnvironmentSeedPuuidProvider(() => FakeSeed), new MemorySink(), new FakeConfirmation(), new FakeReloadLock())
+                .RunAsync(Input(), CancellationToken.None));
+            Assert.That(run.Wait(TimeSpan.FromSeconds(20)), Is.True, "The real-time run finished.");
+            Assert.That(run.Result.Status, Is.EqualTo("completed"));
+            Assert.That(starts, Has.Count.EqualTo(2));
+            // External timestamps are taken just after the budget's own reading; allow 5 ms of measurement skew.
+            Assert.That(starts[1] - starts[0], Is.GreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1195)));
         }
 
         [TestCase(401, "list_unauthorized")]

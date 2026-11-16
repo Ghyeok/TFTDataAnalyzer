@@ -75,13 +75,13 @@ namespace TFTAnalyzer.Editor.Diagnostics
         private readonly IMatchShapeReportSink _sink;
         private readonly IMatchShapeConfirmation _confirmation;
         private readonly IAssemblyReloadLock _reloadLock;
-        private readonly Func<DateTimeOffset> _utcNow;
+        private readonly Func<TimeSpan> _elapsed;
         private readonly Func<TimeSpan, CancellationToken, Task> _delay;
 
         /// <summary>Construction reads nothing: no environment, credential, network or file access.</summary>
         public MatchShapeDiagnostic(IRiotApiTransport transport, IRiotApiKeyProvider keys, EnvironmentSeedPuuidProvider seeds,
             IMatchShapeReportSink sink, IMatchShapeConfirmation confirmation, IAssemblyReloadLock reloadLock,
-            Func<DateTimeOffset> utcNow = null, Func<TimeSpan, CancellationToken, Task> delay = null)
+            Func<TimeSpan> elapsed = null, Func<TimeSpan, CancellationToken, Task> delay = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _keys = keys ?? throw new ArgumentNullException(nameof(keys));
@@ -89,7 +89,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
             _confirmation = confirmation ?? throw new ArgumentNullException(nameof(confirmation));
             _reloadLock = reloadLock ?? throw new ArgumentNullException(nameof(reloadLock));
-            _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
+            // Null means a per-run Stopwatch: spacing is measured monotonically, never with the wall clock.
+            _elapsed = elapsed;
             _delay = delay ?? ((duration, cancellation) => Task.Delay(duration, cancellation));
         }
 
@@ -109,7 +110,8 @@ namespace TFTAnalyzer.Editor.Diagnostics
 
             var headers = new ReadOnlyDictionary<string, string>(
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Riot-Token"] = key });
-            var budget = new DiagnosticRequestBudget(_transport, DetailLimit, _utcNow, _delay);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var budget = new DiagnosticRequestBudget(_transport, DetailLimit, _elapsed ?? (() => stopwatch.Elapsed), _delay);
             var accumulator = new MatchShapeAccumulator(input);
             var state = new RunState();
             var locked = false;

@@ -225,6 +225,45 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.Throws<ArgumentException>(() => new MatchShapeReportFileSink(_root, null));
         }
 
+        private static void Junction(string link, string target)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(link));
+            using (var process = Process.Start(new ProcessStartInfo("cmd.exe", "/d /c mklink /J \"" + link + "\" \"" + target + "\"")
+                { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true }))
+            {
+                if (!process.WaitForExit(5000)) { process.Kill(); Assert.Fail("Owned junction fixture creation timed out."); }
+                Assert.That(process.ExitCode, Is.Zero);
+            }
+        }
+
+        /// <summary>A store root linked onto the report directory overlaps on disk although the strings differ.</summary>
+        [Test]
+        public async Task JunctionedStoreRootIsRejectedBeforeAnyFileIsCreated()
+        {
+            if (Path.DirectorySeparatorChar != '\\') Assert.Ignore("Windows junction fixture.");
+            Directory.CreateDirectory(ReportDirectory);
+            var external = Path.Combine(_root, "external-store");
+            Directory.CreateDirectory(external);
+            foreach (var target in new[] { ReportDirectory, external })
+            {
+                Junction(StoreRoot, target);
+                try
+                {
+                    Assert.Throws<IOException>(() => Sink().Preflight(), target);
+                    Assert.Throws<IOException>(() => Sink().Publish(Encoding.UTF8.GetBytes("{}"), CancellationToken.None), target);
+                    var harness = new DiagnosticHarness { SinkOverride = Sink() };
+                    var result = await harness.RunAsync();
+                    Assert.That(result.Status, Is.EqualTo("precondition_failed"), target);
+                    Assert.That(result.ReasonCode, Is.EqualTo("report_path_unavailable"), target);
+                    Assert.That(harness.Transport.Sent, Is.Empty, target);
+                    Assert.That(Directory.GetFileSystemEntries(ReportDirectory), Is.Empty, target);
+                    Assert.That(Directory.GetFileSystemEntries(external), Is.Empty, target);
+                }
+                finally { if (Directory.Exists(StoreRoot)) Directory.Delete(StoreRoot); }
+            }
+            Assert.That(Directory.Exists(ReportDirectory), Is.True, "Removing the link never deletes its target.");
+        }
+
         [Test]
         public void JunctionOnTheReportPathIsRejectedWithoutTouchingItsTarget()
         {

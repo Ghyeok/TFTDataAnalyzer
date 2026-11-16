@@ -111,8 +111,12 @@ namespace TFTAnalyzer.Editor.Diagnostics
             if (IsWithin(ReportDirectory, Path.Combine(_projectRoot, "Assets")))
                 throw new IOException("match_shape_report_inside_assets");
             foreach (var store in _storeRoots)
+            {
                 if (IsWithin(ReportDirectory, store) || IsWithin(store, ReportDirectory))
                     throw new IOException("match_shape_report_overlaps_store");
+                // A linked store root (or ancestor) could alias the report directory on disk despite distinct strings.
+                RejectReparsePoints(store);
+            }
             RejectReparsePoints(ReportDirectory);
         }
 
