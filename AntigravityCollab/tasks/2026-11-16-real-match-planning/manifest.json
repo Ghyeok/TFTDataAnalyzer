@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-16-real-match-planning",
+  "files": [
+    {
+      "copy": "inputs/incomplete-match-records.md",
+      "sha256": "bcda786f2fd9e9a3b2ff61a44ec63d9fd9a3a1f843562330581fb01072fd7937"
+    },
+    {
+      "copy": "inputs/known-issue-ki003.md",
+      "sha256": "84fa921ecf57b73b9ae71f9d9b9be81b84f3aaad630cd63e66216085a09cf132"
+    },
+    {
+      "copy": "inputs/planning-draft.md",
+      "sha256": "ffcb2969d4fb825124849265334564ca1ff6d375a042b69edc0322fadaf9eaec"
+    },
+    {
+      "copy": "inputs/source-research.md",
+      "sha256": "414e127dc6b0749ca8d55ed61a19e43cabf2b7e646876ce650796e970009de04"
+    },
+    {
+      "copy": "inputs/storage-support-options.md",
+      "sha256": "8d3182772d8b27d3385b96737d67047f07e6d0570853aa35073cc4c0e2991322"
+    }
+  ],
+  "inputDigest": "7b43ab44384ee9e5709a828290691f4cb7cc23b472354938928f6942403d5c79"
+}

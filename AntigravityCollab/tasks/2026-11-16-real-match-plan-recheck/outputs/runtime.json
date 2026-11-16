@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-16-real-match-plan-recheck",
+  "inputDigest": "631da01e7b0bafb00fdeba82ed80c546d80ddb1f97736a733382d2ed37938e9d",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.9",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 31036,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 14379,
+    "output_tokens": 1676,
+    "thinking_tokens": 1490,
+    "cache_read_tokens": 0,
+    "total_tokens": 16055
+  },
+  "responseSeconds": 30.9327681,
+  "exitCode": 0,
+  "durationSeconds": 38.186
+}

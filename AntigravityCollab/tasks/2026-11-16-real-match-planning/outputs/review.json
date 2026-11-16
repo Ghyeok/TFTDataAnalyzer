@@ -1,0 +1,46 @@
+{
+  "findings": [
+    {
+      "action": "Define the exact fail-closed policy matrix for 'augments missing (미제공)' across average placement, Top4/1st ratio metrics, relative metrics, and CSV export in planning-draft.md, and reconcile the contradiction between source-research.md (CompositionFingerprintBuilder includes augments; MetricPolicy.AugmentRestriction only passes empty augment lists) and planning-draft.md's claim that composition/item ratio statistics can be served while only augment filters/metrics are blocked.",
+      "impact": "If MetricPolicy.AugmentRestriction currently blocks ratio/relative metrics whenever augments are non-empty or unclassified, either (a) a strict fail-closed treatment of 'missing augments' will block all ratio/relative metrics for real matches too (leaving the user with no ratio statistics even after Phase 2), or (b) allowing composition/item ratio metrics when augments are missing will silently bypass the very AugmentRestriction policy that prevented mapping missing augments to an empty list.",
+      "inScope": true,
+      "reference": "inputs/planning-draft.md (현재 사실 - 조합 기준/증강 정책, 선택지 B·C, 질문 3); inputs/source-research.md (저장·분석 경로 독립 조사); inputs/storage-support-options.md (검토가 필요한 구체 계약)",
+      "severity": "P1"
+    },
+    {
+      "action": "Add a quantitative sample-size and collection-volume analysis to planning-draft.md showing how many real matches must be collected to reach n >= 100 per composition (exact unit list + active synergies, plus item condition filters), what metrics remain visible when n < 100 (e.g., count/average placement vs. hidden ratio metrics), and whether coarser aggregation or collection-scale adjustments are needed in Phase 2.",
+      "impact": "planning-draft.md recognizes that 128 incomplete records (1,024 participant rows) cannot reach n >= 100 per composition, but assumes Option B or raising the storage cap in Option C solves the issue. Because exact (unit list + active synergies) fingerprints have high cardinality in TFT, reaching n >= 100 for a single composition (and even more so with item filters) requires hundreds to thousands of matches per patch/set—meaning real data may still produce zero visible ratio metrics under single-user API collection limits.",
+      "inScope": true,
+      "reference": "inputs/planning-draft.md (목표, 현재 사실 - 조합 기준, 핵심 문제 4, 선택지 B·C)",
+      "severity": "P1"
+    },
+    {
+      "action": "Make Option B's entry gate in planning-draft.md explicitly contingent on authoritative/official verification of new data_version semantics and deterministic patch-to-catalog provenance (not just empirical shape inspection of <= 20 matches in Phase 1), or else route unverified schemas strictly to Option C (isolated reference statistics) or Option D (hold).",
+      "impact": "planning-draft.md implies that Phase 1 shape diagnosis of up to 20 matches is sufficient to select Option B (merging real matches into confirmed patch statistics). However, source-research.md and storage-support-options.md explicitly forbid accepting undocumented data_version values or promoting unverified releases into confirmed catalog/patch analytics without official or equivalent authoritative semantic proof.",
+      "inScope": true,
+      "reference": "inputs/planning-draft.md (선택지 A·B, 권장안); inputs/source-research.md (실제 저장 지원에 필요한 근거 1·2·4); inputs/storage-support-options.md (선택지 2·3, 검토가 필요한 구체 계약)",
+      "severity": "P2"
+    },
+    {
+      "action": "Constrain Phase 1 extraction of '앞의 두 숫자 그룹 값(릴리스 후보)' from game_version to strict bounds (e.g., only extract 1-2 digit numbers when preceded by a known release prefix/delimiter pattern, and otherwise record only the masked shape signature '9'/'a' and digit-group lengths), and specify where the Phase 1 report is stored and its retention/cleanup rules.",
+      "impact": "Because the diagnosed game_version strings already failed the standard numeric release pattern, the first two numeric groups in an arbitrary non-matching string could be build IDs, timestamps, or other long numeric tokens rather than release numbers. Extracting raw numeric group values without digit-length bounds (unlike data_version, which is bounded to 1-3 digits) risks recording raw unverified payload tokens in violation of the strict de-identification boundary.",
+      "inScope": true,
+      "reference": "inputs/planning-draft.md (1단계 범위 - 기록 항목); inputs/incomplete-match-records.md; inputs/known-issue-ki003.md",
+      "severity": "P2"
+    },
+    {
+      "action": "Clarify in planning-draft.md how Phase 1 relates to the initial 5 failed matches in KI-003 (e.g., whether the same match list or sampling criterion will be used to verify whether all 5 share the same failure category or have earlier parser exceptions) and confirm that Phase 1 read-only diagnostics will not write to or alter IncompleteMatchRecord storage.",
+      "impact": "known-issue-ki003.md and storage-support-options.md require verifying the relationship between the original 5 failed matches and the subsequent single-match diagnostics, as parsing exceptions can mask downstream failure causes; leaving the match selection method unspecified in Phase 1 may leave the original KI-003 cohort unverified.",
+      "inScope": true,
+      "reference": "inputs/planning-draft.md (현재 사실, 1단계 범위); inputs/known-issue-ki003.md; inputs/storage-support-options.md (검토가 필요한 구체 계약)",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "7b43ab44384ee9e5709a828290691f4cb7cc23b472354938928f6942403d5c79",
+  "taskId": "2026-11-16-real-match-planning",
+  "unverified": [
+    "Actual C# implementation files (MatchAnonymizer, AnonymousParticipant, CompositionFingerprintBuilder, MetricPolicy, AggregateBuilder, ObservationStore) were not inspected directly because tool and file access were prohibited.",
+    "Live Riot API response payloads and Unity runtime behavior were not executed or inspected."
+  ],
+  "verdict": "revise"
+}

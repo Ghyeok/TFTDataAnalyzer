@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-16-real-match-plan-recheck",
+  "files": [
+    {
+      "copy": "inputs/integration-review.md",
+      "sha256": "3b1caa6036d3a2a7ad36c090491f801886f3f1ed942b20a2da8fb4c28b9251b1"
+    },
+    {
+      "copy": "inputs/previous-review-a.json",
+      "sha256": "86be039538b07e3f6886d42ac657e66fc8df3e631199b9199ebdc39a4dbe466d"
+    },
+    {
+      "copy": "inputs/revised-implementation-plan.md",
+      "sha256": "42a31841905cb5c95d9e8bc908791fb941415207f67629ec0540c0a383500a4f"
+    }
+  ],
+  "inputDigest": "631da01e7b0bafb00fdeba82ed80c546d80ddb1f97736a733382d2ed37938e9d"
+}
