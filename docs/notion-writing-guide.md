@@ -87,3 +87,4 @@ PR, 코드 스냅샷, 사용법 문서 링크
 - [09. 정적 카탈로그 탐색·출처와 변경 비교](https://app.notion.com/p/41755d93ee23811e89e3d4e00c244d39)
 - [10. 경기 수집 실패 진단과 불완전 수신 기록](https://app.notion.com/p/41755d93ee23810db84fddd5e9df3ad9)
 - [11. 경기 종료 조합과 조건별 재집계](https://app.notion.com/p/41755d93ee2381d58021dd0b6d8d5dc4)
+- [12. 실제 경기 형태의 비식별 진단 도구 (KI-003 1단계)](https://app.notion.com/p/41a55d93ee23817e8fc2d1d040968850)
