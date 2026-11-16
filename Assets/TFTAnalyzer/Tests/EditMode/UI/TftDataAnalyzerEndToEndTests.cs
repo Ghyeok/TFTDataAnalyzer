@@ -328,7 +328,8 @@ namespace TFTAnalyzer.Tests.UI
                 _approveImport = true;
                 SetImportInputs(tree, false);
                 Submit(tree, "import-button"); await Settle(() => _data.IsBusy);
-                Assert.That(_data.State, Is.EqualTo(DataManagerState.Succeeded), _data.ErrorCode);
+                Assert.That(_data.State, Is.EqualTo(DataManagerState.Succeeded),
+                    $"{_data.ErrorCode}\nException type: {_data.LastImportFailureType}\nMethods: {_data.LastImportFailureStack}");
                 Assert.That(_transport.StaticUrls.Count(url => url.EndsWith("/api/versions.json", StringComparison.Ordinal)), Is.EqualTo(1),
                     "Import completion must refresh its notice without another version-list request.");
                 Assert.That(tree.Q<Label>("startup-version-notice").text, Does.Contain("16.18.2").And.Contain("16.18.1"));
