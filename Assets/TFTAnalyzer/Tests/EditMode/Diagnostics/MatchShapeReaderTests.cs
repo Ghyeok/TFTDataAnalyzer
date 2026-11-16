@@ -55,7 +55,8 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That((string)Signature((JObject)queue["gameVersion"])["type"], Is.EqualTo("string"));
             Assert.That((bool)Signature((JObject)queue["gameVersion"])["truncated"], Is.False);
             Assert.That((int)queue["gameVersion"]["versionPrefix"]["present"], Is.EqualTo(1));
-            Assert.That((string)queue["gameVersion"]["leadingGroups"][0]["value"], Is.EqualTo("16.18"));
+            // The fixture build "16.18.123.456" is IPv4-shaped, so only digit counts are kept; release matching still uses the full string.
+            Assert.That((string)queue["gameVersion"]["leadingGroups"][0]["value"], Is.EqualTo("#2.#2"));
             Assert.That((string)Signature((JObject)queue["dataVersion"])["signature"], Is.EqualTo("9"));
             Assert.That((string)queue["dataVersion"]["leadingGroups"][0]["value"], Is.EqualTo("2"));
             Assert.That((int)queue["gameVersionRegex"]["match"], Is.EqualTo(1));
@@ -131,7 +132,7 @@ namespace TFTAnalyzer.Tests.Diagnostics
             Assert.That((int)queue["gameVersion"]["types"]["other"], Is.EqualTo(1));
             Assert.That((int)queue["gameVersion"]["versionPrefix"]["present"], Is.EqualTo(2));
             var groups = ((JArray)queue["gameVersion"]["leadingGroups"]).ToDictionary(g => (string)g["value"], g => (int)g["count"]);
-            Assert.That(groups, Is.EquivalentTo(new Dictionary<string, int> { ["14.1"] = 1, ["16.18"] = 1, ["none"] = 1 }));
+            Assert.That(groups, Is.EquivalentTo(new Dictionary<string, int> { ["14.1"] = 1, ["#2.#2"] = 1, ["none"] = 1 }));
         }
 
         [Test]

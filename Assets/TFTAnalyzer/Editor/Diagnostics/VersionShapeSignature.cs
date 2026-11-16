@@ -37,7 +37,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
         private static readonly Regex SignaturePattern = new Regex(
             @"\A(?:[a9_.()\[\]<>/:\-?]|\{x:(?:1-5|6-8|9-16|17-32|33-64|65\+)\})*\z", RegexOptions.CultureInvariant);
         private static readonly Regex GroupsPattern = new Regex(
-            @"\A(?:none|(?:[0-9]{1,3}|#(?:[1-9]|[1-5][0-9]|6[0-4]|65\+))(?:\.(?:[0-9]{1,3}|#(?:[1-9]|[1-5][0-9]|6[0-4]|65\+)))?)\z",
+            @"\A(?:none|(?:[0-9]{1,2}|#(?:[1-9]|[1-5][0-9]|6[0-4]|65\+))(?:\.(?:[0-9]{1,2}|#(?:[1-9]|[1-5][0-9]|6[0-4]|65\+)))?)\z",
             RegexOptions.CultureInvariant);
         private const string Punctuation = ".()[]<>/:-";
 
@@ -58,17 +58,18 @@ namespace TFTAnalyzer.Editor.Diagnostics
             }
             text = text ?? "";
             var classes = Classify(text, out var tokens);
+            var groups = LeadingGroups(tokens, classes);
             var signature = Fold(classes, out var truncated);
             var prefix = type == "string" && text.Length > VersionPrefix.Length &&
                          text.StartsWith(VersionPrefix, StringComparison.Ordinal);
-            return new VersionShape(type, signature, truncated, prefix, LeadingGroups(tokens));
+            return new VersionShape(type, signature, truncated, prefix, groups);
         }
 
         /// <summary>Accepts only the signature alphabet and fixed length-bucket tokens.</summary>
         public static bool IsValidSignature(string value)
             => value != null && value.Length <= MaxSignatureLength && SignaturePattern.IsMatch(value);
 
-        /// <summary>Accepts only up to two groups of 1-3 ASCII digits or digit-count markers.</summary>
+        /// <summary>Accepts only up to two groups of 1-2 ASCII digits or digit-count markers.</summary>
         public static bool IsValidLeadingGroups(string value) => value != null && GroupsPattern.IsMatch(value);
 
         /// <summary>Extracts the first two numeric groups exactly as the normal admission path would.</summary>
@@ -108,7 +109,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
                 classes.Add(mapped);
                 if (mapped == 'a' || mapped == '9')
                 {
-                    if (current == null) tokens.Add(current = new Token());
+                    if (current == null) tokens.Add(current = new Token { Start = classes.Count - 1 });
                     current.Length++;
                     if (mapped == 'a') current.HasLetter = true;
                     if (!asciiDigit) current.NonAscii = true;
@@ -209,14 +210,19 @@ namespace TFTAnalyzer.Editor.Diagnostics
             return "{x:65+}";
         }
 
-        /// <summary>Keeps raw values only for the first two all-digit tokens of 1-3 ASCII digits; others become digit counts.</summary>
-        private static string LeadingGroups(List<Token> tokens)
+        /// <summary>
+        /// Privacy-first leading groups: raw values only for the first two all-digit tokens when each is 1-2 ASCII digits,
+        /// otherwise digit counts. If any IPv4-shaped run exists (exactly four dot-separated all-digit groups of 1-3
+        /// digits), every group is recorded as a digit count. Release matching uses the full string separately.
+        /// </summary>
+        private static string LeadingGroups(List<Token> tokens, List<char> classes)
         {
+            var ipv4 = HasIpv4Run(tokens, classes);
             var groups = new List<string>(2);
             foreach (var token in tokens)
             {
                 if (token.HasLetter) continue;
-                groups.Add(!token.NonAscii && token.Length <= 3
+                groups.Add(!ipv4 && !token.NonAscii && token.Length <= 2
                     ? token.Digits.ToString()
                     : "#" + (token.Length > 64 ? "65+" : token.Length.ToString(CultureInfo.InvariantCulture)));
                 if (groups.Count == 2) break;
@@ -225,8 +231,31 @@ namespace TFTAnalyzer.Editor.Diagnostics
             return groups.Count == 0 ? NoGroups : string.Join(".", groups);
         }
 
+        /// <summary>Finds a maximal chain of exactly four all-digit tokens of 1-3 digits joined by single dots.</summary>
+        private static bool HasIpv4Run(List<Token> tokens, List<char> classes)
+        {
+            for (var i = 0; i < tokens.Count;)
+            {
+                var j = i;
+                while (j + 1 < tokens.Count && !tokens[j].HasLetter && !tokens[j + 1].HasLetter &&
+                       tokens[j + 1].Start == tokens[j].Start + tokens[j].Length + 1 &&
+                       classes[tokens[j].Start + tokens[j].Length] == '.')
+                    j++;
+                var length = j - i + 1;
+                if (length == 4 && !tokens[i].HasLetter)
+                {
+                    var allShort = true;
+                    for (var k = i; k <= j; k++) allShort &= tokens[k].Length >= 1 && tokens[k].Length <= 3;
+                    if (allShort) return true;
+                }
+                i = j + 1;
+            }
+            return false;
+        }
+
         private sealed class Token
         {
+            public int Start;
             public int Length;
             public bool HasLetter;
             public bool NonAscii;
