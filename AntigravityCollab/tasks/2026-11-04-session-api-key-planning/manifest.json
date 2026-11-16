@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-04-session-api-key-planning",
+  "baseCommit": "6a6f787d5ec5346f92bfdd5c605715d4df6e97e6",
+  "files": [
+    {
+      "copy": "inputs/implementation-plan.md",
+      "source": "세션 키 계획 및 현재 소스 계약의 비밀 없는 요약",
+      "sha256": "5c0c3d35acdfc91252648ae3fabd25e8a4f14d7b49e34830c1d2b4b26e2ce97b"
+    },
+    {
+      "copy": "inputs/source-contract.md",
+      "source": "세션 키 계획 및 현재 소스 계약의 비밀 없는 요약",
+      "sha256": "87596a07f29a1e360cdedb636ffce9fad9b539fe6c8fc388be7ee744d1aa4aaa"
+    }
+  ],
+  "inputDigest": "d840dc2ed0e8c22a1dd5abc5be7c4fb47d52e465a80a33f6c5f5705088e48ead",
+  "inputBytes": 6641
+}

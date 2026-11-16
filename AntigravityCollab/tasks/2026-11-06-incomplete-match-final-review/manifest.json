@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-06-incomplete-match-final-review",
+  "baseCommit": "ba50db8ad5ef8dc6ef58153cee57da0f8555588c",
+  "files": [
+    {
+      "copy": "inputs/plan.md",
+      "source": "Assets/Plan/Workflow/Cycles/2026-11-05-incomplete-match/ImplementationPlan.md",
+      "sha256": "990e6823195af01802ac35a74ab890ef0d3c09d2eed0ee9059088b516c784e3e"
+    },
+    {
+      "copy": "inputs/previous-review.json",
+      "source": "AntigravityCollab/tasks/2026-11-06-incomplete-match-integrated-review/outputs/review.json",
+      "sha256": "b7876fbe94277c0c8f96051819c86b58c41389a3311f6c1c8c2243ad4030792c"
+    }
+  ],
+  "inputDigest": "a3b36a19d046caa6d562c563e0ed0d9e0d057cdf7d90cb21b6969230492795fc",
+  "inputBytes": 9382
+}

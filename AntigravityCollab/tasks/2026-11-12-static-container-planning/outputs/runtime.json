@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-12-static-container-planning",
+  "inputDigest": "70a1596848312159cdafb9a7201756916f979f749e94cc245d1adefbb8e20c8e",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.6",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 24564,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 9049,
+    "output_tokens": 1225,
+    "thinking_tokens": 793,
+    "cache_read_tokens": 0,
+    "total_tokens": 10274
+  },
+  "responseSeconds": 24.8527077,
+  "exitCode": 0,
+  "durationSeconds": 32.048
+}

@@ -1,0 +1,47 @@
+{
+  "findings": [
+    {
+      "action": "Defer hard duplicate-ID failure or record-overwrite rejection until after target set/selection filtering (or scope collision checks to records participating in the active set and set-prefix discovery), while recording non-blocking diagnostics for out-of-scope collisions so unrelated historical sets cannot brick a valid import.",
+      "impact": "Rejecting any internal-ID collision in raw `ReadRecords` before set filtering can block otherwise usable imports when unselected historical sets or generic entries contain duplicate internal IDs, whereas pre-filter dictionary overwrite (`result[id] = ...`) silently drops records before the catalog validator runs.",
+      "inScope": true,
+      "reference": "inputs/technical.md (ReadRecords pre-filter dictionary assignment vs. set-specific selection and champion set-prefix discovery)",
+      "severity": "P1"
+    },
+    {
+      "action": "Get explicit product approval on conflict resolution policy before implementation: fail-closed (abort without publishing partial catalog or modifying existing published catalogs) when selected records share a resolved ID with differing payloads, and only deduplicate identical rows if an exact, deterministic field-equality and provenance rule is defined; otherwise treat all in-scope same-locale duplicate resolved IDs as hard errors.",
+      "impact": "New duplicate-handling behavior is not yet approved; silently picking first or last record hides data loss, and treating duplicate rows as \"identical\" without an exact testable definition of equality and provenance risks silent metadata/provenance drift or non-deterministic outputs.",
+      "inScope": true,
+      "reference": "inputs/evidence.md (unapproved behavior, silent overwrite, immutable published catalogs); inputs/technical.md (first/last selection vs. identical/different row treatment)",
+      "severity": "P1"
+    },
+    {
+      "action": "Track resolved ID provenance (source JSON property key vs. internal `id` field, document kind, and locale) during parsing; normalize whitespace/empty internal `id` values consistently before fallback, and detect collisions both between two explicit internal `id`s and between an explicit internal `id` and another entry's fallback property key within the same locale and document kind.",
+      "impact": "`ReadRecords` uses internal `id` if present or falls back to the JSON property key; collisions across different JSON keys sharing an internal `id`, empty/whitespace internal `id`s, or an explicit `id` colliding with another record's fallback property key evade JSON duplicate-key checks and overwrite silently.",
+      "inScope": true,
+      "reference": "inputs/evidence.md (two different JSON property keys with same internal id); inputs/technical.md (internal id fallback to property name, missing/empty ids)",
+      "severity": "P2"
+    },
+    {
+      "action": "Scope duplicate-ID detection strictly per locale and per document kind prior to cross-locale translation alignment, preserve the narrow 16.22.1 augment-container duplicate metadata exception without broadening it to general record IDs, and emit bounded, deterministic diagnostics (sorted by resolved ID and source JSON keys) to the UI import report and error channel.",
+      "impact": "Cross-language translation alignment legitimately joins matching IDs across locales and would break if collision checks span locales; conversely, unbounded or unordered diagnostics degrade import report usability and reproducibility, or could accidentally widen the 16.22.1 augment-container exception.",
+      "inScope": true,
+      "reference": "inputs/technical.md (cross-language alignment, 16.22.1 augment-container exception, bounded UI import report diagnostics, deterministic ordering)",
+      "severity": "P2"
+    },
+    {
+      "action": "Define TDD/QA test cases covering: (1) same internal ID under two distinct JSON keys in selected set (hard error, no partial catalog written, existing catalog untouched), (2) duplicate internal IDs in unselected historical sets (import succeeds with bounded warning/diagnostic), (3) explicit internal ID colliding with a fallback property key and missing/empty ID handling, (4) identical IDs across different locales (allowed for translation alignment), and (5) preservation of the 16.22.1 official dataset baseline (0 collisions) and narrow augment-container exception.",
+      "impact": "The collision was only reproduced once in a synthetic parser test while 16.22.1 official files had 0 repeated internal IDs; without targeted automated tests for in-scope vs. out-of-scope collisions, fallback keys, locale boundaries, and catalog immutability on failure, regressions or false positives can recur unnoticed.",
+      "inScope": true,
+      "reference": "inputs/evidence.md (synthetic reproduction, 16.22.1 baseline, catalog immutability); inputs/technical.md (TDD/QA cases, explicit data preservation)",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "a5099664e3b329664357292d2d5d81756b4f6255e003cd6c762ea417a720ade1",
+  "taskId": "2026-11-13-official-duplicate-id-planning",
+  "unverified": [
+    "Whether official Data Dragon or CommunityDragon patches other than 16.22.1 contain repeated internal IDs in selected or historical sets (not claimed in supplied evidence).",
+    "Whether duplicate internal IDs in champion records can ambiguously affect set-prefix discovery when one record belongs to the target set and another does not.",
+    "Exact field-by-field equality and provenance schema required if identical-record deduplication is chosen over strict rejection for in-scope duplicate IDs."
+  ],
+  "verdict": "revise"
+}

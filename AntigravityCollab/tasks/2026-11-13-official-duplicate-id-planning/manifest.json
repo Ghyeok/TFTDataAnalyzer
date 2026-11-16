@@ -1,0 +1,14 @@
+{
+  "taskId": "2026-11-13-official-duplicate-id-planning",
+  "files": [
+    {
+      "copy": "inputs/evidence.md",
+      "sha256": "46d1c4f79757b87df7292a675f637c6bdee48fa5514effe794cfc6c196e8fd6e"
+    },
+    {
+      "copy": "inputs/technical.md",
+      "sha256": "ea2f5e727ce71edc8a8f345a301ec4f27c7d6f83fae25d396f1201995153b6f3"
+    }
+  ],
+  "inputDigest": "a5099664e3b329664357292d2d5d81756b4f6255e003cd6c762ea417a720ade1"
+}

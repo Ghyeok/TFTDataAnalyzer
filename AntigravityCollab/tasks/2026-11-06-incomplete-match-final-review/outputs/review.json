@@ -1,0 +1,10 @@
+{
+  "findings": [],
+  "inputDigest": "a3b36a19d046caa6d562c563e0ed0d9e0d057cdf7d90cb21b6969230492795fc",
+  "taskId": "2026-11-06-incomplete-match-final-review",
+  "unverified": [
+    "실제 Riot API 호출 및 이전 수집 실패 5건의 실제 별도 보관·재확보 성공 여부(합성 데이터 검증과 분리됨)",
+    "실제 실행 환경의 파일·네트워크·도구 접근 차단 동작 여부"
+  ],
+  "verdict": "pass"
+}

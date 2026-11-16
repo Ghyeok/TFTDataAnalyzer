@@ -1,0 +1,1 @@
+Review the supplied integrated proposal including B objection. Decide whether it preserves data and availability, identify blocking gaps or concrete implementation risks. No tools, files, network or delegation. Return the required schema and task identity.

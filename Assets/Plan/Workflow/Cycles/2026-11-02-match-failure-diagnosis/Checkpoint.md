@@ -1,10 +1,10 @@
 # 실제 경기 수집 실패 진단 체크포인트
 
-상태: 실패 이유 표시 구현·검증 완료, PR 생성 전. 기준 main 6a6f787, 브랜치 codex/collection-failure-reasons. 사용자 요청은 원인 분석·해결 및 PR이며, 원래 5건의 개별 원인은 미확인이다. 같은 오류의 근거 없는 반복은 중단한다.
+상태: 실패 이유 표시 구현·검증 후 [PR #25](https://github.com/Ghyeok/TFTDataAnalyzer/pull/25)로 main `ba50db8`에 병합됐다. 원래 기준 main `6a6f787`, 작업 브랜치는 `codex/collection-failure-reasons`였다. 원래 5건의 개별 원인과 실제 저장 성공은 미확인이다. 같은 오류의 근거 없는 반복은 중단한다.
 
 2026-11-05 [실패 이유 표시 계획](refined/FailureReasonPlan.md)의 TODO 1~3을 완료했다. 기존 공개 오류 Code와 경기 수용·거절 조건을 유지하며 고정 ReasonCode, 실패 이벤트당 하나의 6범주 건수, 취소·초기화·예외 fallback 보존 및 화면 안내를 추가했다. Unity 컴파일 completed·오류 0, 대상 168건 통과, 전체 EditMode 1,018건 중 1,016통과·실패0·건너뜀2·미결0, 독립 코드검수·QA의 차단 결함 없음을 확인했다. 테스트·컴파일 수치는 이 세션의 root CLI 출력 확인에 근거하며 별도 결과 파일은 저장하지 않았다.
 
-동일 소유 창 도구의 `-FailureReasons`로 940/500px PNG를 생성했고 root가 두 이미지를 직접 확인했다. `-QuarantineReport` 회귀도 성공했다. 두 실행 모두 기존 창9개·native 프레임1개·포커스를 보존하고 소유 창·추가/누락 프레임0을 확인했다. 실제 API 호출은 하지 않았고 불완전 경기 보관 기능은 구현하지 않았다. 상세 변경·증거·사용법은 [결과 문서](refined/FailureReasonResults.md)를 따른다. 다음은 PR 생성·최신 head 검수와 CI 확인이며 병합·사용자 최종 승인은 아직 완료하지 않았다.
+동일 소유 창 도구의 `-FailureReasons`로 940/500px PNG를 생성했고 root가 두 이미지를 직접 확인했다. `-QuarantineReport` 회귀도 성공했다. 두 실행 모두 기존 창9개·native 프레임1개·포커스를 보존하고 소유 창·추가/누락 프레임0을 확인했다. 이 검증에서 실제 API 호출은 하지 않았고 불완전 경기 보관 기능은 구현하지 않았다. 상세 변경·증거·사용법은 [결과 문서](refined/FailureReasonResults.md)를 따른다. 사용자 최종 결과 승인은 별도다.
 
 2026-11-05 사용자는 불완전 경기의 읽을 수 있는 필드를 익명 격리하고 빈 값과 알 수 없음을 구분하여 확인 필요 및 참고용 카탈로그를 표시하는 후속 방향을 확정했다. 그 구현보다 [실패 이유 표시](refined/FailureReasonPlan.md)를 먼저 진행하도록 요청했다. GPT 기획 B 조건부 적합, Antigravity 기획 A revise 결과를 통합했다. 자동 승인 검토가 최초 비식별 문서 전송을 거절한 뒤 사용자가 전송을 명시적으로 승인했으며 A 호출은 성공했다. 실제 API 호출은 하지 않았다.
 

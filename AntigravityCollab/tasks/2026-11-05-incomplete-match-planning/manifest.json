@@ -1,0 +1,18 @@
+{
+  "taskId": "2026-11-05-incomplete-match-planning",
+  "baseCommit": "ba50db8ad5ef8dc6ef58153cee57da0f8555588c",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "source": "승인 방향 및 기존 코드 계약의 비식별 요약",
+      "sha256": "9e3dece0176fbc130dc39d56f3859de55a3388c7fb331143029962d023d8f0cf"
+    },
+    {
+      "copy": "inputs/technical-context.md",
+      "source": "승인 방향 및 기존 코드 계약의 비식별 요약",
+      "sha256": "bc17bdb542cc1f184198bb1badf83de59c3fb8754206614852c3adf6d8adfab9"
+    }
+  ],
+  "inputDigest": "6c8303c95987334c4147b98c4533b1dc6c8d9ed7b399366e59a1d2da9459a27c",
+  "inputBytes": 3741
+}

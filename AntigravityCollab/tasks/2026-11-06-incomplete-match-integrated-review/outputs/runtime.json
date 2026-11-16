@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-06-incomplete-match-integrated-review",
+  "inputDigest": "66da0d875c4c5374ce2ae0fd37bd1f89c257e3eaa564cf4de97e37a9b8e2eb76",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.1",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 38036,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8948,
+    "output_tokens": 2419,
+    "thinking_tokens": 1876,
+    "cache_read_tokens": 0,
+    "total_tokens": 11367
+  },
+  "responseSeconds": 37.8112733,
+  "exitCode": 0,
+  "durationSeconds": 45.162
+}

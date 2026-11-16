@@ -1,0 +1,14 @@
+{
+  "taskId": "2026-11-12-static-container-planning",
+  "files": [
+    {
+      "copy": "inputs/scope.md",
+      "sha256": "098ab275e661d458af4ddf0484a47bbd810cd6940f7469757141c321532e28ed"
+    },
+    {
+      "copy": "inputs/technical.md",
+      "sha256": "bdc54f9da40b09edd5f960dc8945f33dd97e5a86cb1880dc1d199f5c7f59dd44"
+    }
+  ],
+  "inputDigest": "70a1596848312159cdafb9a7201756916f979f749e94cc245d1adefbb8e20c8e"
+}

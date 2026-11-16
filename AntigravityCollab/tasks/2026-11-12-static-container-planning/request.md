@@ -1,0 +1,1 @@
+Review the supplied proposal independently for product scope, safety, and missing acceptance criteria. No tools, additional files, network, or delegation. Return the required schema and task identity.

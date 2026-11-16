@@ -6,7 +6,16 @@ Unity Editor에서 **Teamfight Tactics(TFT)의 시즌·패치별 정적 데이�
 
 ## 개발 현황
 
-[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 최신 CodeRabbit·미해결0·실행 증거 확인 후 [PR #22](https://github.com/Ghyeok/TFTDataAnalyzer/pull/22)로 main f997472에 병합했습니다. 다음 [구조화 정적 데이터 계획](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/ImplementationPlan.md)은 기물 능력치·스킬 수치·시너지 구간·아이템 제한과 비실행 확장 자료를 다룹니다. 사용자 승인 후 실제 어댑터부터 schema4 저장·차이 비교·구조화 탐색까지 구현·독립 코드검수·QA를 통과했습니다. 최신939개 중937통과·실패0·호스트2제외, 관련113건·UI227건·최신8PNG 및 창 정리를 확인했고 최신head6acc2a0의 CodeRabbit·미해결0·실행증거를 확인해 [PR23](https://github.com/Ghyeok/TFTDataAnalyzer/pull/23)/main7922fa6에 병합했습니다. [사용법과 제한](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/FinalDocumentation.md)을 확인하세요. 원본에 없는 성급/장착 규칙은 추정하지 않습니다. [현지화 분리 저장 작업](Assets/Plan/Workflow/Cycles/2026-10-27-localized-catalog-storage/Checkpoint.md)은 사용자 승인 후 별도 브랜치에서 구현했고 전체 EditMode 999건 중 997건 통과, 환경 제한으로 2건을 건너뛰었습니다. 독립 최종 QA를 통과했으며 아직 main에 병합하지 않았습니다.
+2026-11-12 확인 기준, 정적 카탈로그 탐색·비교와 경기 수집 실패 이유 표시를 사용할 수 있습니다. [정적 변경 요약](docs/static-change-summary.md)은 [PR #28](https://github.com/Ghyeok/TFTDataAnalyzer/pull/28), [경기 종료 조합 기준과 조건별 재집계](docs/relaxed-composition.md)는 [PR #29](https://github.com/Ghyeok/TFTDataAnalyzer/pull/29)로 병합됐습니다. 불완전 경기 별도 보관은 로컬에서 개발 중이며 병합된 기능이 아닙니다. 최초 실제 수집 실패 5건의 개별 원인과 실제 저장 성공은 확인되지 않았으며 [알려진 문제](docs/known-issues.md)를 참고하세요.
+
+### 이전 작업 이력
+
+아래 문단의 검증 건수·커밋·‘최신’ 표현은 각 작업 당시의 기록입니다. 현재 상태나 새 실행 결과로 해석하지 않습니다.
+
+<details>
+<summary>2026년 10월 작업 이력 보기</summary>
+
+[보완 자료 형식 호환](Assets/Plan/Workflow/Cycles/2026-10-22-community-shape-compatibility/Checkpoint.md)은 최신 CodeRabbit·미해결0·실행 증거 확인 후 [PR #22](https://github.com/Ghyeok/TFTDataAnalyzer/pull/22)로 main f997472에 병합했습니다. 다음 [구조화 정적 데이터 계획](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/ImplementationPlan.md)은 기물 능력치·스킬 수치·시너지 구간·아이템 제한과 비실행 확장 자료를 다룹니다. 사용자 승인 후 실제 어댑터부터 schema4 저장·차이 비교·구조화 탐색까지 구현·독립 코드검수·QA를 통과했습니다. 최신939개 중937통과·실패0·호스트2제외, 관련113건·UI227건·최신8PNG 및 창 정리를 확인했고 최신head6acc2a0의 CodeRabbit·미해결0·실행증거를 확인해 [PR23](https://github.com/Ghyeok/TFTDataAnalyzer/pull/23)/main7922fa6에 병합했습니다. [사용법과 제한](Assets/Plan/Workflow/Cycles/2026-10-26-structured-static-data/refined/FinalDocumentation.md)을 확인하세요. 원본에 없는 성급/장착 규칙은 추정하지 않습니다. [현지화 분리 저장 작업](Assets/Plan/Workflow/Cycles/2026-10-27-localized-catalog-storage/Checkpoint.md)은 사용자 승인 후 구현·독립 QA를 통과했고 전체 EditMode 999건 중 997건 통과, 환경 제한으로 2건을 건너뛰었습니다. 최신 head 검수 후 [PR #24](https://github.com/Ghyeok/TFTDataAnalyzer/pull/24)로 main 6a6f787에 병합했습니다.
 
 [필드별 출처 기록](Assets/Plan/Workflow/Cycles/2026-10-22-field-provenance/Checkpoint.md)은 사용자 승인 후 구현·코드검수를 마쳤고 최신 전체797개 중795통과·실패0·호스트제약2제외와 실제4PNG를 확인했습니다. 새 가져오기는 schema3에 값별 공식/보완 출처를 보존하고 탐색 상세에 표시합니다. 기존schema1/2의 파일·해시는 유지하며 같은 내용의 구 팩을 재사용하면 실제 구 형식을 반환하고 ‘필드별 출처 정보 없음’을 안내합니다. 독립 최종QA와 최신 커밋 검수 통과 후 PR #21/main5a67afb에 병합됐습니다.
 
@@ -31,7 +40,9 @@ Editor 시작 후 유휴 시점의 원본 버전 자동 확인은24시간에 한
 
 [수집 준비 상태 안내 수정](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/Checkpoint.md)은 기획 A/B 검토·사용자 승인 후 구현·코드 검수·QA를 통과했습니다. 최초 수집 전에는 카탈로그·입력·API 키·수집 대상 중 부족한 조건을 안내하고, 이전 실행 결과는 보존합니다. 검증 전후 기존 창·프레임과 보호 파일은 같았습니다. Unity 연결 도구의 통신 오류2건은 별도 기록했으며 해결을 주장하지 않습니다. PR15의 최신 head 검수·main 병합과 사용자 최종 승인을 완료했습니다([결과와 사용법](Assets/Plan/Workflow/Cycles/2026-10-20-collection-readiness/refined/FinalDocumentation.md)).
 
-최신 증거·한계·재개 위치는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit5분 확인 예약은2026-10-20 사용자 요청으로 삭제하고 목록의 부재를 확인했습니다([운영 지침](docs/coderabbit-monitoring.md)).
+해당 시기의 증거와 한계는 [Task6 체크포인트](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/Checkpoint.md)와 [개발 보고](Assets/Plan/Workflow/Cycles/2026-10-19-startup-e2e/refined/DevelopmentReport.md), 이전 이력은 [분석](Assets/Plan/Workflow/Cycles/2026-10-18-historical-analysis/Checkpoint.md)·[경기 수집](Assets/Plan/Workflow/Cycles/2026-10-16-collection-tab/Checkpoint.md)·[데이터 관리](Assets/Plan/Workflow/Cycles/2026-10-16-static-data-management/Checkpoint.md)를 확인합니다. 기획 검수는 [Antigravity A·GPT B](AntigravityCollab/README.md)로 적용했습니다. Hermes의 CodeRabbit 5분 확인 예약은 2026-10-20 사용자 요청으로 삭제했습니다([운영 지침](docs/coderabbit-monitoring.md)).
+
+</details>
 
 ## 핵심 설계
 
@@ -87,7 +98,7 @@ flowchart TD
 
 ## 경기 분석 설계와 구현 상태
 
-경기 종료 시점의 기물·성급·장착 아이템·활성 시너지·증강을 하나의 **관측 조합**으로 다룹니다. 이는 경기 전체에서 사용한 조합이나 라운드별 전투 기록을 의미하지 않습니다.
+경기 종료 시점의 기물 목록과 활성 시너지 종류를 **조합**의 기준으로 다룹니다. 같은 기물의 수량은 구분하지만 성급·아이템·증강·시너지 활성 구간은 조합을 구분하지 않습니다. 아이템과 증강은 필터로 적용해 조건에 맞는 관측만 다시 집계합니다. 이는 경기 전체에서 사용한 조합이나 마지막 전투에 실제 투입된 기물을 의미하지 않습니다. 자세한 내용은 [조합 분석 안내](docs/relaxed-composition.md)를 확인하세요.
 
 | 지표 | 정의 |
 |---|---|
@@ -102,7 +113,7 @@ flowchart TD
 
 내부 집계는 참가자 수·순위 합계·Top 4와 1위의 분자·분모, 관측 경기 기간과 데이터 버전을 보존합니다. 상대 배치는 조합 쌍마다 한 로비를 한 표본으로 계산하며, 같은 조합이 여러 참가자에게 나타나 비교가 모호한 로비는 제외 건수로 기록합니다. 입력에는 실제 수집 시각이 없어 현재 기간은 경기 시각의 범위입니다.
 
-표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 분류 자료 공급 경로는 연결됐지만 기본 승인 목록이 비어 있으므로, 승인된 `MetricPolicyMetadata` 자료가 등록되기 전까지 증강이 있는 조합의 비율은 차단됩니다. 출처를 보존하는 새 집계 캐시는 `aggregates/2/`에 저장하며 기존 스키마 1 캐시는 보존하고 관측에서 다시 생성해야 합니다.
+표시·로컬 CSV는 `MetricPolicy`가 만든 데이터만 사용합니다. Legend 기반 증강은 비율을 차단하며, 증강의 정책 분류가 없거나 카탈로그와 맞지 않아도 비율을 차단합니다. 실데이터 분류 목록은 이번에 생성하지 않았습니다. 분류 자료 공급 경로는 연결됐지만 기본 승인 목록이 비어 있으므로, 승인된 `MetricPolicyMetadata` 자료가 등록되기 전까지 증강이 있는 조합의 비율은 차단됩니다. 현재 조합 기준의 집계 캐시는 `aggregates/3/generations/`에 저장하며 기존 캐시와 관측은 자동 삭제하지 않습니다.
 
 ### 수집과 저장 원칙
 
@@ -119,7 +130,7 @@ flowchart TD
 
 알 수 없는 정적 ID로 격리한 경기가 있으면 실행 종료 시 종류와 ID 해시만 로컬 격리 보고서로 남깁니다. 수집 화면에서 격리 건수와 저장 성공·실패를 확인할 수 있습니다. 요청 context별 마지막 격리 실행은 저장소의 `diagnostics/quarantine/<contextHash>.json`에 있으며, 원문 ID·PUUID·키·Match ID/해시·경기별 연결은 포함하지 않습니다. 고유 진단4,096개를 넘으면 일부 누락을 표시하고 다음 요청 전에 중단합니다. 취소 전 진단도 저장을 시도하되 실패를 숨기지 않습니다. 격리0 실행은 과거 파일을 덮어쓰거나 이번 저장 성공으로 표시하지 않습니다. 보고서 저장 실패는 이미 저장한 익명 관측을 바꾸지 않습니다.
 
-`MatchCollectionSummary`와 진행률은 요청·응답·저장·중복·제외·실패 건수, 취소·스캔상한 상태, HTTP 상태·다음 시각만 전달합니다. 경기 수집 탭에서 조건 확인 후 수집과 취소를 실행합니다. 401/403/429·키 부재와 저장 오류는 중단하며, 취소·재시도는 이미 확정된 익명 관측을 보존합니다. 429는 수동 재시도 가능 UTC를 표시하고 자동 재개하지 않습니다. 집계는 별도 `AggregateBuilder`로 재생성하며 수집 후 자동 갱신은 구현하지 않았습니다.
+수집 진행 화면은 요청·응답·저장·중복·제외·실패 건수와 실패 이유별 건수, 취소·스캔상한 상태, HTTP 상태·다음 시각을 표시합니다. 실패마다 먼저 확인한 이유 하나만 집계하며 다른 원인은 미확인일 수 있습니다. 경기 수집 탭에서 조건 확인 후 수집과 취소를 실행합니다. 401/403/429·키 부재와 저장 오류는 중단하며, 취소·재시도는 이미 확정된 익명 관측을 보존합니다. 429는 수동 재시도 가능 UTC를 표시하고 자동 재개하지 않습니다. 집계는 별도 `AggregateBuilder`로 재생성하며 수집 후 자동 갱신은 구현하지 않았습니다.
 
 ## 제품 범위
 
@@ -192,7 +203,7 @@ Unity의 **`Window > General > Test Runner`**에서 EditMode 테스트를 실행
 CodeRabbit의 저장소 설정은 [`.coderabbit.yaml`](.coderabbit.yaml)에서 관리합니다.
 
 - 변경 작업은 별도 브랜치에서 진행하고 `main`을 대상으로 PR을 생성합니다.
-- 일반 PR은 한국어로 자동 리뷰하며, Draft PR은 자동 리뷰 대상에서 제외합니다.
+- 저장소 설정은 한국어 자동 검수를 사용하며 Draft PR은 제외합니다. 실제 자동 실행 여부는 대상 브랜치, 저장소 및 CodeRabbit 서비스의 조건과 사용량 제한에 따라 달라집니다.
 - 추가 리뷰가 필요하면 PR 댓글에 `@coderabbitai review`를 입력합니다.
 - 리뷰 지적은 코드와 실제 테스트 결과로 확인한 뒤 반영합니다. CodeRabbit 리뷰가 Unity 컴파일이나 EditMode 테스트를 대체하지 않습니다.
 - `main`에 직접 push하는 작업은 PR 리뷰를 거치지 않습니다.

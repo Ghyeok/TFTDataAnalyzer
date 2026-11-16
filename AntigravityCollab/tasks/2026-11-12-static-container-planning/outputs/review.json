@@ -1,0 +1,25 @@
+{
+  "findings": [
+    {
+      "action": "Define concrete acceptance criteria for the warning surface (e.g., structured warning code/message field on the import report and absence of raw skipped values) and explicit depth/byte bounds on the skipped `augment-container` subtree matching `StructuredStaticReader`.",
+      "impact": "Without explicit acceptance criteria for warning format and skipped-subtree recursion/size limits, the guarded reader could diverge from `StructuredStaticReader` resource limits or emit warnings that callers do not surface.",
+      "inScope": true,
+      "reference": "inputs/technical.md#L1-L3",
+      "severity": "P3"
+    },
+    {
+      "action": "Specify the expected handling of other standard or unexpected top-level properties (such as `type`, `format`, or unknown top-level keys) alongside `data`, `version`, and `augment-container` in the guarded reader acceptance criteria.",
+      "impact": "Ambiguity around top-level keys other than `data`, `version`, and `augment-container` could cause valid top-level metadata to be rejected or duplicate checks on those keys to be omitted.",
+      "inScope": true,
+      "reference": "inputs/technical.md#L2-L3",
+      "severity": "P3"
+    }
+  ],
+  "inputDigest": "70a1596848312159cdafb9a7201756916f979f749e94cc245d1adefbb8e20c8e",
+  "taskId": "2026-11-12-static-container-planning",
+  "unverified": [
+    "Full downstream parsing and publication of the 760 `data` records in the official 16.22.1 Korean and English TFT augment files after skipping `augment-container`.",
+    "Exact report schema or channel used to surface the skipped-metadata warning to callers without altering catalog outputs."
+  ],
+  "verdict": "pass"
+}

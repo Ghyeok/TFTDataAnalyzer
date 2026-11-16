@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-05-incomplete-match-planning",
+  "inputDigest": "6c8303c95987334c4147b98c4533b1dc6c8d9ed7b399366e59a1d2da9459a27c",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.1",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 20076,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 8384,
+    "output_tokens": 2222,
+    "thinking_tokens": 1074,
+    "cache_read_tokens": 0,
+    "total_tokens": 10606
+  },
+  "responseSeconds": 37.2915426,
+  "exitCode": 0,
+  "durationSeconds": 44.237
+}

@@ -1,0 +1,26 @@
+{
+  "taskId": "2026-11-06-incomplete-match-final-review",
+  "inputDigest": "a3b36a19d046caa6d562c563e0ed0d9e0d057cdf7d90cb21b6969230492795fc",
+  "requestedModel": "gemini-4-argon-medium",
+  "requestedEffort": "medium",
+  "cliVersion": "1.5.2",
+  "profile": "scoped supplied planning text only",
+  "accessRestrictionVerified": false,
+  "requestSent": true,
+  "toolAttempts": [],
+  "protocolSucceeded": true,
+  "failure": null,
+  "ownedPid": 36344,
+  "initModel": "gemini-4-argon-medium",
+  "status": "SUCCESS",
+  "usage": {
+    "input_tokens": 9743,
+    "output_tokens": 1034,
+    "thinking_tokens": 867,
+    "cache_read_tokens": 0,
+    "total_tokens": 10777
+  },
+  "responseSeconds": 14.4730525,
+  "exitCode": 0,
+  "durationSeconds": 21.421
+}
