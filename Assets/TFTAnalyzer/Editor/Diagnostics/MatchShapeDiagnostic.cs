@@ -53,6 +53,10 @@ namespace TFTAnalyzer.Editor.Diagnostics
             ReportPublished = reportPublished; ReportFailureCode = reportFailureCode; Classification = classification;
             RunConsumed = runConsumed;
         }
+
+        /// <summary>A run that stopped before any network access; it is never a consumed run.</summary>
+        internal static MatchShapeRunResult PreconditionFailed(string reason)
+            => new MatchShapeRunResult("precondition_failed", reason, 0, 0, false, "none", "undecidable", false);
     }
 
     /// <summary>
@@ -317,8 +321,7 @@ namespace TFTAnalyzer.Editor.Diagnostics
             catch { return false; }
         }
 
-        private static MatchShapeRunResult Precondition(string reason)
-            => new MatchShapeRunResult("precondition_failed", reason, 0, 0, false, "none", "undecidable", false);
+        private static MatchShapeRunResult Precondition(string reason) => MatchShapeRunResult.PreconditionFailed(reason);
 
         private sealed class RunState
         {

@@ -78,6 +78,24 @@ namespace TFTAnalyzer.Tests.Diagnostics
         }
 
         internal static bool IsList(Uri uri) => uri.AbsolutePath.EndsWith("/ids", StringComparison.Ordinal);
+
+        /// <summary>Creates an owned temporary project root inside this project's Library, never in system temp.</summary>
+        internal static string CreateTempRoot()
+        {
+            var root = Path.Combine(Path.GetDirectoryName(UnityEngine.Application.dataPath), "Library", "TftDiagnosticsTests",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            return root;
+        }
+
+        /// <summary>Deletes an owned temporary root and its shared parent once empty.</summary>
+        internal static void DeleteTempRoot(string root)
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            var parent = Path.GetDirectoryName(root);
+            try { if (Directory.Exists(parent) && !Directory.EnumerateFileSystemEntries(parent).Any()) Directory.Delete(parent); }
+            catch (IOException) { }
+        }
     }
 
     internal sealed class FakeClock

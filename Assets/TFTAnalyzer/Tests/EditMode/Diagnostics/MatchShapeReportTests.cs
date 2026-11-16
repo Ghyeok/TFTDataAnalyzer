@@ -21,14 +21,13 @@ namespace TFTAnalyzer.Tests.Diagnostics
         [SetUp]
         public void SetUp()
         {
-            _root = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Library", "TftDiagnosticsTests", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(_root);
+            _root = CreateTempRoot();
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (Directory.Exists(_root)) Directory.Delete(_root, true);
+            DeleteTempRoot(_root);
         }
 
         private string StoreRoot => Path.Combine(_root, "Library", "TftAnalyzerStore");
