@@ -1,0 +1,309 @@
+{
+  "schema": "tft-analyzer.match-shape-diagnostic",
+  "schemaVersion": 1,
+  "status": "completed",
+  "partial": false,
+  "stop": {
+    "stage": "none",
+    "reason": "none"
+  },
+  "runConsumed": true,
+  "requests": {
+    "list": 1,
+    "detail": 20,
+    "total": 21,
+    "limit": 21
+  },
+  "input": {
+    "targetQueue": 1100,
+    "setNumber": 18,
+    "catalogRelease": "16.18",
+    "detailLimit": 20
+  },
+  "unreadableDetails": 0,
+  "queues": [
+    {
+      "queue": "1090",
+      "isTarget": false,
+      "matches": 1,
+      "gameVersion": {
+        "types": {
+          "string": 1,
+          "integer": 0,
+          "null": 0,
+          "other": 0,
+          "missing": 0
+        },
+        "signatures": [
+          {
+            "type": "string",
+            "signature": "aaa_{x:6-8}_{x:6-8}_?.?.?.?",
+            "truncated": false,
+            "count": 1
+          }
+        ],
+        "versionPrefix": {
+          "present": 0,
+          "absent": 1
+        },
+        "leadingGroups": [
+          {
+            "value": "none",
+            "count": 1
+          }
+        ]
+      },
+      "dataVersion": {
+        "types": {
+          "string": 1,
+          "integer": 0,
+          "null": 0,
+          "other": 0,
+          "missing": 0
+        },
+        "signatures": [
+          {
+            "type": "string",
+            "signature": "9",
+            "truncated": false,
+            "count": 1
+          }
+        ],
+        "versionPrefix": {
+          "present": 0,
+          "absent": 1
+        },
+        "leadingGroups": [
+          {
+            "value": "6",
+            "count": 1
+          }
+        ]
+      },
+      "gameVersionRegex": {
+        "match": 0,
+        "noMatch": 1
+      },
+      "release": {
+        "match": 0,
+        "mismatch": 0,
+        "unextractable": 1
+      },
+      "setNumber": {
+        "match": 1,
+        "mismatch": 0,
+        "unavailable": 0
+      },
+      "augmentState": {
+        "allProvided": 0,
+        "noneProvided": 1,
+        "mixed": 0,
+        "noParticipants": 0
+      },
+      "unknownStaticIds": {
+        "unit": {
+          "occurrences": 12,
+          "matches": 1
+        },
+        "item": {
+          "occurrences": 0,
+          "matches": 0
+        },
+        "trait": {
+          "occurrences": 0,
+          "matches": 0
+        },
+        "augment": {
+          "occurrences": 0,
+          "matches": 0
+        }
+      },
+      "requiredFieldRows": [
+        {
+          "fields": {
+            "metadata.match_id": "string",
+            "metadata.data_version": "string",
+            "info.game_version": "string",
+            "info.tft_set_number": "integer",
+            "info.queue_id": "integer",
+            "info.participants": "array:8",
+            "participants[].placement": "integer",
+            "participants[].last_round": "integer",
+            "units[].character_id": "string",
+            "units[].tier": "integer",
+            "units[].itemNames": "array",
+            "traits[].name": "string",
+            "traits[].tier_current": "integer",
+            "participants[].augments": "missing"
+          },
+          "count": 1
+        }
+      ]
+    },
+    {
+      "queue": "1100",
+      "isTarget": true,
+      "matches": 19,
+      "gameVersion": {
+        "types": {
+          "string": 19,
+          "integer": 0,
+          "null": 0,
+          "other": 0,
+          "missing": 0
+        },
+        "signatures": [
+          {
+            "type": "string",
+            "signature": "aaa_{x:6-8}_{x:6-8}_?.?.?.?",
+            "truncated": false,
+            "count": 19
+          }
+        ],
+        "versionPrefix": {
+          "present": 0,
+          "absent": 19
+        },
+        "leadingGroups": [
+          {
+            "value": "none",
+            "count": 19
+          }
+        ]
+      },
+      "dataVersion": {
+        "types": {
+          "string": 19,
+          "integer": 0,
+          "null": 0,
+          "other": 0,
+          "missing": 0
+        },
+        "signatures": [
+          {
+            "type": "string",
+            "signature": "9",
+            "truncated": false,
+            "count": 19
+          }
+        ],
+        "versionPrefix": {
+          "present": 0,
+          "absent": 19
+        },
+        "leadingGroups": [
+          {
+            "value": "6",
+            "count": 19
+          }
+        ]
+      },
+      "gameVersionRegex": {
+        "match": 0,
+        "noMatch": 19
+      },
+      "release": {
+        "match": 0,
+        "mismatch": 0,
+        "unextractable": 19
+      },
+      "setNumber": {
+        "match": 19,
+        "mismatch": 0,
+        "unavailable": 0
+      },
+      "augmentState": {
+        "allProvided": 0,
+        "noneProvided": 19,
+        "mixed": 0,
+        "noParticipants": 0
+      },
+      "unknownStaticIds": {
+        "unit": {
+          "occurrences": 209,
+          "matches": 19
+        },
+        "item": {
+          "occurrences": 2,
+          "matches": 2
+        },
+        "trait": {
+          "occurrences": 0,
+          "matches": 0
+        },
+        "augment": {
+          "occurrences": 0,
+          "matches": 0
+        }
+      },
+      "requiredFieldRows": [
+        {
+          "fields": {
+            "metadata.match_id": "string",
+            "metadata.data_version": "string",
+            "info.game_version": "string",
+            "info.tft_set_number": "integer",
+            "info.queue_id": "integer",
+            "info.participants": "array:8",
+            "participants[].placement": "integer",
+            "participants[].last_round": "integer",
+            "units[].character_id": "string",
+            "units[].tier": "integer",
+            "units[].itemNames": "array",
+            "traits[].name": "string",
+            "traits[].tier_current": "integer",
+            "participants[].augments": "missing"
+          },
+          "count": 19
+        }
+      ]
+    }
+  ],
+  "compositionDiversity": {
+    "scope": "target_queue",
+    "basis": "fingerprint_v2_raw_ids",
+    "interpretation": "lower_bound_reference_single_seed_correlated_sample",
+    "totalBoards": 152,
+    "excludedBoards": 0,
+    "uniqueCompositions": 137,
+    "singletonCompositions": 130,
+    "top5Frequencies": [
+      6,
+      4,
+      3,
+      3,
+      2
+    ],
+    "frequencyOfFrequencies": [
+      {
+        "frequency": 1,
+        "compositions": 130
+      },
+      {
+        "frequency": 2,
+        "compositions": 3
+      },
+      {
+        "frequency": 3,
+        "compositions": 2
+      },
+      {
+        "frequency": 4,
+        "compositions": 1
+      },
+      {
+        "frequency": 6,
+        "compositions": 1
+      }
+    ]
+  },
+  "classification": {
+    "result": "c_or_d",
+    "reason": "release_unextractable",
+    "targetSampleCount": 19,
+    "threshold": 10,
+    "gameVersionSignatureCount": 1,
+    "dataVersionSignatureCount": 1,
+    "unobservedShapeUpper95": 0.1579
+  }
+}
