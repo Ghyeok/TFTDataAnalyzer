@@ -56,7 +56,7 @@
 - [OpenAI 모델 선택 가이드](https://developers.openai.com/api/docs/guides/model-selection), [GPT-6.1 Terra 모델 문서](https://developers.openai.com/api/docs/models/gpt-6.1-terra): 2026-10-28 확인. Terra의 시각 추론·화면 조작·문서 작성과 범위가 좁은 코드 수정 권고를 프로젝트 작업에 적용했다. Sol 배정과 추론 수준은 프로젝트 판단이며 공식 보증이 아니다.
 - Claude 모델 정보: 2026-11-16에 Claude Code 내장 `claude-api` 참고 자료(2026-11-03 기준 모델표)로 가격·기본 effort·권장 용도를 확인했다. [Claude 대응](#claude-대응)은 이를 바탕으로 한 프로젝트 판단이며 공식 보증이 아니다.
 - [Hermes 협업 규칙](../HermesCollab/README.md): 필수 전달 폴더, 역할, 요청·결과 처리 절차.
-- PR 리뷰 설정: [Gemini Code Assist](../.gemini/config.yaml)(모든 PR 자동 검수), [CodeRabbit](../.coderabbit.yaml)(중요한 PR만 수동 요청). 모델 배정과 별도로 관리한다.
+- [CodeRabbit 설정](../.coderabbit.yaml): PR 리뷰 설정. 자동 검수는 끄고 중요한 PR에만 수동 요청한다. 모델 배정과 별도로 관리한다.
 - [AGENTS.md의 보존과 검증](../AGENTS.md#보존과-검증): 완료 판정과 미실행 검증 처리.
 
 이 배정은 프로젝트 운영 기준이며 성능을 보장하지 않는다. 모델 가용성이나 권장 용도가 바뀌면 대표 작업을 같은 조건으로 비교한 뒤 갱신한다.

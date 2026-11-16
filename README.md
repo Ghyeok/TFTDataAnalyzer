@@ -203,11 +203,10 @@ Unity의 **`Window > General > Test Runner`**에서 EditMode 테스트를 실행
 2026-11-16부터 CodeRabbit 사용량을 아끼기 위해 아래 순서로 검수합니다. 판단 기준은 [AGENTS.md의 PR 검수 대기](AGENTS.md#pr-검수-대기)를 따릅니다.
 
 1. PR 생성 전에 로컬에서 Claude Code로 변경 diff를 검토하고, 지적은 실제 코드에 대조해 반영합니다.
-2. 모든 PR은 Gemini Code Assist가 한국어로 자동 검수합니다. 설정은 [`.gemini/config.yaml`](.gemini/config.yaml), 검수 기준은 [`.gemini/styleguide.md`](.gemini/styleguide.md)입니다.
-3. CodeRabbit은 자동 검수를 끄고([`.coderabbit.yaml`](.coderabbit.yaml)), 데이터 손상·비밀값·개인정보, 공통 파서·저장소·분석 계약, 보안·설정·배포 동작 변경처럼 중요한 PR에만 PR 댓글 `@coderabbitai review`로 수동 요청합니다.
+2. CodeRabbit은 자동 검수를 끄고([`.coderabbit.yaml`](.coderabbit.yaml)), 데이터 손상·비밀값·개인정보, 공통 파서·저장소·분석 계약, 보안·설정·배포 동작 변경처럼 중요한 PR에만 PR 댓글 `@coderabbitai review`로 수동 요청합니다.
 
 - 변경 작업은 별도 브랜치에서 진행하고 `main`을 대상으로 PR을 생성합니다.
-- 실제 자동 실행 여부는 GitHub 앱 설치 상태, 대상 브랜치와 각 서비스의 조건·사용량 제한에 따라 달라집니다.
+- CodeRabbit 수동 검수의 실제 실행 여부는 서비스 조건과 사용량 제한에 따라 달라집니다.
 - 리뷰 지적은 코드와 실제 테스트 결과로 확인한 뒤 반영합니다. AI 리뷰가 Unity 컴파일이나 EditMode 테스트를 대체하지 않습니다.
 - `main`에 직접 push하는 작업은 PR 리뷰를 거치지 않습니다.
 

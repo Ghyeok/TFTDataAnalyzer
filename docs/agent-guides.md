@@ -18,7 +18,7 @@
 | 모델·추론 선택의 상세 기준, GPT·Claude 대응 | [모델 선택 지침](agent-model-policy.md) |
 | 서브에이전트 생성·재사용 운영 점검 | [2026-10-20 운영 점검](agent-execution-audit-2026-10-20.md) |
 | Hermes 요청·자료·결과 전달 | [Hermes 협업 규칙](../HermesCollab/README.md) |
-| PR 검수 경로(로컬 Claude Code → Gemini 자동 → 중요 PR만 CodeRabbit 수동) | [AGENTS.md의 PR 검수 대기](../AGENTS.md#pr-검수-대기), [Gemini 검수 기준](../.gemini/styleguide.md) |
+| PR 검수 경로(로컬 Claude Code → 중요 PR만 CodeRabbit 수동) | [AGENTS.md의 PR 검수 대기](../AGENTS.md#pr-검수-대기) |
 | CodeRabbit을 요청한 PR의 5분 점검·알림 범위 | [검수 모니터 지침](coderabbit-monitoring.md) |
 | Notion 개발 일지 구성·문체·확인 사항 | [Notion 작성 가이드](notion-writing-guide.md) |
 
